@@ -23,11 +23,14 @@ enum TokenType{
     LeftBracket, // [
     RightBracket, // ]
     Comma,  // ,
-    FunctionDecl, 
+    FunctionDecl,  // 'function'
     Gives, 
     SemiColon, //;
+    Equal, // = 
+
     // Type qualifications
     Int,
+
     KeywordEnd,
 
     // binary 
@@ -36,6 +39,7 @@ enum TokenType{
     // End 
     Num
 };
+
 
 enum BinaryOperation{
     Add, 
@@ -80,10 +84,14 @@ public:
 
     // consume token
     const Token next();
-
     // don't consume token
     const Token& peek();
     const Token& current();
+
+    // consume the token
+    void consume();
+    TokenType getNextType();
+    TokenType getCurrentType();
 private:
     const static inline std::unordered_map<std::string, TokenType> keyword_map = {
         {"function", FunctionDecl},
@@ -96,7 +104,8 @@ private:
         {",", Comma},
         {"int", Int}, 
         {"gives", Gives},
-        {";", SemiColon}
+        {";", SemiColon},
+        {"=", Equal}
     };
 
     const static inline std::set<char> binary_operator  {'+'};
@@ -109,15 +118,6 @@ private:
     std::ifstream m_file;
 
     Token m_current_token;
-};
-
-class Lexer{
-public:
-    Lexer(const char* filename);
-
-    void start();
-private:
-    Tokenizer m_tokenizer;
 };
 
 

@@ -6,7 +6,9 @@ function testing gives int
     int b,
     int c,
 ]{
-    a + b + c;
+    a = 10;
+    b = 10;
+    c = 10;
 }
 ```
 
@@ -25,7 +27,7 @@ integer_literal :== [0-9]+
 
 expression == assignment_expression  
 
-assignment_expression :==  <integer_literal>, <bin_op>, <integer_literal>
+assignment_expression :==   <identifier>, '=', <integer_literal>, ';'
 
 type_qualification :== 'int'
 

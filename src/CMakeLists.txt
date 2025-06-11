@@ -2,6 +2,8 @@ set(
     SOURCE_FILES
     driver.cpp
     lex.cpp
+    parser.cpp 
+    ast.cpp
 )
 
 add_executable(

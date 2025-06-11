@@ -4,13 +4,18 @@
 #include <string> 
 #include "lex.h"
 
-Lexer::Lexer(const char*filename): 
-    m_tokenizer (filename){
-
+void Tokenizer::consume() {
+    m_current_token = readOneToken();
 }
 
 Tokenizer::Tokenizer(const char* filename): 
     m_file(filename){
+        // FIXME: handle this better!
+        if(!m_file.is_open()){
+            std::cerr << "cannot open file:" << filename <<  "\n";
+            std::exit(-1);
+        }
+
         m_current_token = readOneToken();
 }
 
@@ -56,7 +61,7 @@ Token Tokenizer::readOneToken(){
         }
 
         // consume if this is the first time
-        if(c == '(' || c == ')' || c == '[' || c  == ']' || c == '{' || c == '}' || c == ',' || c == '+' || c==';' ) {
+        if(c == '(' || c == ')' || c == '[' || c  == ']' || c == '{' || c == '}' || c == ',' || c == '+' || c==';' || c== '=' ) {
             // this is a binary operator
             if(is_first_time && binary_operator.find(c) != binary_operator.end() ){
                 return Token(BinaryOperation::Add);
@@ -213,14 +218,6 @@ TokenType Token::getType() const{
     return type;
 }
 
-void Lexer::start(){
-    Token currentToken = m_tokenizer.current();
-     do{
-        currentToken.dump();
-        currentToken = m_tokenizer.next();
-    }while(currentToken.getType() != EndOfFile);
-}
-
 Token::Token(BinaryOperation operation):
     type(BinarySymbol), op(operation)
 {
@@ -229,4 +226,12 @@ Token::Token(BinaryOperation operation):
 
 BinaryOperation Token::getBinaryOperation() const{
     return op;
+}
+
+TokenType Tokenizer::getNextType(){
+     return next().getType();
+}
+
+TokenType Tokenizer::getCurrentType(){
+    return m_current_token.getType();
 }

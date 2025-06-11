@@ -1,9 +1,10 @@
 #include <iostream> 
 
-#include "lex.h"
+#include "parser.h"
 
 int main(){
-    Lexer lexer("testing.txt");
-    lexer.start();
+    Parser parser("testing.txt");
+    ASTBase* base = parser.buildSyntaxTree();
+    base->dump();
     return 0;
 }
