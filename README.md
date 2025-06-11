@@ -14,6 +14,7 @@ function testing gives int
 
 # Grammar Specification
 
+```
 function_decl :== 'function', <identifier>, 'gives', <type_qualification>, 
                     <function_args_list>, '{', <expression>+, ''}'
 
@@ -32,3 +33,4 @@ assignment_expression :==   <identifier>, '=', <integer_literal>, ';'
 type_qualification :== 'int'
 
 bin_op :== '+'
+```
