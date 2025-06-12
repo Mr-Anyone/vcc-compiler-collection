@@ -4,9 +4,14 @@
 #include <string>
 #include <vector>
 
+// llvm includes
+#include "llvm/IR/Value.h"
+#include "llvm/IR/Function.h"
+
+#include "context.h"
 class ASTBase{
 public:
-    virtual void codegen(); 
+    virtual llvm::Value* codegen(ContextHolder holder); 
     virtual void dump();
 private:
 };
@@ -38,7 +43,7 @@ class FunctionDecl : public ASTBase{
 public:
     FunctionDecl(std::vector<ASTBase*>&& expression, FunctionArgLists* arg_list, std::string&& name);
 
-    virtual void codegen() override;
+    virtual llvm::Value* codegen(ContextHolder holder) override;
     void dump() override; 
 private:
     std::vector<ASTBase*> m_expressions;

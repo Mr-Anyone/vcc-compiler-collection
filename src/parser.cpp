@@ -3,13 +3,12 @@
 #include "ast.h"
 #include "parser.h"
 
-Parser::Parser(const char* filename):
-    m_tokenizer(filename){
+Parser::Parser(const char* filename, ContextHolder context):
+    m_tokenizer(filename), m_context(context){
 
 }
 
 ASTBase* Parser::buildSyntaxTree(){
-
     return buildFunctionDecl();
 }
 
