@@ -16,11 +16,11 @@ void ASTBase::dump(){
 FunctionDecl::FunctionDecl(std::vector<ASTBase*>&& expression, FunctionArgLists* arg_list, std::string&& name): 
     ASTBase(), m_expressions(expression), m_arg_list(arg_list), m_name(name){
 
-}
+    }
 
 FunctionArgLists::FunctionArgLists(std::vector<TypeInfo>&& args):
     m_args(args){
-}
+    }
 
 FunctionArgLists::ArgsIter FunctionArgLists::begin() const {
     return m_args.cbegin();
@@ -30,46 +30,52 @@ FunctionArgLists::ArgsIter FunctionArgLists::end() const {
     return m_args.cend();
 }
 
+llvm::Value* FunctionArgLists::codegen(ContextHolder holder){
+    return nullptr;
+}
+
 llvm::Value* FunctionDecl::codegen(ContextHolder holder){
     // FIXME: make this more efficient 
     std::vector<llvm::Type*> args; 
     std::vector<std::string> names;
-    for(auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it){
+
+    // creating function signature
+     for(auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it){
         args.push_back(llvm::Type::getInt32Ty(holder->context));
         names.push_back(it->name);
-    }
-
-    llvm::FunctionType* function_type = 
+    }   
+    
+ llvm::FunctionType* function_type = 
         llvm::FunctionType::get(llvm::Type::getInt32Ty(holder->context), args, /*isVarArg=*/false);
 
     llvm::Function* function = 
         llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
 
-    // set the name
+    // appending to symbol table
     int count = 0;
-    std::vector<llvm::Value*> values;
     for(llvm::Argument& arg: function->args()){
-        arg.setName(names[count++]);
-        values.push_back(&arg);
+        const std::string& name = names[count++];
+        arg.setName(name);
+
+        // adding this to symbol table
+        holder->symbol_table[name] = &arg;
     }
 
-    llvm::BasicBlock* block = llvm::BasicBlock::Create(holder->context, "func_start", function);
-    holder->builder.SetInsertPoint(block);
-    llvm::Value* ret_value = holder->builder.CreateAdd(values[0], values[1]);
-    holder->builder.CreateRet(ret_value);
+    // generating code for something
+    m_arg_list->codegen(holder);
 
     return function;
 }
 
-AssignmentExpression::AssignmentExpression(const std::string& name, long long value): 
+AssignmentStatement::AssignmentStatement(const std::string& name, long long value): 
     ASTBase(), m_name(name), m_value(value) {
-}
+    }
 
-const std::string& AssignmentExpression::getName(){
+const std::string& AssignmentStatement::getName(){
     return m_name;
 }
 
-long long AssignmentExpression::getValue(){
+long long AssignmentStatement::getValue(){
     assert(m_type == Constant && "the value must be a constant");
     return m_value;
 }
@@ -84,4 +90,14 @@ void FunctionDecl::dump(){
     for(auto* exp: m_expressions){
         exp->dump();
     }
+}
+
+ReturnStatement::ReturnStatement(const std::string& name): 
+    ASTBase(), m_name(name), m_type(ReturnType::Identifier){
+    }
+
+llvm::Value* ReturnStatement::codegen(ContextHolder holder){
+    // holder->builder.CreateRet();
+
+    return nullptr;
 }

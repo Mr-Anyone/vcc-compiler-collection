@@ -17,7 +17,10 @@ private:
     // building the function decl
     ASTBase* buildFunctionDecl();
     ASTBase* buildFunctionArgList();
-    ASTBase* buildAssignmentExpression();
+
+    ASTBase* buildAssignmentStatement();
+    ASTBase* buildReturnStatement();
+    ASTBase* buildStatement();
 
     ASTBase* nextTokenOrError(TokenType expected_token, const char* message);
 

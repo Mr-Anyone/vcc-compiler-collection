@@ -3,6 +3,7 @@ set(
     main.cpp
     lex.cpp
     parser.cpp 
+    context.cpp
     ast.cpp
 )
 

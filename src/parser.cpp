@@ -47,7 +47,7 @@ ASTBase* Parser::buildFunctionDecl(){
     // currently only assignment expression is supported
     ASTBase* exp;
     std::vector<ASTBase*> expressions;
-    while((exp = buildAssignmentExpression())){
+    while((exp = buildAssignmentStatement())){
         assert(exp && "expression must be non nullptr");
         expressions.push_back(exp);
     }
@@ -57,7 +57,7 @@ ASTBase* Parser::buildFunctionDecl(){
 }
 
 // assignment_expression :== <identifier>, '=', <integer_literal>, ';'
-ASTBase* Parser::buildAssignmentExpression(){
+ASTBase* Parser::buildAssignmentStatement(){
     if(m_tokenizer.getCurrentType() != Identifier)
         return nullptr;
 
@@ -75,7 +75,7 @@ ASTBase* Parser::buildAssignmentExpression(){
         return nullptr; 
     m_tokenizer.consume();
 
-    return  new AssignmentExpression (name, value);
+    return  new AssignmentStatement (name, value);
 }
 
 
@@ -111,4 +111,22 @@ ASTBase* Parser::buildFunctionArgList(){
     m_tokenizer.consume();
 
    return new FunctionArgLists (std::move(args));
+}
+
+ASTBase* Parser::buildReturnStatement(){
+    if(m_tokenizer.getCurrentType() != Ret){
+        return logError("expected error");
+    }
+    m_tokenizer.consume();
+
+    if(m_tokenizer.getNextType() !=  Identifier){
+        return logError("expected identifier");
+    }
+
+    std::string name = m_tokenizer.current().getStringLiteral();
+    if(m_tokenizer.getNextType() != SemiColon){
+        return logError("expected semi colon");
+    }
+
+    return new class ReturnStatement (name);
 }

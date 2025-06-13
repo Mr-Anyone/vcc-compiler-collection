@@ -27,6 +27,7 @@ enum TokenType{
     Gives, 
     SemiColon, //;
     Equal, // = 
+    Ret, // ret
 
     // Type qualifications
     Int,

@@ -13,6 +13,7 @@ class ASTBase{
 public:
     virtual llvm::Value* codegen(ContextHolder holder); 
     virtual void dump();
+
 private:
 };
 
@@ -27,11 +28,18 @@ struct TypeInfo{
     std::string name; 
 };
 
+//============================== Miscellaneous ==============================
+
+// FIXME: remove this class in the future. This makes
+// this makes codegen have non trivial behavior!
+// We are already expected a function declaration in the LLVM IR 
+// level already, so what is the point of this class?
 class FunctionArgLists : public ASTBase{
 public:
     using ArgsIter = std::vector<TypeInfo>::const_iterator;
 
     FunctionArgLists(std::vector<TypeInfo>&& args);
+    virtual llvm::Value* codegen(ContextHolder holder) override;
 
     ArgsIter begin() const;
     ArgsIter end() const;
@@ -51,13 +59,15 @@ private:
     std::string m_name; 
 };
 
+
+//============================== Statements ==============================
 enum AssignmentType{
     Constant, 
 };
 
-class AssignmentExpression : public ASTBase{
+class AssignmentStatement : public ASTBase{
 public: 
-    AssignmentExpression(const std::string& name, long long value) ;
+    AssignmentStatement(const std::string& name, long long value) ;
 
     const std::string& getName();
     long long getValue();
@@ -65,6 +75,23 @@ private:
     std::string m_name; 
     long long m_value; 
     AssignmentType m_type = Constant;
+};
+
+class ReturnStatement : public ASTBase{
+public:
+    // returning an identifier
+    ReturnStatement(const std::string&name);
+
+    virtual llvm::Value* codegen(ContextHolder holder) override;
+private: 
+    enum ReturnType{
+        Identifier,
+        Expression // Add this!
+    };
+
+    // Are we returning a value or a type?
+    std::string m_name;
+    ReturnType m_type;
 };
 
 #endif
