@@ -34,5 +34,14 @@ return_statement :== 'ret', <identifier>, ';'
 
 type_qualification :== 'int'
 
-bin_op :== '+'
+expression :==  <binary_expression>
+
+binary_expression :== <trivial_expression> | <trivial_expression>, <bin_op>, <binary_expression>
+
+trivial_expression :== <identifier> | <call_expression> |
+                        '(', <expression> ')'
+
+call_expressions :== <identifier>, '()'
+
+bin_op :== '+', '-', '*', '/'
 ```
