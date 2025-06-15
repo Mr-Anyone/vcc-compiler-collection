@@ -1,3 +1,4 @@
+#include <llvm/IR/Constant.h>
 #include <cassert>
 #include <iostream>
 #include <llvm/IR/DerivedTypes.h>
@@ -14,7 +15,7 @@ void ASTBase::dump(){
 }
 
 FunctionDecl::FunctionDecl(std::vector<ASTBase*>&& expression, FunctionArgLists* arg_list, std::string&& name): 
-    ASTBase(), m_expressions(expression), m_arg_list(arg_list), m_name(name){
+    ASTBase(), m_statements(expression), m_arg_list(arg_list), m_name(name){
 
     }
 
@@ -40,7 +41,10 @@ void FunctionArgLists::codegen(ContextHolder holder, llvm::Function* func){
         // allocating one integer
         llvm::Value* alloc_loc =  
             holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
-        holder->builder.CreateStore(alloc_loc, &arg);
+        holder->builder.CreateStore(&arg, alloc_loc);
+
+        assert(holder->symbol_table.find(name) == holder->symbol_table.end()&& "cannot have multilpe definition");
+        holder->symbol_table[name] = alloc_loc;
     }
 }
 
@@ -61,7 +65,13 @@ llvm::Value* FunctionDecl::codegen(ContextHolder holder){
     llvm::BasicBlock* block = llvm::BasicBlock::Create(holder->context, "main", function);
     holder->builder.SetInsertPoint(block);
 
+    // copy the parameter into llvm ir
     m_arg_list->codegen(holder, function);
+
+    // code generation for statement
+    for(ASTBase*statement: m_statements){
+        statement->codegen(holder);
+    }
 
     return function;
 }
@@ -69,6 +79,20 @@ llvm::Value* FunctionDecl::codegen(ContextHolder holder){
 AssignmentStatement::AssignmentStatement(const std::string& name, long long value): 
     ASTBase(), m_name(name), m_value(value) {
     }
+
+llvm::Value* AssignmentStatement::codegen(ContextHolder holder){
+    llvm::Value* alloc_loc = holder->symbol_table[m_name];
+    switch(m_type){
+        case Constant: 
+             holder->builder.CreateStore(llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), getValue()), alloc_loc);
+            break; 
+        default: 
+            assert(false&& "how did I made it here?");
+
+    }
+
+    return nullptr;
+}
 
 const std::string& AssignmentStatement::getName(){
     return m_name;
@@ -86,7 +110,7 @@ void FunctionDecl::dump(){
 
     std::cout << "dumping expressions:" << std::endl;
 
-    for(auto* exp: m_expressions){
+    for(auto* exp: m_statements){
         exp->dump();
     }
 }
@@ -96,7 +120,16 @@ ReturnStatement::ReturnStatement(const std::string& name):
     }
 
 llvm::Value* ReturnStatement::codegen(ContextHolder holder){
-    // holder->builder.CreateRet();
+    std::cout << "I've been called?" << std::endl;
+
+    // TODO: it seems that more information needs to be encoded the symbol table
+    assert(holder->symbol_table.find(m_name) != holder->symbol_table.end()
+            && "must have an entry!");
+
+    // TODO: we need to encode more type information!
+    llvm::Value* ret_val = holder->builder.CreateLoad(llvm::Type::getInt32Ty(holder->context)
+            , holder->symbol_table[m_name]);
+    holder->builder.CreateRet(ret_val);
 
     return nullptr;
 }

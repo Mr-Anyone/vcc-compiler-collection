@@ -56,7 +56,7 @@ public:
     virtual llvm::Value* codegen(ContextHolder holder) override;
     void dump() override; 
 private:
-    std::vector<ASTBase*> m_expressions;
+    std::vector<ASTBase*> m_statements;
     FunctionArgLists* m_arg_list;
     std::string m_name; 
 };
@@ -71,10 +71,12 @@ class AssignmentStatement : public ASTBase{
 public: 
     AssignmentStatement(const std::string& name, long long value) ;
 
+    virtual llvm::Value* codegen(ContextHolder holder);
     const std::string& getName();
     long long getValue();
 private:
     std::string m_name; 
+    // valid when assignment type is set to Constant
     long long m_value; 
     AssignmentType m_type = Constant;
 };
