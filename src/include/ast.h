@@ -34,12 +34,14 @@ struct TypeInfo{
 // this makes codegen have non trivial behavior!
 // We are already expected a function declaration in the LLVM IR 
 // level already, so what is the point of this class?
-class FunctionArgLists : public ASTBase{
+class FunctionArgLists{
 public:
     using ArgsIter = std::vector<TypeInfo>::const_iterator;
 
     FunctionArgLists(std::vector<TypeInfo>&& args);
-    virtual llvm::Value* codegen(ContextHolder holder) override;
+
+    // the first few alloc, and load instruction
+    void codegen(ContextHolder holder, llvm::Function* func);
 
     ArgsIter begin() const;
     ArgsIter end() const;

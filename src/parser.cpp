@@ -37,7 +37,7 @@ ASTBase* Parser::buildFunctionDecl(){
     // FIXME: it is possible to have other types
     // currently only int is supported
     assert(m_tokenizer.getNextType() == Int);
-    ASTBase* arg_list = buildFunctionArgList();
+    FunctionArgLists* arg_list = buildFunctionArgList();
 
     if(m_tokenizer.getCurrentType() != TokenType::LeftBrace)
         return logError("expected {");
@@ -82,9 +82,11 @@ ASTBase* Parser::buildAssignmentStatement(){
 // FIXME: maybe put arg_declaration into its own function?
 // function_args_list :== '[', args_declaration+, ']'
 //  args_declaration :== <type_qualification> + identifier + ','
-ASTBase* Parser::buildFunctionArgList(){
-    if(m_tokenizer.getNextType() != LeftBracket)
-        return logError("expected [");
+FunctionArgLists* Parser::buildFunctionArgList(){
+    if(m_tokenizer.getNextType() != LeftBracket){
+        logError("expected [");
+        return nullptr;
+    }
 
     // parsing args declaration
     // FIXME: add a way to map token into type qualification
@@ -94,18 +96,23 @@ ASTBase* Parser::buildFunctionArgList(){
         // TokenType type_qualification = m_tokenizer.getCurrentType();
         
         Token next_token = m_tokenizer.next();
-        if(next_token.getType() != Identifier)
-            return logError("expected identifier");
+        if(next_token.getType() != Identifier){
+            logError("expected [");
+            return nullptr;
+        }
         std::string name = next_token.getStringLiteral();
 
-        if(m_tokenizer.getNextType() != Comma)
-            return logError("expected comma");
-
+        if(m_tokenizer.getNextType() != Comma){
+            logError("expected comma");
+            return nullptr;
+        }
         args.push_back(TypeInfo {Int32, name});
     }
 
-    if(m_tokenizer.getCurrentType() != RightBracket)
-        return logError("expected ]");
+    if(m_tokenizer.getCurrentType() != RightBracket){
+        logError("expected ]");
+        return nullptr;
+    }
     
     // pop this token ]
     m_tokenizer.consume();

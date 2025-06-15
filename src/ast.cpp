@@ -30,20 +30,26 @@ FunctionArgLists::ArgsIter FunctionArgLists::end() const {
     return m_args.cend();
 }
 
-llvm::Value* FunctionArgLists::codegen(ContextHolder holder){
-    return nullptr;
+void FunctionArgLists::codegen(ContextHolder holder, llvm::Function* func){
+    // appending to symbol table
+    int count = 0;
+    for(llvm::Argument& arg: func->args()){
+        const std::string& name = m_args[count++].name;
+        arg.setName(name);  
+
+        // allocating one integer
+        llvm::Value* alloc_loc =  
+            holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
+        holder->builder.CreateStore(alloc_loc, &arg);
+    }
 }
 
 llvm::Value* FunctionDecl::codegen(ContextHolder holder){
     // FIXME: make this more efficient 
     std::vector<llvm::Type*> args; 
-    std::vector<std::string> names;
-
-    // creating function signature
-     for(auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it){
+    for(auto it = m_arg_list->begin(), ie=m_arg_list->end(); it != ie; ++it){
         args.push_back(llvm::Type::getInt32Ty(holder->context));
-        names.push_back(it->name);
-    }   
+    }
     
  llvm::FunctionType* function_type = 
         llvm::FunctionType::get(llvm::Type::getInt32Ty(holder->context), args, /*isVarArg=*/false);
@@ -51,18 +57,11 @@ llvm::Value* FunctionDecl::codegen(ContextHolder holder){
     llvm::Function* function = 
         llvm::Function::Create(function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
 
-    // appending to symbol table
-    int count = 0;
-    for(llvm::Argument& arg: function->args()){
-        const std::string& name = names[count++];
-        arg.setName(name);
-
-        // adding this to symbol table
-        holder->symbol_table[name] = &arg;
-    }
-
     // generating code for something
-    m_arg_list->codegen(holder);
+    llvm::BasicBlock* block = llvm::BasicBlock::Create(holder->context, "main", function);
+    holder->builder.SetInsertPoint(block);
+
+    m_arg_list->codegen(holder, function);
 
     return function;
 }
@@ -83,7 +82,7 @@ long long AssignmentStatement::getValue(){
 void FunctionDecl::dump(){
     std::cout << "function name: " << m_name << std::endl;
     std::cout << "args: " << m_arg_list << std::endl;
-    m_arg_list->dump();
+    std::cout << "args is not implemented for now!" << std::endl;
 
     std::cout << "dumping expressions:" << std::endl;
 

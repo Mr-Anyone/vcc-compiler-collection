@@ -16,7 +16,7 @@ public:
 private:
     // building the function decl
     ASTBase* buildFunctionDecl();
-    ASTBase* buildFunctionArgList();
+    FunctionArgLists* buildFunctionArgList();
 
     ASTBase* buildAssignmentStatement();
     ASTBase* buildReturnStatement();
