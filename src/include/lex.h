@@ -106,7 +106,8 @@ private:
         {"int", Int}, 
         {"gives", Gives},
         {";", SemiColon},
-        {"=", Equal}
+        {"=", Equal},
+        {"ret", Ret}
     };
 
     const static inline std::set<char> binary_operator  {'+'};

@@ -18,6 +18,14 @@ static ASTBase* logError(const char* message){
     return nullptr;
 }
 
+// statements :== <assignment_statement> | <return_statement>
+ASTBase* Parser::buildStatement(){
+    if(m_tokenizer.getCurrentType() == Ret)
+        return buildReturnStatement();
+
+    return buildAssignmentStatement();
+}
+
 // function_decl :== 'function', <identifier>, 'gives', <type_qualification>,  
 //                     <function_args_list>, '{', <expression>+, ''}'
 ASTBase* Parser::buildFunctionDecl(){
@@ -47,7 +55,7 @@ ASTBase* Parser::buildFunctionDecl(){
     // currently only assignment expression is supported
     ASTBase* exp;
     std::vector<ASTBase*> expressions;
-    while((exp = buildAssignmentStatement())){
+    while((exp = buildStatement())){
         assert(exp && "expression must be non nullptr");
         expressions.push_back(exp);
     }
@@ -121,10 +129,10 @@ FunctionArgLists* Parser::buildFunctionArgList(){
 }
 
 ASTBase* Parser::buildReturnStatement(){
+    std::cout << "I have been called?" << std::endl;
     if(m_tokenizer.getCurrentType() != Ret){
         return logError("expected error");
     }
-    m_tokenizer.consume();
 
     if(m_tokenizer.getNextType() !=  Identifier){
         return logError("expected identifier");
