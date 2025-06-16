@@ -7,7 +7,8 @@ int main() {
   Parser parser("testing.txt", context);
   ASTBase *base = parser.buildSyntaxTree();
 
-  llvm::Function *function = llvm::cast<llvm::Function>(base->codegen(context));
+  llvm::Function *function 
+      = llvm::cast<llvm::Function>(base->codegen(context));
   function->dump();
 
   return 0;

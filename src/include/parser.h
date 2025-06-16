@@ -34,7 +34,7 @@ private:
   const static inline std::unordered_map<lex::TokenType, int> precedence_level =
       {
           {lex::Add, 1},
-          {lex::Multiply, 1},
+          {lex::Multiply, 2},
   };
 
   ContextHolder m_context;

@@ -4,7 +4,10 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 
-llvm::Value *ASTBase::codegen(ContextHolder holder) { return nullptr; }
+llvm::Value *ASTBase::codegen(ContextHolder holder) { 
+    assert(false && "please implement codegen");
+    return nullptr;
+}
 
 void ASTBase::dump() {
   std::cout << "not implemented" << std::endl;
@@ -112,11 +115,16 @@ void FunctionDecl::dump() {
   }
 }
 
-ReturnStatement::ReturnStatement(ASTBase* expression)
+ReturnStatement::ReturnStatement(ASTBase *expression)
     : ASTBase(), m_expression(expression) {}
 
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
-    assert(false && "I made it here somehow");
+  // assert(false && "I made it here somehow");
+    llvm::Value* return_value= m_expression->codegen(holder);
+    assert(return_value && "expression must return a value");
+    holder->builder.CreateRet(return_value);
+
+    return nullptr;
 }
 
 IdentifierExpr::IdentifierExpr(const std::string &name) : m_name(name) {}
@@ -127,24 +135,76 @@ int ConstantExpr::getValue() { return m_value; }
 
 ParenthesesExpression::ParenthesesExpression(ASTBase *child) : m_child(child) {}
 
-BinaryExpression::BinaryExpression(ASTBase*lhs, BinaryExpressionType type): 
-    m_lhs(lhs), m_rhs(nullptr), m_kind(type)
-{
+BinaryExpression::BinaryExpression(ASTBase *lhs, BinaryExpressionType type)
+    : m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
 
+BinaryExpression::BinaryExpressionType
+BinaryExpression::getFromLexType(lex::Token token) {
+  switch (token.getType()) {
+  case lex::Add:
+    return Add;
+  case lex::Multiply:
+    return Multiply;
+  default:
+    assert(false && "invalid token type");
+    return Add;
+  }
 }
 
-BinaryExpression::BinaryExpressionType BinaryExpression::getFromLexType(lex::Token token){
-    switch(token.getType()){
-        case lex::Add:
-            return Add;
-        case lex::Multiply: 
-            return Multiply;
+void BinaryExpression::setRHS(ASTBase *rhs) { m_rhs = rhs; }
+
+void BinaryExpression::dump(){
+    std::cout <<"current: " << this << " rhs: " << m_rhs << " operator: " << m_kind <<  " left: " << m_lhs << std::endl;
+    m_rhs->dump();
+    m_lhs->dump();
+    return;
+}
+
+void IdentifierExpr::dump(){
+    std::cout <<"current: " << this << " identifier: " << m_name << std::endl;
+}
+
+llvm::Value* IdentifierExpr::codegen(ContextHolder holder){
+    // this is usually a pointer
+    // FIXME: it seems that we need to encode more type 
+    // information
+    llvm::Value* loc_value = holder->symbol_table[m_name];
+    llvm::Value* value = 
+        holder->builder.CreateLoad(llvm::Type::getInt32Ty(holder->context), loc_value);
+
+    return value;
+}
+
+void ConstantExpr::dump(){
+    std::cout <<"current: " << this << " constant: " << m_value << std::endl;
+}
+
+llvm::Value* BinaryExpression::codegen(ContextHolder holder){
+    llvm::Value* right_hand_side = m_rhs->codegen(holder);
+    llvm::Value* left_hand_side = m_lhs->codegen(holder);
+    
+    assert(right_hand_side && left_hand_side && "cannot be null");
+    switch(m_kind){
+        case Add: {
+            llvm::Value* result = holder->builder.CreateAdd(left_hand_side, right_hand_side);
+            return result;
+        }
+        case Multiply: {
+           llvm::Value* reuslt = holder->builder.CreateMul(left_hand_side, right_hand_side);
+           return reuslt;
+        }
         default: 
-            assert(false && "invalid token type");
-            return Add;
+            assert(false && "cannot get here");
+            return nullptr;
     }
+
+    assert(false && "how did we get here");
+    return nullptr;
 }
 
-void BinaryExpression::setRHS(ASTBase* rhs){
-    m_rhs = rhs;
+llvm::Value* ConstantExpr::codegen(ContextHolder holder){
+    llvm::Value* value = 
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), m_value);
+    return value;
 }
+

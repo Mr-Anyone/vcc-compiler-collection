@@ -8,8 +8,8 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Value.h"
 
-#include "lex.h"
 #include "context.h"
+#include "lex.h"
 
 class ASTBase {
 public:
@@ -90,13 +90,13 @@ private:
 class ReturnStatement : public ASTBase {
 public:
   // returning an identifier
-  ReturnStatement(ASTBase* expression);
+  ReturnStatement(ASTBase *expression);
 
   virtual llvm::Value *codegen(ContextHolder holder) override;
 
 private:
-  // this gives some sort of value 
-  ASTBase* m_expression;
+  // this gives some sort of value
+  ASTBase *m_expression;
 };
 
 //============================== Expressions ==============================
@@ -105,6 +105,8 @@ private:
 class ConstantExpr : public ASTBase {
 public:
   explicit ConstantExpr(int value);
+  virtual void dump() override; 
+  virtual llvm::Value* codegen(ContextHolder holder) override; 
 
   int getValue();
 
@@ -115,6 +117,9 @@ private:
 class IdentifierExpr : public ASTBase {
 public:
   IdentifierExpr(const std::string &name);
+
+  virtual void dump() override; 
+  virtual llvm::Value* codegen(ContextHolder holder) override; 
 
 private:
   std::string m_name;
@@ -140,10 +145,15 @@ class BinaryExpression : public ASTBase {
 public:
   enum BinaryExpressionType { Add, Multiply };
   static BinaryExpressionType getFromLexType(lex::Token lex_type);
+
 public:
   BinaryExpression(ASTBase *lhs, BinaryExpressionType type);
 
+  virtual void dump() override;
+  virtual llvm::Value* codegen(ContextHolder holder) override;
+
   void setRHS(ASTBase *rhs);
+
 private:
   ASTBase *m_lhs;
   ASTBase *m_rhs;

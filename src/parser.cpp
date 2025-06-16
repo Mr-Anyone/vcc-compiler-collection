@@ -147,7 +147,7 @@ ASTBase *Parser::buildBinaryExpression(int min_precendence) {
   // precedence climbing based parsing:
   // https://eli.thegreenplace.net/2010/01/02/top-down-operator-precedence-parsing
   // result = compute_atom()
-  //
+
   // while cur token is a binary operator with precedence >= min_prec:
   //     prec, assoc = precedence and associativity of current token
   //     if assoc is left:
@@ -162,6 +162,7 @@ ASTBase *Parser::buildBinaryExpression(int min_precendence) {
   ASTBase *result = buildTrivialExpression();
   assert(result && "not sure how can this be false?");
 
+  // this is just a trivial expression case
   Token current_operator_token = m_tokenizer.current();
   if (!current_operator_token.isBinaryOperator()) {
     return result;
@@ -170,21 +171,25 @@ ASTBase *Parser::buildBinaryExpression(int min_precendence) {
   int current_precedence_level =
       precedence_level.find(current_operator_token.getType())->second;
   while (current_precedence_level >= min_precendence) {
-  current_operator_token = m_tokenizer.current();
+    current_operator_token = m_tokenizer.current();
     // at the beginning of every loop iteration, the current token
-    // must be a binary operator.
-  if(!current_operator_token.isBinaryOperator())
+    // must be a binary operator. If this is not a binary operator, it is likely
+    // that
+    // we are done
+    if (!current_operator_token.isBinaryOperator())
       break;
 
-    result = new BinaryExpression(result, BinaryExpression::getFromLexType(current_operator_token));
-    m_tokenizer.consume();
-    assert(current_operator_token.isBinaryOperator() &&
-           "current must be a binary token");
+    current_precedence_level =
+          precedence_level.find(current_operator_token.getType())->second;
+
+    result = new BinaryExpression(
+        result, BinaryExpression::getFromLexType(current_operator_token));
+    m_tokenizer.consume(); // consume the binary token
 
     int next_precedence_level = current_precedence_level + 1;
 
     ASTBase *rhs = buildBinaryExpression(next_precedence_level);
-    dynamic_cast<BinaryExpression*>(result)->setRHS(rhs);
+    dynamic_cast<BinaryExpression *>(result)->setRHS(rhs);
   }
 
   return result;
