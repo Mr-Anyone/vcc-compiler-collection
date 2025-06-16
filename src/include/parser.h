@@ -19,11 +19,23 @@ private:
   ASTBase *buildFunctionDecl();
   FunctionArgLists *buildFunctionArgList();
 
+  // Statements
   ASTBase *buildAssignmentStatement();
   ASTBase *buildReturnStatement();
   ASTBase *buildStatement();
 
-  ASTBase *nextTokenOrError(lex::TokenType expected_token, const char *message);
+  // Expressions
+  ASTBase *buildExpression();
+  ASTBase *buildBinaryExpression(int min_precedence);
+  ASTBase *buildTrivialExpression();
+  ASTBase *bulidCallExpr();
+
+  // for binary expression
+  const static inline std::unordered_map<lex::TokenType, int> precedence_level =
+      {
+          {lex::Add, 1},
+          {lex::Multiply, 1},
+  };
 
   ContextHolder m_context;
   lex::Tokenizer m_tokenizer;

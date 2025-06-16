@@ -69,15 +69,16 @@ ASTBase *Parser::buildAssignmentStatement() {
   assert(m_tokenizer.getCurrentType() == lex::Identifier);
   std::string name = m_tokenizer.current().getStringLiteral();
   if (m_tokenizer.getNextType() != lex::Equal)
-    return nullptr;
+    return logError("expected =");
 
   Token number_constant = m_tokenizer.next();
   if (number_constant.getType() != lex::IntegerLiteral)
-    return nullptr;
+    return logError("expected integer");
 
   long long value = number_constant.getIntegerLiteral();
   if (m_tokenizer.getNextType() != lex::SemiColon)
-    return nullptr;
+    return logError("expected semi colon");
+
   m_tokenizer.consume();
 
   return new AssignmentStatement(name, value);
@@ -94,7 +95,6 @@ FunctionArgLists *Parser::buildFunctionArgList() {
 
   // parsing args declaration
   // FIXME: add a way to map token into type qualification
-
   std::vector<TypeInfo> args{};
   while (m_tokenizer.getNextType() == lex::Int) {
     // lex type_qualification = m_tokenizer.getCurrentType();
@@ -128,15 +128,101 @@ ASTBase *Parser::buildReturnStatement() {
   if (m_tokenizer.getCurrentType() != lex::Ret) {
     return logError("expected error");
   }
+  m_tokenizer.consume();
 
-  if (m_tokenizer.getNextType() != lex::Identifier) {
-    return logError("expected identifier");
+  ASTBase *expression = buildExpression();
+
+  return new ReturnStatement(expression);
+}
+
+// expression :==  <binary_expression>
+ASTBase *Parser::buildExpression() {
+  return buildBinaryExpression(/*min_precedence=*/1);
+}
+
+// binary_expression :== <trivial_expression> |
+//                             <trivial_expression>, <bin_op>,
+//                             <binary_expression>
+ASTBase *Parser::buildBinaryExpression(int min_precendence) {
+  // precedence climbing based parsing:
+  // https://eli.thegreenplace.net/2010/01/02/top-down-operator-precedence-parsing
+  // result = compute_atom()
+  //
+  // while cur token is a binary operator with precedence >= min_prec:
+  //     prec, assoc = precedence and associativity of current token
+  //     if assoc is left:
+  //         next_min_prec = prec + 1
+  //     else:
+  //         next_min_prec = prec
+  //     rhs = compute_expr(next_min_prec)
+  //     result = compute operator(result, rhs)
+  //
+  // return result
+
+  ASTBase *result = buildTrivialExpression();
+  assert(result && "not sure how can this be false?");
+
+  Token current_operator_token = m_tokenizer.current();
+  if (!current_operator_token.isBinaryOperator()) {
+    return result;
   }
 
-  std::string name = m_tokenizer.current().getStringLiteral();
-  if (m_tokenizer.getNextType() != lex::SemiColon) {
-    return logError("expected semi colon");
+  int current_precedence_level =
+      precedence_level.find(current_operator_token.getType())->second;
+  while (current_precedence_level >= min_precendence) {
+  current_operator_token = m_tokenizer.current();
+    // at the beginning of every loop iteration, the current token
+    // must be a binary operator.
+  if(!current_operator_token.isBinaryOperator())
+      break;
+
+    result = new BinaryExpression(result, BinaryExpression::getFromLexType(current_operator_token));
+    m_tokenizer.consume();
+    assert(current_operator_token.isBinaryOperator() &&
+           "current must be a binary token");
+
+    int next_precedence_level = current_precedence_level + 1;
+
+    ASTBase *rhs = buildBinaryExpression(next_precedence_level);
+    dynamic_cast<BinaryExpression*>(result)->setRHS(rhs);
   }
 
-  return new ReturnStatement(name);
+  return result;
+}
+
+// trivial_expression :== <identifier> | <call_expression> |
+//                             '(', <expression>, ')' | <integer_literal>
+ASTBase *Parser::buildTrivialExpression() {
+  // FIXME: add call expression
+  // <integer_literal>
+  if (m_tokenizer.getCurrentType() == lex::IntegerLiteral) {
+    ASTBase *value =
+        new ConstantExpr(m_tokenizer.current().getIntegerLiteral());
+    m_tokenizer.consume();
+    return value;
+  }
+
+  // <identifier>
+  if (m_tokenizer.getCurrentType() == lex::Identifier) {
+    ASTBase *value =
+        new IdentifierExpr(m_tokenizer.current().getStringLiteral());
+    m_tokenizer.consume();
+
+    return value;
+  }
+
+  // '(', <expression> , ')'
+  if (m_tokenizer.getCurrentType() == lex::LeftParentheses) {
+    m_tokenizer.consume(); // consume ; )
+    ASTBase *value = buildExpression();
+
+    if (m_tokenizer.getCurrentType() != lex::RightParentheses) {
+      return logError("expected )");
+    }
+
+    m_tokenizer.consume();
+    return value;
+  }
+
+  return logError("cannot build trivial expression!");
 }

@@ -54,23 +54,23 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
   llvm::FunctionType *function_type = llvm::FunctionType::get(
       llvm::Type::getInt32Ty(holder->context), args, /*isVarArg=*/false);
 
-  llvm::Function *function = llvm::Function::Create(
+  m_function = llvm::Function::Create(
       function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
 
   // generating code for something
   llvm::BasicBlock *block =
-      llvm::BasicBlock::Create(holder->context, "main", function);
+      llvm::BasicBlock::Create(holder->context, "main", m_function);
   holder->builder.SetInsertPoint(block);
 
   // copy the parameter into llvm ir
-  m_arg_list->codegen(holder, function);
+  m_arg_list->codegen(holder, m_function);
 
   // code generation for statement
   for (ASTBase *statement : m_statements) {
     statement->codegen(holder);
   }
 
-  return function;
+  return m_function;
 }
 
 AssignmentStatement::AssignmentStatement(const std::string &name,
@@ -112,18 +112,39 @@ void FunctionDecl::dump() {
   }
 }
 
-ReturnStatement::ReturnStatement(const std::string &name)
-    : ASTBase(), m_name(name), m_type(ReturnType::Identifier) {}
+ReturnStatement::ReturnStatement(ASTBase* expression)
+    : ASTBase(), m_expression(expression) {}
 
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
-  // TODO: it seems that more information needs to be encoded the symbol table
-  assert(holder->symbol_table.find(m_name) != holder->symbol_table.end() &&
-         "must have an entry!");
+    assert(false && "I made it here somehow");
+}
 
-  // TODO: we need to encode more type information!
-  llvm::Value *ret_val = holder->builder.CreateLoad(
-      llvm::Type::getInt32Ty(holder->context), holder->symbol_table[m_name]);
-  holder->builder.CreateRet(ret_val);
+IdentifierExpr::IdentifierExpr(const std::string &name) : m_name(name) {}
 
-  return nullptr;
+ConstantExpr::ConstantExpr(int value) : m_value(value) {}
+
+int ConstantExpr::getValue() { return m_value; }
+
+ParenthesesExpression::ParenthesesExpression(ASTBase *child) : m_child(child) {}
+
+BinaryExpression::BinaryExpression(ASTBase*lhs, BinaryExpressionType type): 
+    m_lhs(lhs), m_rhs(nullptr), m_kind(type)
+{
+
+}
+
+BinaryExpression::BinaryExpressionType BinaryExpression::getFromLexType(lex::Token token){
+    switch(token.getType()){
+        case lex::Add:
+            return Add;
+        case lex::Multiply: 
+            return Multiply;
+        default: 
+            assert(false && "invalid token type");
+            return Add;
+    }
+}
+
+void BinaryExpression::setRHS(ASTBase* rhs){
+    m_rhs = rhs;
 }

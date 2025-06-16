@@ -16,4 +16,4 @@ target_include_directories(
     comp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(comp LLVMCore LLVMSupport)
+target_link_libraries(comp LLVMCore LLVMSupport LLVMX86CodeGen LLVMX86AsmParser)

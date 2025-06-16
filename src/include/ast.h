@@ -8,7 +8,9 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Value.h"
 
+#include "lex.h"
 #include "context.h"
+
 class ASTBase {
 public:
   virtual llvm::Value *codegen(ContextHolder holder);
@@ -32,6 +34,7 @@ struct TypeInfo {
 // this makes codegen have non trivial behavior!
 // We are already expected a function declaration in the LLVM IR
 // level already, so what is the point of this class?
+// FIXME: maybe put this in private class?
 class FunctionArgLists {
 public:
   using ArgsIter = std::vector<TypeInfo>::const_iterator;
@@ -60,6 +63,8 @@ private:
   std::vector<ASTBase *> m_statements;
   FunctionArgLists *m_arg_list;
   std::string m_name;
+
+  llvm::Function *m_function = nullptr;
 };
 
 //============================== Statements ==============================
@@ -85,29 +90,64 @@ private:
 class ReturnStatement : public ASTBase {
 public:
   // returning an identifier
-  ReturnStatement(const std::string &name);
+  ReturnStatement(ASTBase* expression);
 
   virtual llvm::Value *codegen(ContextHolder holder) override;
 
 private:
-  enum ReturnType {
-    Identifier,
-    Expression // Add this!
-  };
-
-  // Are we returning a value or a type?
-  std::string m_name;
-  ReturnType m_type;
+  // this gives some sort of value 
+  ASTBase* m_expression;
 };
 
 //============================== Expressions ==============================
-class BinaryExpression : public ASTBase {
-public:
-  BinaryExpression(ASTBase *lhs, ASTBase *rhs);
+// These are expressions that yields some sort of value
 
-  llvm::Value *codegen(ContextHolder holder) override;
+class ConstantExpr : public ASTBase {
+public:
+  explicit ConstantExpr(int value);
+
+  int getValue();
 
 private:
+  int m_value;
+};
+
+class IdentifierExpr : public ASTBase {
+public:
+  IdentifierExpr(const std::string &name);
+
+private:
+  std::string m_name;
+};
+
+class CallExpr : public ASTBase {
+public:
+  CallExpr(const std::string &name);
+
+private:
+  std::string m_func_name;
+};
+
+class ParenthesesExpression : public ASTBase {
+public:
+  ParenthesesExpression(ASTBase *child);
+
+private:
+  ASTBase *m_child;
+};
+
+class BinaryExpression : public ASTBase {
+public:
+  enum BinaryExpressionType { Add, Multiply };
+  static BinaryExpressionType getFromLexType(lex::Token lex_type);
+public:
+  BinaryExpression(ASTBase *lhs, BinaryExpressionType type);
+
+  void setRHS(ASTBase *rhs);
+private:
+  ASTBase *m_lhs;
+  ASTBase *m_rhs;
+  BinaryExpressionType m_kind;
 };
 
 #endif

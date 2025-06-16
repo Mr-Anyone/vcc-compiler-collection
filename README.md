@@ -16,7 +16,7 @@ function testing gives int
 
 ```
 function_decl :== 'function', <identifier>, 'gives', <type_qualification>, 
-                    <function_args_list>, '{', <statements>+, ''}'
+                        <function_args_list>, '{', <statements>+, ''}'
 
 function_args_list :== '[', args_declaration+, ']'
 
@@ -30,16 +30,17 @@ statements :== <assignment_statement> | <return_statement>
 
 assignment_statement :== <identifier>, '=', <integer_literal>, ';'
 
-return_statement :== 'ret', <identifier>, ';'
+return_statement :== 'ret', <expression> ';'
 
 type_qualification :== 'int'
 
 expression :==  <binary_expression>
 
-binary_expression :== <trivial_expression> | <trivial_expression>, <bin_op>, <binary_expression>
+binary_expression :== <trivial_expression> | 
+                            <trivial_expression>, <bin_op>, <binary_expression>
 
 trivial_expression :== <identifier> | <call_expression> |
-                        '(', <expression> ')'
+                            '(', <expression>, ')' | <integer_literal>
 
 call_expressions :== <identifier>, '()'
 

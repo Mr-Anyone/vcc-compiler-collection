@@ -27,6 +27,21 @@ static bool is_valid_stoi(const std::string &str) {
   return true;
 }
 
+// FIXME: since we are stack allocating, we are
+// always making a copy. This gets really expensive
+// because token class is quite big, and stores a
+// std::string heap allocation?
+const Token Tokenizer::peek() {
+  // saving the location
+  std::streampos current = m_file.tellg();
+
+  Token next_token = readOneToken();
+
+  // restoring the location
+  m_file.seekg(current);
+  return next_token;
+}
+
 void Tokenizer::removeWhiteSpace() {
   if (!m_file.good())
     return;
@@ -59,13 +74,9 @@ Token Tokenizer::readOneToken() {
     }
 
     // consume if this is the first time
+    // FIXME: maybe just look up the keyword map instead?
     if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' ||
-        c == ',' || c == '+' || c == ';' || c == '=') {
-      // this is a binary operator
-      if (is_first_time && binary_operator.find(c) != binary_operator.end()) {
-        return Token(BinaryOperation::Add);
-      }
-
+        c == ',' || c == '+' || c == ';' || c == '=' || c == '*') {
       if (is_first_time) {
         // creating the lookup term
         std::string lookup_term;
@@ -90,7 +101,7 @@ Token Tokenizer::readOneToken() {
     return return_result;
   }
 
-  // like FunctionDecl, etc
+  // keywords function, gives, etc..
   if (isKeyword(buf)) {
     return Token(getKeyword(buf));
   }
@@ -110,11 +121,6 @@ const Token Tokenizer::next() {
 
   return m_current_token;
 }
-const Token &Tokenizer::peek() {
-  assert(false && "implement this somehow");
-
-  return m_current_token;
-}
 
 TokenType Tokenizer::getKeyword(const std::string &keyword) {
   TokenType result = keyword_map.at(keyword);
@@ -127,64 +133,59 @@ TokenType Tokenizer::getKeyword(const std::string &keyword) {
 Token::Token(long long number)
     : type(IntegerLiteral), integer_literal(number) {}
 
-void Token::dump() const {
+const char *tokenTypeToString(TokenType type) {
   switch (type) {
-  case Gives:
-    std::cout << "token (gives): gives" << std::endl;
-    ;
-    break;
   case IntegerLiteral:
-    std::cout << "token (integer literal): " << integer_literal << std::endl;
-    ;
-    break;
-  case Invalid:
-    std::cout << "token (invalid): "
-              << "invalid" << std::endl;
-    break;
-  case LeftParentheses:
-    std::cout << "token (left parentheses): (" << std::endl;
-    break;
-  case RightParentheses:
-    std::cout << "token (right parentheses): )" << std::endl;
-    break;
-  case EndOfFile:
-    std::cout << "token (end of file): end of file" << std::endl;
-    break;
-  case FunctionDecl:
-    std::cout << "token (function decl): function decl" << std::endl;
-    break;
+    return "IntegerLiteral";
   case Identifier:
-    std::cout << "token (identifier): " << string_literal << std::endl;
-    break;
-  case Int:
-    std::cout << "token (int): int" << std::endl;
-    break;
-  case LeftBracket:
-    std::cout << "token ([): [" << std::endl;
-    break;
-
-  case RightBracket:
-    std::cout << "token (]): ]" << std::endl;
-    break;
-  case Comma:
-    std::cout << "token (,): ," << std::endl;
-    break;
+    return "Identifier";
+  case EndOfFile:
+    return "EndOfFile";
+  case Invalid:
+    return "Invalid";
+  case KeywordStart:
+    return "KeywordStart";
+  case LeftParentheses:
+    return "LeftParentheses";
+  case RightParentheses:
+    return "RightParentheses";
   case LeftBrace:
-    std::cout << "token ({): {" << std::endl;
-    break;
+    return "LeftBrace";
   case RightBrace:
-    std::cout << "token (}): }" << std::endl;
-    break;
-    // this is not correct
-  case BinarySymbol:
-    std::cout << "token (binary operation): +" << std::endl;
-    break;
+    return "RightBrace";
+  case LeftBracket:
+    return "LeftBracket";
+  case RightBracket:
+    return "RightBracket";
+  case Comma:
+    return "Comma";
+  case FunctionDecl:
+    return "FunctionDecl";
+  case Gives:
+    return "Gives";
   case SemiColon:
-    std::cout << "token (semicolon): ;" << std::endl;
-    break;
+    return "SemiColon";
+  case Equal:
+    return "Equal";
+  case Ret:
+    return "Ret";
+  case Int:
+    return "Int";
+  case Add:
+    return "Add";
+  case KeywordEnd:
+    return "KeywordEnd";
+  case Num:
+    return "Num";
+  case Multiply:
+    return "Multilpy";
   default:
-    assert(false && "don't know how to dump this token");
+    return "Unknown TokenType";
   }
+}
+
+void Token::dump() const {
+  std::cout << "Token type: " << tokenTypeToString(type) << std::endl;
 }
 
 Token::Token() : type(Invalid) {}
@@ -207,11 +208,11 @@ long long Token::getIntegerLiteral() const {
   return integer_literal;
 }
 
+bool Token::isBinaryOperator() const {
+  return type > BinaryOperatorStart && type < BinaryOperatorEnd;
+}
+
 TokenType Token::getType() const { return type; }
-
-Token::Token(BinaryOperation operation) : type(BinarySymbol), op(operation) {}
-
-BinaryOperation Token::getBinaryOperation() const { return op; }
 
 TokenType Tokenizer::getNextType() { return next().getType(); }
 

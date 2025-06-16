@@ -33,20 +33,15 @@ enum TokenType {
   // Type qualifications
   Int,
 
-  KeywordEnd,
+  BinaryOperatorStart, // Binary operator start
+  Add,                 // +
+  Multiply,            // *
+  BinaryOperatorEnd,   // Binary operator ends
 
-  // binary
-  BinarySymbol, // +, -, *, /
+  KeywordEnd,
 
   // End
   Num
-};
-
-enum BinaryOperation {
-  Add,
-  // Subtract,
-  // Multiply,
-  // Divide,
 };
 
 struct Token {
@@ -59,21 +54,19 @@ public:
   Token(long long integer_litearl);
 
   // set binary operation
-  Token(BinaryOperation binary_operation);
 
   // for type like Parentheses, Invalid, EndOfFile, and keywords
   Token(TokenType type);
 
   void dump() const;
-  BinaryOperation getBinaryOperation() const;
   TokenType getType() const;
   const std::string &getStringLiteral() const;
   long long getIntegerLiteral() const;
+  bool isBinaryOperator() const;
 
 private:
   TokenType type;
 
-  BinaryOperation op;
   std::string string_literal;
   // FIXME: change this into int64_t
   long long integer_literal;
@@ -86,7 +79,7 @@ public:
   // consume token
   const Token next();
   // don't consume token
-  const Token &peek();
+  const Token peek();
   const Token &current();
 
   // consume the token
@@ -108,7 +101,9 @@ private:
       {"gives", Gives},
       {";", SemiColon},
       {"=", Equal},
-      {"ret", Ret}};
+      {"ret", Ret},
+      {"+", Add},
+      {"*", Multiply}};
 
   const static inline std::set<char> binary_operator{'+'};
   static bool isKeyword(const std::string &keyword);

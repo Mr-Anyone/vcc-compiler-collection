@@ -1,11 +1,14 @@
 #include "parser.h"
+#include <iostream>
 
 int main() {
   // FIXME: move this into its own function!
   ContextHolder context = std::make_shared<GlobalContext>();
   Parser parser("testing.txt", context);
   ASTBase *base = parser.buildSyntaxTree();
-  base->codegen(context)->dump();
+
+  llvm::Function *function = llvm::cast<llvm::Function>(base->codegen(context));
+  function->dump();
 
   return 0;
 }
