@@ -4,6 +4,14 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 
+void ASTBase::setParent(ASTBase* parent){
+    m_parent = parent;
+}
+
+ASTBase* ASTBase::getParent(){
+    return m_parent;
+}
+
 llvm::Value *ASTBase::codegen(ContextHolder holder) { 
     assert(false && "please implement codegen");
     return nullptr;

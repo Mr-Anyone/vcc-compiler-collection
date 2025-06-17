@@ -16,7 +16,10 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder);
   virtual void dump();
 
+  ASTBase* getParent();
+  void setParent(ASTBase* parent);
 private:
+  ASTBase* m_parent;
 };
 
 enum Type { Int32 };
