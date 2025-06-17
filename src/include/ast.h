@@ -60,7 +60,7 @@ public:
   FunctionArgLists(std::vector<TypeInfo> &&args);
 
   // the first few alloc, and load instruction
-  void codegen(ContextHolder holder, llvm::Function *func);
+  void codegen(ContextHolder holder,  FunctionDecl* function_decl);
 
   ArgsIter begin() const;
   ArgsIter end() const;
@@ -77,7 +77,8 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder) override;
   void dump() override;
 
-  const std::string& getName();
+  const std::string& getName()const;
+  llvm::Function* getLLVMFunction ()const;
 private:
   std::vector<ASTBase *> m_statements;
   FunctionArgLists *m_arg_list;

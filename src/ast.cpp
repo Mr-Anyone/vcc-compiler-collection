@@ -38,17 +38,19 @@ void ASTBase::removeChildren(ASTBase* children){
     assert(m_childrens.find(children) != m_childrens.end() 
             && "must contain element to begin with");
 
+    // FIXME: we may have just leaked memory here!
+    children->setParent(nullptr);
     m_childrens.erase(children);
 }
 
 void ASTBase::addChildren(ASTBase* children){
     m_childrens.insert(children);
+    children->m_parent  = this;
 }
 
 void ASTBase::setParent(ASTBase* parent){
-    assert(!m_parent &&"parent must be null");
-
     m_parent = parent;
+    m_parent->m_childrens.insert(this);
 }
 
 ASTBase* ASTBase::getParent(){
@@ -60,13 +62,17 @@ void ASTBase::dump() {
   return;
 }
 
-const std::string& FunctionDecl::getName(){
+const std::string& FunctionDecl::getName()const {
     return m_name;
 }
 
-FunctionDecl::FunctionDecl(std::vector<ASTBase *> &expression,
+llvm::Function* FunctionDecl::getLLVMFunction() const{
+    return m_function; 
+}
+
+FunctionDecl::FunctionDecl(std::vector<ASTBase *> &statements,
                            FunctionArgLists *arg_list, std::string &&name)
-    : ASTBase(expression), m_statements(expression), m_arg_list(arg_list), m_name(name) {}
+    : ASTBase(statements), m_statements(statements), m_arg_list(arg_list), m_name(name) {}
 
 FunctionArgLists::FunctionArgLists(std::vector<TypeInfo> &&args)
     : m_args(args) {}
@@ -148,14 +154,13 @@ void ConstantExpr::dump(){
 }
 
 FunctionDecl* ASTBase::getFirstFunctionDecl(){
-    ASTBase* current = this;
-    for(;dynamic_cast<FunctionDecl*>(current);
-            current = current->getParent()){
-        if(!current)
-            return nullptr;
+    for(ASTBase* current = this; current; current = current->getParent()){
+        FunctionDecl* decl = nullptr;
+        if((decl = dynamic_cast<FunctionDecl*>(current)))
+            return decl;
     }
-
-    return dynamic_cast<FunctionDecl*>(current);
+    
+    return nullptr;
 }
 
 // ======================================================
@@ -196,20 +201,22 @@ llvm::Value* BinaryExpression::codegen(ContextHolder holder){
 }
 
 llvm::Value* IdentifierExpr::codegen(ContextHolder holder){
+
     // this is usually a pointer
     // FIXME: it seems that we need to encode more type 
     // information
-    llvm::Value* loc_value = holder->symbol_table[m_name];
+    llvm::Value* loc_value = holder->symbol_table.lookupLocalVariable(getFirstFunctionDecl(), m_name);
     llvm::Value* value = 
         holder->builder.CreateLoad(llvm::Type::getInt32Ty(holder->context), loc_value);
 
     return value;
 }
 
-void FunctionArgLists::codegen(ContextHolder holder, llvm::Function *func) {
+void FunctionArgLists::codegen(ContextHolder holder, FunctionDecl *func) {
   // appending to symbol table
   int count = 0;
-  for (llvm::Argument &arg : func->args()) {
+  llvm::Function* llvm_function = func->getLLVMFunction();
+  for (llvm::Argument &arg : llvm_function->args()) {
     const std::string &name = m_args[count++].name;
     arg.setName(name);
 
@@ -218,16 +225,14 @@ void FunctionArgLists::codegen(ContextHolder holder, llvm::Function *func) {
         holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
     holder->builder.CreateStore(&arg, alloc_loc);
 
-    assert(holder->symbol_table.find(name) == holder->symbol_table.end() &&
-           "cannot have multilpe definition");
-    holder->symbol_table[name] = alloc_loc;
+    holder->symbol_table.addLocalVariable(func, name, alloc_loc);
   }
 }
 
 llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
     llvm::Value* expression_val = m_expression->codegen(holder);
     assert(expression_val && "must yield a non negative result");
-    llvm::Value *alloc_loc = holder->symbol_table[m_name];
+    llvm::Value *alloc_loc = holder->symbol_table.lookupLocalVariable(getFirstFunctionDecl(), m_name);
 
     holder->builder.CreateStore(expression_val, alloc_loc);
 
@@ -262,7 +267,7 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
   holder->builder.SetInsertPoint(block);
 
   // copy the parameter into llvm ir
-  m_arg_list->codegen(holder, m_function);
+  m_arg_list->codegen(holder, this);
 
   // code generation for statement
   for (ASTBase *statement : m_statements) {

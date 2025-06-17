@@ -1,4 +1,5 @@
 #include "symbol_table.h"
+#include "ast.h"
 
 SymbolTable::SymbolTable(): 
     m_local_table(), m_function_table(){
@@ -28,8 +29,8 @@ void SymbolTable::addLocalVariable(FunctionDecl* function, std::string name, llv
 }
 
 llvm::Value*  SymbolTable::lookupLocalVariable(FunctionDecl* function, std::string name){
-    assert(m_local_table.contains(name));
     std::string lookup_name = makeLocalVariableLookupName(function, name);
+    assert(m_local_table.contains(lookup_name));
     return m_local_table[lookup_name];
     
 }

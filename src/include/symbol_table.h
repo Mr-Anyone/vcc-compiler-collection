@@ -4,8 +4,7 @@
 #include <iostream>
 #include <llvm/IR/Value.h>
 
-#include"ast.h" 
-
+class FunctionDecl;
 
 // Basically just like a hash table
 class SymbolTable{
