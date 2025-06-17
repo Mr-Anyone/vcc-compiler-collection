@@ -28,7 +28,7 @@ integer_literal :== [0-9]+
 
 statements :== <assignment_statement> | <return_statement>
 
-assignment_statement :== <identifier>, '=', <integer_literal>, ';'
+assignment_statement :== <identifier>, '=', <expression>, ';'
 
 return_statement :== 'ret', <expression> ';'
 
@@ -46,3 +46,13 @@ call_expressions :== <identifier>, '()'
 
 bin_op :== '+', '-', '*', '/'
 ```
+
+# Semantics
+
+## General Rules 
+
+1. Variables names cannot contain '$', they are reserved for implementation
+
+## Name Lookup
+
+1. Within the same function, two declaration cannot share the same name. 

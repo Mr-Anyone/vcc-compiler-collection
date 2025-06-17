@@ -4,6 +4,7 @@ set(
     lex.cpp
     parser.cpp 
     context.cpp
+    symbol_table.cpp
     ast.cpp
 )
 

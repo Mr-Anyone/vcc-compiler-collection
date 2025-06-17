@@ -56,12 +56,12 @@ ASTBase *Parser::buildFunctionDecl() {
     expressions.push_back(exp);
   }
 
-  return new FunctionDecl(std::move(expressions),
+  return new FunctionDecl(expressions,
                           dynamic_cast<FunctionArgLists *>(arg_list),
                           std::move(name));
 }
 
-// assignment_expression :== <identifier>, '=', <integer_literal>, ';'
+// assignment_expression :== <identifier>, '=', <expression>, ';'
 ASTBase *Parser::buildAssignmentStatement() {
   if (m_tokenizer.getCurrentType() != lex::Identifier)
     return nullptr;
@@ -75,13 +75,14 @@ ASTBase *Parser::buildAssignmentStatement() {
   if (number_constant.getType() != lex::IntegerLiteral)
     return logError("expected integer");
 
-  long long value = number_constant.getIntegerLiteral();
-  if (m_tokenizer.getNextType() != lex::SemiColon)
+  ASTBase* expression  =  buildExpression();
+
+  if (m_tokenizer.getCurrentType() != lex::SemiColon)
     return logError("expected semi colon");
 
   m_tokenizer.consume();
 
-  return new AssignmentStatement(name, value);
+  return new AssignmentStatement(name,expression); 
 }
 
 // FIXME: maybe put arg_declaration into its own function?

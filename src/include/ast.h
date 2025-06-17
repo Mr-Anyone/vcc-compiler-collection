@@ -11,6 +11,8 @@
 #include "context.h"
 #include "lex.h"
 
+class FunctionDecl;
+
 class ASTBase {
 public:
   virtual llvm::Value *codegen(ContextHolder holder);
@@ -18,19 +20,27 @@ public:
 
   ASTBase(const std::vector<ASTBase*> childrens);
 
+  // nullptr on failure
+  FunctionDecl* getFirstFunctionDecl();
+
   ASTBase* getParent();
   void setParent(ASTBase* parent);
   void addChildren(ASTBase* children);
   void removeChildren(ASTBase* children);
+
+  // depth = 1 is start
+  void debugDump(int depth=1);
+  const std::string& getName(); 
+
 private:
   ASTBase* m_parent;
+  std::string  m_name;
   std::set<ASTBase*> m_childrens;
 };
 
 enum Type { Int32 };
 
 struct TypeInfo {
-  TypeInfo() = default;
 
   Type kind;
   std::string name;
@@ -67,32 +77,27 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder) override;
   void dump() override;
 
+  const std::string& getName();
 private:
   std::vector<ASTBase *> m_statements;
   FunctionArgLists *m_arg_list;
   std::string m_name;
 
+  // nullptr before codegen
   llvm::Function *m_function = nullptr;
 };
 
 //============================== Statements ==============================
-enum AssignmentType {
-  Constant,
-};
-
 class AssignmentStatement : public ASTBase {
 public:
-  AssignmentStatement(const std::string &name, long long value);
+  AssignmentStatement(const std::string &name, ASTBase* expression);
 
   virtual llvm::Value *codegen(ContextHolder holder);
   const std::string &getName();
-  long long getValue();
 
 private:
   std::string m_name;
-  // valid when assignment type is set to Constant
-  long long m_value;
-  AssignmentType m_type = Constant;
+  ASTBase* m_expression;
 };
 
 class ReturnStatement : public ASTBase {

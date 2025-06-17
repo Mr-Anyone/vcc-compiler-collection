@@ -1,14 +1,37 @@
 #include "ast.h"
+#include "util.h"
+
 #include <cassert>
 #include <iostream>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 
+static void printSpaceBasedOnDepth(int depth){
+    for(int i = 0;i<depth*2-1; ++i){
+        std::cout << " ";
+    }
+}
+
+void ASTBase::debugDump(int depth){
+    printSpaceBasedOnDepth(depth - 1);
+    std::cout << getASTClassName(this) << " ";
+    dump();
+
+    std::cout << "\n";
+    for(ASTBase* children: m_childrens){
+        printSpaceBasedOnDepth(depth);
+
+        children->debugDump(depth + 1);
+    }
+}
+
 ASTBase::ASTBase(const std::vector<ASTBase*> childrens):
     m_parent(nullptr), m_childrens(){
 
-    for(auto& children: childrens)
+    for(ASTBase* children: childrens){
         addChildren(children);
+        children->setParent(this);
+    }
 }
 
 void ASTBase::removeChildren(ASTBase* children){
@@ -23,6 +46,8 @@ void ASTBase::addChildren(ASTBase* children){
 }
 
 void ASTBase::setParent(ASTBase* parent){
+    assert(!m_parent &&"parent must be null");
+
     m_parent = parent;
 }
 
@@ -30,14 +55,13 @@ ASTBase* ASTBase::getParent(){
     return m_parent;
 }
 
-llvm::Value *ASTBase::codegen(ContextHolder holder) { 
-    assert(false && "please implement codegen");
-    return nullptr;
-}
 
 void ASTBase::dump() {
-  std::cout << "not implemented" << std::endl;
   return;
+}
+
+const std::string& FunctionDecl::getName(){
+    return m_name;
 }
 
 FunctionDecl::FunctionDecl(std::vector<ASTBase *> &expression,
@@ -55,103 +79,18 @@ FunctionArgLists::ArgsIter FunctionArgLists::end() const {
   return m_args.cend();
 }
 
-void FunctionArgLists::codegen(ContextHolder holder, llvm::Function *func) {
-  // appending to symbol table
-  int count = 0;
-  for (llvm::Argument &arg : func->args()) {
-    const std::string &name = m_args[count++].name;
-    arg.setName(name);
-
-    // allocating one integer
-    llvm::Value *alloc_loc =
-        holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
-    holder->builder.CreateStore(&arg, alloc_loc);
-
-    assert(holder->symbol_table.find(name) == holder->symbol_table.end() &&
-           "cannot have multilpe definition");
-    holder->symbol_table[name] = alloc_loc;
-  }
-}
-
-llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
-  // FIXME: make this more efficient
-  std::vector<llvm::Type *> args;
-  for (auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it) {
-    args.push_back(llvm::Type::getInt32Ty(holder->context));
-  }
-
-  llvm::FunctionType *function_type = llvm::FunctionType::get(
-      llvm::Type::getInt32Ty(holder->context), args, /*isVarArg=*/false);
-
-  m_function = llvm::Function::Create(
-      function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
-
-  // generating code for something
-  llvm::BasicBlock *block =
-      llvm::BasicBlock::Create(holder->context, "main", m_function);
-  holder->builder.SetInsertPoint(block);
-
-  // copy the parameter into llvm ir
-  m_arg_list->codegen(holder, m_function);
-
-  // code generation for statement
-  for (ASTBase *statement : m_statements) {
-    statement->codegen(holder);
-  }
-
-  return m_function;
-}
-
 AssignmentStatement::AssignmentStatement(const std::string &name,
-                                         long long value)
-    : ASTBase({}), m_name(name), m_value(value) {}
-
-llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
-  llvm::Value *alloc_loc = holder->symbol_table[m_name];
-  switch (m_type) {
-  case Constant:
-    holder->builder.CreateStore(
-        llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context),
-                               getValue()),
-        alloc_loc);
-    break;
-  default:
-    assert(false && "how did I made it here?");
-  }
-
-  return nullptr;
-}
+                                         ASTBase* expression)
+    : ASTBase({expression}), m_name(name), m_expression(expression) {}
 
 const std::string &AssignmentStatement::getName() { return m_name; }
 
-long long AssignmentStatement::getValue() {
-  assert(m_type == Constant && "the value must be a constant");
-  return m_value;
-}
-
 void FunctionDecl::dump() {
-  std::cout << "function name: " << m_name << std::endl;
-  std::cout << "args: " << m_arg_list << std::endl;
-  std::cout << "args is not implemented for now!" << std::endl;
-
-  std::cout << "dumping expressions:" << std::endl;
-
-  for (auto *exp : m_statements) {
-    exp->dump();
-  }
+    std::cout << "name: " << m_name;
 }
 
 ReturnStatement::ReturnStatement(ASTBase *expression)
-    : ASTBase({}), m_expression(expression) {}
-
-llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
-  // assert(false && "I made it here somehow");
-    llvm::Value* return_value= m_expression->codegen(holder);
-    assert(return_value && "expression must return a value");
-    holder->builder.CreateRet(return_value);
-
-    return nullptr;
-}
+    : ASTBase({expression}), m_expression(expression) {}
 
 IdentifierExpr::IdentifierExpr(const std::string &name) : ASTBase({}), m_name(name) {}
 
@@ -185,29 +124,52 @@ void BinaryExpression::setRHS(ASTBase *rhs) {
 }
 
 void BinaryExpression::dump(){
-    std::cout <<"current: " << this << " rhs: " << m_rhs << " operator: " << m_kind <<  " left: " << m_lhs << std::endl;
-    m_rhs->dump();
-    m_lhs->dump();
+    switch(m_kind){
+        case Add:
+            std::cout << "+";
+            break;
+        case Multiply:
+            std::cout << "*";
+            break;
+        default: 
+            std::cout << "unknown"; 
+            break;
+    }
+
     return;
 }
 
 void IdentifierExpr::dump(){
-    std::cout <<"current: " << this << " identifier: " << m_name << std::endl;
-}
-
-llvm::Value* IdentifierExpr::codegen(ContextHolder holder){
-    // this is usually a pointer
-    // FIXME: it seems that we need to encode more type 
-    // information
-    llvm::Value* loc_value = holder->symbol_table[m_name];
-    llvm::Value* value = 
-        holder->builder.CreateLoad(llvm::Type::getInt32Ty(holder->context), loc_value);
-
-    return value;
+    std::cout << "identifier: " << m_name ;
 }
 
 void ConstantExpr::dump(){
-    std::cout <<"current: " << this << " constant: " << m_value << std::endl;
+    std::cout  << m_value;
+}
+
+FunctionDecl* ASTBase::getFirstFunctionDecl(){
+    ASTBase* current = this;
+    for(;dynamic_cast<FunctionDecl*>(current);
+            current = current->getParent()){
+        if(!current)
+            return nullptr;
+    }
+
+    return dynamic_cast<FunctionDecl*>(current);
+}
+
+// ======================================================
+// ====================== CODE GEN ======================
+llvm::Value *ASTBase::codegen(ContextHolder holder) { 
+    assert(false && "please implement codegen");
+    return nullptr;
+}
+
+
+llvm::Value* ConstantExpr::codegen(ContextHolder holder){
+    llvm::Value* value = 
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), m_value);
+    return value;
 }
 
 llvm::Value* BinaryExpression::codegen(ContextHolder holder){
@@ -233,9 +195,79 @@ llvm::Value* BinaryExpression::codegen(ContextHolder holder){
     return nullptr;
 }
 
-llvm::Value* ConstantExpr::codegen(ContextHolder holder){
+llvm::Value* IdentifierExpr::codegen(ContextHolder holder){
+    // this is usually a pointer
+    // FIXME: it seems that we need to encode more type 
+    // information
+    llvm::Value* loc_value = holder->symbol_table[m_name];
     llvm::Value* value = 
-        llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), m_value);
+        holder->builder.CreateLoad(llvm::Type::getInt32Ty(holder->context), loc_value);
+
     return value;
 }
 
+void FunctionArgLists::codegen(ContextHolder holder, llvm::Function *func) {
+  // appending to symbol table
+  int count = 0;
+  for (llvm::Argument &arg : func->args()) {
+    const std::string &name = m_args[count++].name;
+    arg.setName(name);
+
+    // allocating one integer
+    llvm::Value *alloc_loc =
+        holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
+    holder->builder.CreateStore(&arg, alloc_loc);
+
+    assert(holder->symbol_table.find(name) == holder->symbol_table.end() &&
+           "cannot have multilpe definition");
+    holder->symbol_table[name] = alloc_loc;
+  }
+}
+
+llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
+    llvm::Value* expression_val = m_expression->codegen(holder);
+    assert(expression_val && "must yield a non negative result");
+    llvm::Value *alloc_loc = holder->symbol_table[m_name];
+
+    holder->builder.CreateStore(expression_val, alloc_loc);
+
+  return nullptr;
+}
+
+llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
+  // assert(false && "I made it here somehow");
+    llvm::Value* return_value= m_expression->codegen(holder);
+    assert(return_value && "expression must return a value");
+    holder->builder.CreateRet(return_value);
+
+    return nullptr;
+}
+
+llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
+  // FIXME: make this more efficient
+  std::vector<llvm::Type *> args;
+  for (auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it) {
+    args.push_back(llvm::Type::getInt32Ty(holder->context));
+  }
+
+  llvm::FunctionType *function_type = llvm::FunctionType::get(
+      llvm::Type::getInt32Ty(holder->context), args, /*isVarArg=*/false);
+
+  m_function = llvm::Function::Create(
+      function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
+
+  // generating code for something
+  llvm::BasicBlock *block =
+      llvm::BasicBlock::Create(holder->context, "main", m_function);
+  holder->builder.SetInsertPoint(block);
+
+  // copy the parameter into llvm ir
+  m_arg_list->codegen(holder, m_function);
+
+  // code generation for statement
+  for (ASTBase *statement : m_statements) {
+    statement->codegen(holder);
+  }
+
+  return m_function;
+}

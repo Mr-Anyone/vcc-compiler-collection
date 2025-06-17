@@ -10,6 +10,7 @@ int main() {
   llvm::Function *function 
       = llvm::cast<llvm::Function>(base->codegen(context));
   function->dump();
+  base->debugDump();
 
   return 0;
 }

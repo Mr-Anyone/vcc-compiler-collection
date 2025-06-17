@@ -1,0 +1,39 @@
+#include "symbol_table.h"
+
+SymbolTable::SymbolTable(): 
+    m_local_table(), m_function_table(){
+
+}
+
+void SymbolTable::addFunction(FunctionDecl* function_decl, llvm::Function* function){
+    const std::string& function_name = function_decl->getName();
+    assert(!m_function_table.contains(function_name));
+    
+    m_function_table[function_name] = function;
+}
+
+llvm::Function* SymbolTable::lookupFunction(const std::string& name){
+    assert(!m_function_table.contains(name));
+    return m_function_table[name];
+}
+
+
+void SymbolTable::addLocalVariable(FunctionDecl* function, std::string name, llvm::Value* value){
+    // reserved for implementation
+    assert(name.find('$') != name.size() && "cannot contain $"); 
+
+    std::string lookup_name = makeLocalVariableLookupName(function, name);
+    std::cout << "The lookup name is: " << lookup_name;
+    m_local_table[lookup_name] = value;
+}
+
+llvm::Value*  SymbolTable::lookupLocalVariable(FunctionDecl* function, std::string name){
+    assert(m_local_table.contains(name));
+    std::string lookup_name = makeLocalVariableLookupName(function, name);
+    return m_local_table[lookup_name];
+    
+}
+
+std::string SymbolTable::makeLocalVariableLookupName(FunctionDecl* function, std::string name){
+    return  function->getName()+ "$" + name;
+}
