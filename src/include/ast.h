@@ -16,10 +16,15 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder);
   virtual void dump();
 
+  ASTBase(const std::vector<ASTBase*> childrens);
+
   ASTBase* getParent();
   void setParent(ASTBase* parent);
+  void addChildren(ASTBase* children);
+  void removeChildren(ASTBase* children);
 private:
   ASTBase* m_parent;
+  std::set<ASTBase*> m_childrens;
 };
 
 enum Type { Int32 };
@@ -56,7 +61,7 @@ private:
 
 class FunctionDecl : public ASTBase {
 public:
-  FunctionDecl(std::vector<ASTBase *> &&expression, FunctionArgLists *arg_list,
+  FunctionDecl(std::vector<ASTBase *> &expression, FunctionArgLists *arg_list,
                std::string &&name);
 
   virtual llvm::Value *codegen(ContextHolder holder) override;

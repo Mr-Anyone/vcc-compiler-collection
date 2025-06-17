@@ -4,6 +4,24 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 
+ASTBase::ASTBase(const std::vector<ASTBase*> childrens):
+    m_parent(nullptr), m_childrens(){
+
+    for(auto& children: childrens)
+        addChildren(children);
+}
+
+void ASTBase::removeChildren(ASTBase* children){
+    assert(m_childrens.find(children) != m_childrens.end() 
+            && "must contain element to begin with");
+
+    m_childrens.erase(children);
+}
+
+void ASTBase::addChildren(ASTBase* children){
+    m_childrens.insert(children);
+}
+
 void ASTBase::setParent(ASTBase* parent){
     m_parent = parent;
 }
@@ -22,9 +40,9 @@ void ASTBase::dump() {
   return;
 }
 
-FunctionDecl::FunctionDecl(std::vector<ASTBase *> &&expression,
+FunctionDecl::FunctionDecl(std::vector<ASTBase *> &expression,
                            FunctionArgLists *arg_list, std::string &&name)
-    : ASTBase(), m_statements(expression), m_arg_list(arg_list), m_name(name) {}
+    : ASTBase(expression), m_statements(expression), m_arg_list(arg_list), m_name(name) {}
 
 FunctionArgLists::FunctionArgLists(std::vector<TypeInfo> &&args)
     : m_args(args) {}
@@ -86,7 +104,7 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
 
 AssignmentStatement::AssignmentStatement(const std::string &name,
                                          long long value)
-    : ASTBase(), m_name(name), m_value(value) {}
+    : ASTBase({}), m_name(name), m_value(value) {}
 
 llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
   llvm::Value *alloc_loc = holder->symbol_table[m_name];
@@ -124,7 +142,7 @@ void FunctionDecl::dump() {
 }
 
 ReturnStatement::ReturnStatement(ASTBase *expression)
-    : ASTBase(), m_expression(expression) {}
+    : ASTBase({}), m_expression(expression) {}
 
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
   // assert(false && "I made it here somehow");
@@ -135,16 +153,16 @@ llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
     return nullptr;
 }
 
-IdentifierExpr::IdentifierExpr(const std::string &name) : m_name(name) {}
+IdentifierExpr::IdentifierExpr(const std::string &name) : ASTBase({}), m_name(name) {}
 
-ConstantExpr::ConstantExpr(int value) : m_value(value) {}
+ConstantExpr::ConstantExpr(int value) :ASTBase({}), m_value(value) {}
 
 int ConstantExpr::getValue() { return m_value; }
 
-ParenthesesExpression::ParenthesesExpression(ASTBase *child) : m_child(child) {}
+ParenthesesExpression::ParenthesesExpression(ASTBase *child) :ASTBase({child}), m_child(child) {}
 
 BinaryExpression::BinaryExpression(ASTBase *lhs, BinaryExpressionType type)
-    : m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
+    : ASTBase({lhs}), m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
 
 BinaryExpression::BinaryExpressionType
 BinaryExpression::getFromLexType(lex::Token token) {
@@ -159,7 +177,12 @@ BinaryExpression::getFromLexType(lex::Token token) {
   }
 }
 
-void BinaryExpression::setRHS(ASTBase *rhs) { m_rhs = rhs; }
+void BinaryExpression::setRHS(ASTBase *rhs) { 
+    assert(!m_rhs && "expected it to be a null pointer");
+    addChildren(rhs);
+
+    m_rhs = rhs;
+}
 
 void BinaryExpression::dump(){
     std::cout <<"current: " << this << " rhs: " << m_rhs << " operator: " << m_kind <<  " left: " << m_lhs << std::endl;
