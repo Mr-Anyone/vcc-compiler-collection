@@ -274,5 +274,7 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
     statement->codegen(holder);
   }
 
+  // add this to symbol table 
+  holder->symbol_table.addFunction(this);
   return m_function;
 }

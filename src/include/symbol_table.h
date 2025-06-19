@@ -12,7 +12,7 @@ public:
     SymbolTable();
 
     // FIXME: do we really need two arguments?
-    void addFunction(FunctionDecl* function_decl, llvm::Function* function);
+    void addFunction(FunctionDecl* function_decl);
     llvm::Function* lookupFunction(const std::string& name);
 
     // 

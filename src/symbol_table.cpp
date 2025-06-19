@@ -6,8 +6,9 @@ SymbolTable::SymbolTable():
 
 }
 
-void SymbolTable::addFunction(FunctionDecl* function_decl, llvm::Function* function){
+void SymbolTable::addFunction(FunctionDecl* function_decl){
     const std::string& function_name = function_decl->getName();
+    llvm::Function* function = function_decl->getLLVMFunction();
     assert(!m_function_table.contains(function_name));
     
     m_function_table[function_name] = function;
