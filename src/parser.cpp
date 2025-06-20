@@ -56,9 +56,8 @@ ASTBase *Parser::buildFunctionDecl() {
     expressions.push_back(exp);
   }
 
-  return new FunctionDecl(expressions,
-                          dynamic_cast<FunctionArgLists *>(arg_list),
-                          std::move(name));
+  return new FunctionDecl(
+      expressions, dynamic_cast<FunctionArgLists *>(arg_list), std::move(name));
 }
 
 // assignment_expression :== <identifier>, '=', <expression>, ';'
@@ -75,14 +74,14 @@ ASTBase *Parser::buildAssignmentStatement() {
   if (number_constant.getType() != lex::IntegerLiteral)
     return logError("expected integer");
 
-  ASTBase* expression  =  buildExpression();
+  ASTBase *expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::SemiColon)
     return logError("expected semi colon");
 
   m_tokenizer.consume();
 
-  return new AssignmentStatement(name,expression); 
+  return new AssignmentStatement(name, expression);
 }
 
 // FIXME: maybe put arg_declaration into its own function?
@@ -181,7 +180,7 @@ ASTBase *Parser::buildBinaryExpression(int min_precendence) {
       break;
 
     current_precedence_level =
-          precedence_level.find(current_operator_token.getType())->second;
+        precedence_level.find(current_operator_token.getType())->second;
 
     result = new BinaryExpression(
         result, BinaryExpression::getFromLexType(current_operator_token));

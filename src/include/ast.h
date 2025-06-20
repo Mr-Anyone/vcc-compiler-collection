@@ -18,24 +18,24 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder);
   virtual void dump();
 
-  ASTBase(const std::vector<ASTBase*> childrens);
+  ASTBase(const std::vector<ASTBase *> childrens);
 
   // nullptr on failure
-  FunctionDecl* getFirstFunctionDecl();
+  FunctionDecl *getFirstFunctionDecl();
 
-  ASTBase* getParent();
-  void setParent(ASTBase* parent);
-  void addChildren(ASTBase* children);
-  void removeChildren(ASTBase* children);
+  ASTBase *getParent();
+  void setParent(ASTBase *parent);
+  void addChildren(ASTBase *children);
+  void removeChildren(ASTBase *children);
 
   // depth = 1 is start
-  void debugDump(int depth=1);
-  const std::string& getName(); 
+  void debugDump(int depth = 1);
+  const std::string &getName();
 
 private:
-  ASTBase* m_parent;
-  std::string  m_name;
-  std::set<ASTBase*> m_childrens;
+  ASTBase *m_parent;
+  std::string m_name;
+  std::set<ASTBase *> m_childrens;
 };
 
 enum Type { Int32 };
@@ -60,7 +60,7 @@ public:
   FunctionArgLists(std::vector<TypeInfo> &&args);
 
   // the first few alloc, and load instruction
-  void codegen(ContextHolder holder,  FunctionDecl* function_decl);
+  void codegen(ContextHolder holder, FunctionDecl *function_decl);
 
   ArgsIter begin() const;
   ArgsIter end() const;
@@ -77,8 +77,9 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder) override;
   void dump() override;
 
-  const std::string& getName()const;
-  llvm::Function* getLLVMFunction ()const;
+  const std::string &getName() const;
+  llvm::Function *getLLVMFunction() const;
+
 private:
   std::vector<ASTBase *> m_statements;
   FunctionArgLists *m_arg_list;
@@ -91,14 +92,14 @@ private:
 //============================== Statements ==============================
 class AssignmentStatement : public ASTBase {
 public:
-  AssignmentStatement(const std::string &name, ASTBase* expression);
+  AssignmentStatement(const std::string &name, ASTBase *expression);
 
   virtual llvm::Value *codegen(ContextHolder holder);
   const std::string &getName();
 
 private:
   std::string m_name;
-  ASTBase* m_expression;
+  ASTBase *m_expression;
 };
 
 class ReturnStatement : public ASTBase {
@@ -119,8 +120,8 @@ private:
 class ConstantExpr : public ASTBase {
 public:
   explicit ConstantExpr(int value);
-  virtual void dump() override; 
-  virtual llvm::Value* codegen(ContextHolder holder) override; 
+  virtual void dump() override;
+  virtual llvm::Value *codegen(ContextHolder holder) override;
 
   int getValue();
 
@@ -132,8 +133,8 @@ class IdentifierExpr : public ASTBase {
 public:
   IdentifierExpr(const std::string &name);
 
-  virtual void dump() override; 
-  virtual llvm::Value* codegen(ContextHolder holder) override; 
+  virtual void dump() override;
+  virtual llvm::Value *codegen(ContextHolder holder) override;
 
 private:
   std::string m_name;
@@ -164,7 +165,7 @@ public:
   BinaryExpression(ASTBase *lhs, BinaryExpressionType type);
 
   virtual void dump() override;
-  virtual llvm::Value* codegen(ContextHolder holder) override;
+  virtual llvm::Value *codegen(ContextHolder holder) override;
 
   void setRHS(ASTBase *rhs);
 

@@ -5,8 +5,8 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 
-#include <memory>
 #include "symbol_table.h"
+#include <memory>
 
 // Please use ContextHolder to access these variables
 // useful for
