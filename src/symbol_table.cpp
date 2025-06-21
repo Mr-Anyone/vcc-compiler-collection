@@ -12,7 +12,7 @@ void SymbolTable::addFunction(FunctionDecl *function_decl) {
 }
 
 llvm::Function *SymbolTable::lookupFunction(const std::string &name) {
-  assert(!m_function_table.contains(name));
+  assert(m_function_table.contains(name));
   return m_function_table[name];
 }
 
@@ -22,7 +22,6 @@ void SymbolTable::addLocalVariable(FunctionDecl *function, std::string name,
   assert(name.find('$') != name.size() && "cannot contain $");
 
   std::string lookup_name = makeLocalVariableLookupName(function, name);
-  std::cout << "The lookup name is: " << lookup_name;
   m_local_table[lookup_name] = value;
 }
 

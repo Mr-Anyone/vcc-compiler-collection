@@ -28,7 +28,7 @@ private:
   ASTBase *buildExpression();
   ASTBase *buildBinaryExpression(int min_precedence);
   ASTBase *buildTrivialExpression();
-  ASTBase *bulidCallExpr();
+  ASTBase *buildCallExpr();
 
   // for binary expression
   const static inline std::unordered_map<lex::TokenType, int> precedence_level =

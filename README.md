@@ -42,7 +42,7 @@ binary_expression :== <trivial_expression> |
 trivial_expression :== <identifier> | <call_expression> |
                             '(', <expression>, ')' | <integer_literal>
 
-call_expressions :== <identifier>, '()'
+call_expressions :== <identifier>, '(', {<expression> ',' }+,  ')'
 
 bin_op :== '+', '-', '*', '/'
 ```

@@ -151,6 +151,14 @@ FunctionDecl *ASTBase::getFirstFunctionDecl() {
   return nullptr;
 }
 
+CallExpr::CallExpr(const std::string &name,
+                   const std::vector<ASTBase *> &expression)
+    : ASTBase(expression), m_func_name(name), m_expressions(expression) {}
+
+void CallExpr::dump(){
+    std::cout << "name: " << m_func_name;
+}
+
 // ======================================================
 // ====================== CODE GEN ======================
 llvm::Value *ASTBase::codegen(ContextHolder holder) {
@@ -268,4 +276,20 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
   // add this to symbol table
   holder->symbol_table.addFunction(this);
   return m_function;
+}
+
+llvm::Value *CallExpr::codegen(ContextHolder holder) {
+  llvm::Function *function = holder->symbol_table.lookupFunction(m_func_name);
+  assert(function && "this must exist for codegen!");
+  assert(function->arg_size() == m_expressions.size() &&
+         "expected the same number of argument");
+  std::vector<llvm::Value *> args;
+  for (ASTBase *expression : m_expressions) {
+    args.push_back(expression->codegen(holder));
+  }
+
+  llvm::Value* result =
+      holder->builder.CreateCall(function->getFunctionType(), function, args);
+
+  return result;
 }
