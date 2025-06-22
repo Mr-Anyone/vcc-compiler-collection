@@ -142,14 +142,13 @@ private:
 
 class CallExpr : public ASTBase {
 public:
-  CallExpr(const std::string &name, const std::vector<ASTBase*>& expressions);
-  llvm::Value* codegen(ContextHolder holder) override;
-  void dump()override;
-
+  CallExpr(const std::string &name, const std::vector<ASTBase *> &expressions);
+  llvm::Value *codegen(ContextHolder holder) override;
+  void dump() override;
 
 private:
   std::string m_func_name;
-  std::vector<ASTBase*> m_expressions;
+  std::vector<ASTBase *> m_expressions;
 };
 
 class ParenthesesExpression : public ASTBase {

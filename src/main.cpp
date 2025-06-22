@@ -10,9 +10,10 @@ int main() {
   ASTBase *func_two = parser.buildSyntaxTree();
 
   llvm::Function *function = llvm::cast<llvm::Function>(base->codegen(context));
-  llvm::Function *fun_two_ir = llvm::cast<llvm::Function>(func_two->codegen(context));
-  function->dump(); 
-  fun_two_ir->dump(); 
+  llvm::Function *fun_two_ir =
+      llvm::cast<llvm::Function>(func_two->codegen(context));
+  function->dump();
+  fun_two_ir->dump();
 
   return 0;
 }

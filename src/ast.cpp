@@ -155,9 +155,7 @@ CallExpr::CallExpr(const std::string &name,
                    const std::vector<ASTBase *> &expression)
     : ASTBase(expression), m_func_name(name), m_expressions(expression) {}
 
-void CallExpr::dump(){
-    std::cout << "name: " << m_func_name;
-}
+void CallExpr::dump() { std::cout << "name: " << m_func_name; }
 
 // ======================================================
 // ====================== CODE GEN ======================
@@ -288,7 +286,7 @@ llvm::Value *CallExpr::codegen(ContextHolder holder) {
     args.push_back(expression->codegen(holder));
   }
 
-  llvm::Value* result =
+  llvm::Value *result =
       holder->builder.CreateCall(function->getFunctionType(), function, args);
 
   return result;
