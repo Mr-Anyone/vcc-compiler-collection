@@ -257,6 +257,7 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
 
   m_function = llvm::Function::Create(
       function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
+  m_function->setDSOLocal(true);
 
   // generating code for something
   llvm::BasicBlock *block =
