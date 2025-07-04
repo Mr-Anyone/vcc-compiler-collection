@@ -1,3 +1,11 @@
+# TODO
+
+- [] Add support for aggregate type
+- [] Floating point support
+- [] Better error handling and printing
+- [] The problem of implicit casting and semantics analysis
+- [] The C FFI problem with SDL
+
 # Example Code 
 ```
 function testing gives int 
