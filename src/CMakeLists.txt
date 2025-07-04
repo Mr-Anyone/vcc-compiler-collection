@@ -1,6 +1,5 @@
 set(
-    SOURCE_FILES
-    main.cpp
+    LIB_FILES
     lex.cpp
     parser.cpp 
     context.cpp
@@ -8,10 +7,10 @@ set(
     ast.cpp
 )
 
-add_executable(
-    comp
-    ${SOURCE_FILES}
-)
+add_executable(main main.cpp)
+target_link_libraries(main comp)
+
+add_library(comp ${LIB_FILES})
 
 target_include_directories(
     comp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
