@@ -1,6 +1,7 @@
 #ifndef LEX_H
 #define LEX_H
 
+#include "stream.h"
 #include <fstream>
 #include <istream>
 #include <set>
@@ -46,25 +47,29 @@ enum TokenType {
 
 struct Token {
 public:
+    // error state
   Token();
+
   // for identifier
-  Token(std::string &&string_litearl);
+  Token(std::string &&string_litearl, FilePos pos);
 
   // for IntegerLiteral
-  Token(long long integer_litearl);
+  Token(long long integer_litearl, FilePos pos);
 
   // set binary operation
 
   // for type like Parentheses, Invalid, EndOfFile, and keywords
-  Token(TokenType type);
+  Token(TokenType type, FilePos pos);
 
   void dump() const;
   TokenType getType() const;
   const std::string &getStringLiteral() const;
   long long getIntegerLiteral() const;
   bool isBinaryOperator() const;
+  FilePos getPos() const;
 
 private:
+  FilePos pos;
   TokenType type;
 
   std::string string_literal;
@@ -112,7 +117,7 @@ private:
 
   Token readOneToken();
   void removeWhiteSpace();
-  std::ifstream m_file;
+  FileStream m_file;
 
   Token m_current_token;
 };

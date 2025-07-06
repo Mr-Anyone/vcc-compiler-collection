@@ -8,19 +8,22 @@
 
 struct FilePos {
   int row, col;
-  void dump();
+  
+  friend std::ostream& operator<<(std::ostream& os, const FilePos& filepos);
 };
+
+std::ostream& operator<<(std::ostream& os, const FilePos& filepos);
 
 bool operator==(const FilePos &lhs, const FilePos &rhs);
 
 /// abstractions above std::ifstream
 class FileStream {
 public:
-  FileStream(const std::string &filename);
+  FileStream(const char* filename);
 
   /// consumes the character
   char get();
-  void get(char &c);
+  char get(char &c);
 
   /// look ahead into the next one
   char peek();
@@ -37,9 +40,18 @@ public:
 
   FilePos getPos();
 
+  /// is the file open?
+  bool is_open();
+
   const std::vector<long>& getCurrentNewLineBuf() const;
 private:
   void addNewLineLoc(long loc);
+
+  /// check if we are at the end of file
+  bool m_is_end_of_file = false;
+  
+  /// check for if a file is open or not
+  bool m_open;
 
   // save and restore state
   long m_restore_loc; 

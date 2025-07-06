@@ -29,7 +29,7 @@ static bool is_valid_stoi(const std::string &str) {
 
 const Token Tokenizer::peek() {
   // saving the location
-  std::streampos current = m_file.tellg();
+  long current = m_file.tellg();
 
   Token next_token = readOneToken();
 
@@ -57,14 +57,16 @@ Token Tokenizer::readOneToken() {
   // put this into read one
   removeWhiteSpace();
 
-  if (!m_file.good() && m_file.peek() == std::char_traits<char>::eof()) {
-    return Token(EndOfFile);
+  if (m_file.eof()) {
+    return Token(EndOfFile, m_file.getPos());
   }
 
   std::string buf;
-  char c;
   bool is_first_time = true;
-  while (m_file.get(c)) {
+  while (!m_file.eof()) {
+    char c;
+    m_file.get(c);
+
     if (c == ' ' || c == '\n') {
       break;
     }
@@ -78,11 +80,11 @@ Token Tokenizer::readOneToken() {
         std::string lookup_term;
         lookup_term += c;
         // making the lookup term
-        Token return_result(keyword_map.at(lookup_term));
+        Token return_result(keyword_map.at(lookup_term), m_file.getPos());
         return return_result;
       }
 
-      m_file.seekg(m_file.tellg() - std::streampos(1));
+      m_file.seekg(m_file.tellg() - 1);
       break;
     }
 
@@ -93,17 +95,17 @@ Token Tokenizer::readOneToken() {
   // this is a valid integer?
   if (is_valid_stoi(buf)) {
     long long result = std::stoll(buf);
-    Token return_result(result);
+    Token return_result(result, m_file.getPos());
     return return_result;
   }
 
   // keywords function, gives, etc..
   if (isKeyword(buf)) {
-    return Token(getKeyword(buf));
+    return Token(getKeyword(buf), m_file.getPos());
   }
 
   // it must be an identifier than
-  return Token(std::move(buf));
+  return Token(std::move(buf), m_file.getPos());
 }
 
 bool Tokenizer::isKeyword(const std::string &keyword) {
@@ -126,8 +128,8 @@ TokenType Tokenizer::getKeyword(const std::string &keyword) {
   return result;
 }
 
-Token::Token(long long number)
-    : type(IntegerLiteral), integer_literal(number) {}
+Token::Token(long long number, FilePos pos)
+    : type(IntegerLiteral), integer_literal(number), pos(pos) {}
 
 const char *tokenTypeToString(TokenType type) {
   switch (type) {
@@ -180,19 +182,21 @@ const char *tokenTypeToString(TokenType type) {
   }
 }
 
+Token::Token(): type(Invalid){
+}
+
 void Token::dump() const {
   std::cout << "Token type: " << tokenTypeToString(type) << std::endl;
 }
 
-Token::Token() : type(Invalid) {}
 
-Token::Token(TokenType type) : type(type) {
+Token::Token(TokenType type, FilePos pos) : type(type), pos(pos) {
   assert((type == LeftParentheses || type == RightParentheses ||
           type == EndOfFile || (type > KeywordStart && type < KeywordEnd)) &&
          "it must be parenthesis type style or keyword!");
 }
 
-Token::Token(std::string &&string) : type(Identifier), string_literal(string) {}
+Token::Token(std::string &&string, FilePos pos) : type(Identifier), string_literal(string), pos(pos) {}
 
 const std::string &Token::getStringLiteral() const {
   assert(type == Identifier);
@@ -213,3 +217,7 @@ TokenType Token::getType() const { return type; }
 TokenType Tokenizer::getNextType() { return next().getType(); }
 
 TokenType Tokenizer::getCurrentType() { return m_current_token.getType(); }
+
+FilePos Token::getPos() const{
+    return pos; 
+}

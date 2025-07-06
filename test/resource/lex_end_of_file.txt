@@ -1,0 +1,6 @@
+function add gives int[
+    int a, 
+    int b,
+]{
+    ret a + b;
+}

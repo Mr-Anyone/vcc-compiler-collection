@@ -17,3 +17,16 @@ TEST(LexTest, TokenTest) {
 
     std::remove("/tmp/testing");
 }
+
+TEST(LexTest, EndOfFileReading){
+    lex::Tokenizer tokenizer("resource/lex_end_of_file.txt");
+    while(tokenizer.getCurrentType() != lex::EndOfFile){
+        tokenizer.next();
+    }
+
+    // testing multiple times to see if this works 
+    EXPECT_EQ(lex::EndOfFile, tokenizer.getNextType());
+    EXPECT_EQ(lex::EndOfFile, tokenizer.getNextType());
+    EXPECT_EQ(lex::EndOfFile, tokenizer.getNextType());
+    EXPECT_EQ(lex::EndOfFile, tokenizer.getNextType());
+}
