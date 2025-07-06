@@ -27,10 +27,6 @@ static bool is_valid_stoi(const std::string &str) {
   return true;
 }
 
-// FIXME: since we are stack allocating, we are
-// always making a copy. This gets really expensive
-// because token class is quite big, and stores a
-// std::string heap allocation?
 const Token Tokenizer::peek() {
   // saving the location
   std::streampos current = m_file.tellg();

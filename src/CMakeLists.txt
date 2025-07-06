@@ -5,6 +5,9 @@ set(
     context.cpp
     symbol_table.cpp
     ast.cpp
+    sema.cpp
+    # FIXME: maybe add this into a different standard library
+    stream.cpp
 )
 
 add_executable(main main.cpp)

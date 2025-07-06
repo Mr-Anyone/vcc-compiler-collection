@@ -1,6 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include "sema.h"
 #include "ast.h"
 #include "context.h"
 #include "lex.h"
@@ -39,6 +40,7 @@ private:
 
   ContextHolder m_context;
   lex::Tokenizer m_tokenizer;
+  Sema m_actions;
 };
 
 #endif
