@@ -6,8 +6,12 @@
 #include <iostream>
 #include <vector>
 
+/// 0 means we are at \n character 
+/// therefore it is impossible to have row=1, and col=0
 struct FilePos {
+    FilePos(int row, int col, long loc): row(row), col(col), loc(loc){}
   int row, col;
+  long loc;
   
   friend std::ostream& operator<<(std::ostream& os, const FilePos& filepos);
 };
@@ -43,10 +47,8 @@ public:
   /// is the file open?
   bool is_open();
 
-  const std::vector<long>& getCurrentNewLineBuf() const;
+  std::string getLine(long pos);  
 private:
-  void addNewLineLoc(long loc);
-
   /// check if we are at the end of file
   bool m_is_end_of_file = false;
   
@@ -55,17 +57,13 @@ private:
 
   // save and restore state
   long m_restore_loc; 
-  FilePos m_restore_pos;
+  FilePos m_restore_pos {1, 1, 0};
   bool m_is_in_save_state = false;
   void saveState();
   void restoreState();
 
-  /// stores the new line locations
-  /// {10,  12}, at the 10th bytes, there is a '\n', meaning that 11 is a
-  /// character
-  std::vector<long> m_new_line_loc{};
   std::FILE *m_file;
-  FilePos m_pos = {1, 1};
+  FilePos m_pos = {1, 1, 0};
 };
 
 #endif

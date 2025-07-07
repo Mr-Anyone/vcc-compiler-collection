@@ -12,6 +12,7 @@ int main() {
   llvm::Function *function = llvm::cast<llvm::Function>(base->codegen(context));
   llvm::Function *fun_two_ir =
       llvm::cast<llvm::Function>(func_two->codegen(context));
+
   function->dump();
   fun_two_ir->dump();
 

@@ -28,13 +28,12 @@ char FileStream::get() {
 
   if (c == '\n') {
     // -1 from the side effect of fread
-    addNewLineLoc(tellg() - 1);
-
     m_pos.row++;
     m_pos.col = 1;
   } else {
     m_pos.col++;
   }
+  m_pos.loc++;
 
   return c;
 }
@@ -58,7 +57,24 @@ long FileStream::tellg() {
   return std::ftell(m_file);
 }
 
-void FileStream::seekg(long pos) { std::fseek(m_file, pos, SEEK_SET); }
+void FileStream::seekg(long pos) { 
+    // update the current position
+    std::fseek(m_file, 0, SEEK_SET); 
+    FilePos new_pos (1, 1, pos);
+    for(int i = 0;i<pos;++i){
+        char c = std::fgetc(m_file);
+        if(c == '\n'){
+            new_pos.row += 1;
+            new_pos.col = 0;
+        }else{
+            new_pos.col++;
+        }
+    }
+    
+    // update the position
+    m_pos = new_pos;
+    assert(tellg() == pos && "must be true if we have seekg");
+}
 
 bool FileStream::eof() {
     return m_is_end_of_file;
@@ -92,19 +108,29 @@ std::ostream& operator<<(std::ostream& os, const FilePos& pos){
 
 bool FileStream::is_open() {return m_open;}
 
-void FileStream::addNewLineLoc(long loc) {
-  if (m_new_line_loc.empty()) {
-    m_new_line_loc.push_back(loc);
-    return;
-  }
+std::string FileStream::getLine(long pos){
+    saveState();
+    long begin_line_start = -1;
+    std::fseek(m_file, 0, SEEK_SET);
+    for(int i = 0;i<pos;++i){
+        char c = std::fgetc(m_file);
+        if(c == '\n')
+            begin_line_start = i;
+    }
+    // the loop above returns the last location of a '\n' 
+    // adding one gives the new line
+    begin_line_start += 1; // 
 
-  // making sure of the monotonically increasing property
-  long end_loc = m_new_line_loc[m_new_line_loc.size() - 1];
-  if (loc > end_loc) {
-    m_new_line_loc.push_back(loc);
-  }
-}
+    std::fseek(m_file, begin_line_start, SEEK_SET);
+    std::string line = "";
+    char c;
+    while((c = std::fgetc(m_file)) != EOF){
+        if (c == '\n')
+            break; 
+        else 
+            line += c;
+    }
 
-const std::vector<long> &FileStream::getCurrentNewLineBuf() const {
-  return m_new_line_loc;
-}
+    restoreState();
+    return line;
+} 

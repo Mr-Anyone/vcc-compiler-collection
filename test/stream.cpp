@@ -7,10 +7,12 @@
 // Demonstrate some basic assertions.
 TEST(StreamTest, BasicTest) {
     FileStream stream ("resource/streamtest.txt");
+    EXPECT_EQ(stream.tellg(), 0);
+
     char c = stream.get();
     EXPECT_EQ(c, 'T');
     EXPECT_EQ(stream.tellg(), 1);
-    EXPECT_EQ(stream.getPos(), (FilePos {1, 2}));
+    EXPECT_EQ(stream.getPos(), (FilePos {1, 2, 1}));
 
 
     stream.get(c);
@@ -23,31 +25,28 @@ TEST(StreamTest, BasicTest) {
     EXPECT_EQ(stream.peek(), 'i');
     EXPECT_EQ(stream.peek(), 'i');
     EXPECT_EQ(stream.tellg(), 2);
-    EXPECT_EQ(stream.getPos(), (FilePos {1, 3}));
+    EXPECT_EQ(stream.getPos(), (FilePos {1, 3, 2}));
 
     while(!stream.eof()){
         stream.get();
     }
     EXPECT_EQ(stream.eof(), true);
-
-    for(long loc: stream.getCurrentNewLineBuf()){
-        stream.seekg(loc);
-        EXPECT_EQ(stream.tellg(), loc);
-        EXPECT_EQ(stream.get(), '\n');
-    }
 }
 
-TEST(StreamTest, NewLinLocTest){
-    FileStream stream ("resource/new_line_loc_test.txt");
+TEST(StreamTest, SeekTest){
+    FileStream stream ("resource/streamtest.txt");
 
-    // consume until eof
-    while(!stream.eof())
-        stream.get();
+    stream.seekg(0);
+    EXPECT_EQ(stream.getPos(), (FilePos {1, 1, 0}));
+    EXPECT_EQ(stream.peek(), 'T');
+    EXPECT_EQ(stream.get(), 'T');
+    EXPECT_EQ(stream.getPos(), (FilePos {1, 2, 1}));
 
-    EXPECT_EQ(stream.getCurrentNewLineBuf().size(), 38);
-    for(long loc: stream.getCurrentNewLineBuf()){
-        stream.seekg(loc);
-        EXPECT_EQ(stream.tellg(), loc);
-        EXPECT_EQ(stream.get(), '\n');
-    }
+    stream.seekg(4);
+    EXPECT_EQ(stream.get(), '\n');
+    EXPECT_EQ(stream.getLine(6), "is");
+    EXPECT_EQ(stream.tellg(), 5);
+
+    EXPECT_EQ(stream.getLine(0), "This");
+    EXPECT_EQ(stream.tellg(), 5);
 }

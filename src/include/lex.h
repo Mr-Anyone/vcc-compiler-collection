@@ -69,7 +69,7 @@ public:
   FilePos getPos() const;
 
 private:
-  FilePos pos;
+  FilePos pos = {1, 1, 0};
   TokenType type;
 
   std::string string_literal;
