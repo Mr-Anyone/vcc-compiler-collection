@@ -92,6 +92,7 @@ public:
   TokenType getNextType();
   TokenType getCurrentType();
 
+  std::string getLine(const FilePos& pos);
 private:
   const static inline std::unordered_map<std::string, TokenType> keyword_map = {
       {"function", FunctionDecl},

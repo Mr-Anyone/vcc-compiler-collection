@@ -221,3 +221,7 @@ TokenType Tokenizer::getCurrentType() { return m_current_token.getType(); }
 FilePos Token::getPos() const{
     return pos; 
 }
+
+std::string Tokenizer::getLine(const FilePos& pos){
+    return m_file.getLine(pos.loc);
+}
