@@ -108,6 +108,8 @@ BinaryExpression::getFromLexType(lex::Token token) {
     return Add;
   case lex::Multiply:
     return Multiply;
+  case lex::EqualKeyword:
+    return Equal;
   default:
     assert(false && "invalid token type");
     return Add;
@@ -128,6 +130,9 @@ void BinaryExpression::dump() {
     break;
   case Multiply:
     std::cout << "*";
+    break;
+  case Equal: 
+    std::cout << "equals";
     break;
   default:
     std::cout << "unknown";
@@ -186,6 +191,12 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
         holder->builder.CreateMul(left_hand_side, right_hand_side);
     return reuslt;
   }
+  case Equal: {
+    assert(left_hand_side->getType() == llvm::Type::getInt32Ty(holder->context));
+    left_hand_side->getType();
+    llvm::Value* equal_check = holder->builder.CreateICmpEQ(left_hand_side, right_hand_side);
+    return equal_check;
+  }
   default:
     assert(false && "cannot get here");
     return nullptr;
@@ -237,9 +248,16 @@ llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
 }
 
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
-  // assert(false && "I made it here somehow");
+    // FIXME: must add semantics analysis
   llvm::Value *return_value = m_expression->codegen(holder);
   assert(return_value && "expression must return a value");
+  assert(return_value->getType()->isIntegerTy() && "must be integer type for now");
+
+  // sign extend value for now!
+  if(!return_value->getType()->isIntegerTy(32)){
+      return_value = holder->builder.CreateSExt(return_value, llvm::Type::getInt32Ty(holder->context));
+  }
+  
   holder->builder.CreateRet(return_value);
 
   return nullptr;

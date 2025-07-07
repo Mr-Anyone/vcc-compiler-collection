@@ -36,8 +36,9 @@ private:
   // for binary expression
   const static inline std::unordered_map<lex::TokenType, int> precedence_level =
       {
-          {lex::Add, 1},
-          {lex::Multiply, 2},
+          {lex::EqualKeyword, 1},
+          {lex::Add, 2},
+          {lex::Multiply, 3},
   };
 
   ContextHolder m_context;
