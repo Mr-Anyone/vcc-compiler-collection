@@ -37,6 +37,7 @@ enum TokenType {
   BinaryOperatorStart, // Binary operator start
   Add,                 // +
   Multiply,            // *
+  EqualKeyword,        // equal
   BinaryOperatorEnd,   // Binary operator ends
 
   KeywordEnd,
@@ -103,6 +104,7 @@ private:
       {"{", LeftBrace},
       {"}", RightBrace},
       {",", Comma},
+      {"equal", EqualKeyword},
       {"int", Int},
       {"gives", Gives},
       {";", SemiColon},
@@ -112,7 +114,7 @@ private:
       {"*", Multiply}};
 
   const static inline std::set<char> binary_operator{'+'};
-  static bool isKeyword(const std::string &keyword);
+  static bool isKeyword(const std::string& keyword);
   static bool isBinary(const std::string &keyword);
   static TokenType getKeyword(const std::string &keyword);
 

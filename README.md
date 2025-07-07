@@ -52,10 +52,14 @@ trivial_expression :== <identifier> | <call_expression> |
 
 call_expressions :== <identifier>, '(', {<expression> ',' }+,  ')'
 
-bin_op :== '+', '-', '*', '/'
+bin_op :== '+', '-', '*', '/', 'equal'
 ```
 
 # Semantics
+
+## Binary comparison
+
+1. When an implicit conversion happens for `i1` with a type `in` , `i1` will be zero extended.
 
 ## General Rules 
 

@@ -1,5 +1,6 @@
 #include "lex.h"
 #include <assert.h>
+#include <cstdlib>
 #include <iostream>
 #include <istream>
 #include <string>
@@ -67,7 +68,7 @@ Token Tokenizer::readOneToken() {
     char c;
     m_file.get(c);
 
-    if (c == ' ' || c == '\n') {
+    if (c == ' ' || c == '\n' || c==0 ) {
       break;
     }
 
@@ -109,7 +110,7 @@ Token Tokenizer::readOneToken() {
 }
 
 bool Tokenizer::isKeyword(const std::string &keyword) {
-  return keyword_map.find(keyword) != keyword_map.end();
+    return keyword_map.contains(keyword);
 }
 
 const Token &Tokenizer::current() { return m_current_token; }
