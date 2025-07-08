@@ -8,12 +8,15 @@ int main(int argc, char* argv[]) {
 
   ASTBase *base = parser.buildSyntaxTree();
   ASTBase *base_two = parser.buildSyntaxTree();
+  ASTBase *base_three = parser.buildSyntaxTree();
+
+
   llvm::Function *function = llvm::cast<llvm::Function>(base->codegen(context));
   llvm::Function *function_two = llvm::cast<llvm::Function>(base_two->codegen(context));
+  llvm::Function *function_three = llvm::cast<llvm::Function>(base_three->codegen(context));
   function->dump();
   function_two->dump();
-  base->debugDump();
-  base_two->debugDump();
+  function_three->dump();
 
 
   return 0;

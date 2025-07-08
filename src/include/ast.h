@@ -161,7 +161,16 @@ private:
 
 class BinaryExpression : public ASTBase {
 public:
-  enum BinaryExpressionType { Add, Multiply, Equal };
+  enum BinaryExpressionType { 
+      Add, 
+      Multiply, 
+      Equal, 
+      NEquals,
+      GE, 
+      GT,
+      LE,
+      LT,
+  };
   static BinaryExpressionType getFromLexType(lex::Token lex_type);
 
 public:

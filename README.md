@@ -52,7 +52,7 @@ trivial_expression :== <identifier> | <call_expression> |
 
 call_expressions :== <identifier>, '(', {<expression> ',' }+,  ')'
 
-bin_op :== '+', '-', '*', '/', 'equal'
+bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 ```
 
 # Semantics

@@ -37,7 +37,12 @@ enum TokenType {
   BinaryOperatorStart, // Binary operator start
   Add,                 // +
   Multiply,            // *
-  EqualKeyword,        // equals
+  EqualKeyword,        // eq
+  NEquals,             // ne 
+  GreaterThan,         // gt
+  GreaterEqual,        // ge
+  LessThan,            // lt
+  LessEqual,           // le
   BinaryOperatorEnd,   // Binary operator ends
 
   KeywordEnd,
@@ -104,7 +109,17 @@ class Tokenizer {
             {"{", LeftBrace},
             {"}", RightBrace},
             {",", Comma},
-            {"equals", EqualKeyword},
+
+            // boolean stuff
+            {"eq", EqualKeyword},
+            {"ne", NEquals},
+            {"gt", GreaterThan},
+            {"ge", GreaterEqual},
+            {"le", LessEqual},
+            {"lt", LessThan},
+
+            // binary stuff
+
             {"int", Int},
             {"gives", Gives},
             {";", SemiColon},

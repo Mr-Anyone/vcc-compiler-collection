@@ -110,6 +110,16 @@ BinaryExpression::getFromLexType(lex::Token token) {
     return Multiply;
   case lex::EqualKeyword:
     return Equal;
+  case  lex::NEquals: 
+    return NEquals;
+  case  lex::GreaterEqual: 
+    return GE;
+  case  lex::GreaterThan: 
+    return GT;
+  case  lex::LessEqual: 
+    return LE;
+  case  lex::LessThan: 
+    return LT;
   default:
     assert(false && "invalid token type");
     return Add;
@@ -180,6 +190,7 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
   llvm::Value *left_hand_side = m_lhs->codegen(holder);
 
   assert(right_hand_side && left_hand_side && "cannot be null");
+  assert(left_hand_side->getType() == right_hand_side->getType());
   switch (m_kind) {
   case Add: {
     llvm::Value *result =
@@ -196,6 +207,26 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
     left_hand_side->getType();
     llvm::Value* equal_check = holder->builder.CreateICmpEQ(left_hand_side, right_hand_side);
     return equal_check;
+  }
+  case NEquals:{
+    llvm::Value* not_equal_check = holder->builder.CreateICmpNE(left_hand_side, right_hand_side);
+    return not_equal_check;
+  }
+  case GE:{
+    llvm::Value* check = holder->builder.CreateICmpSGE(left_hand_side, right_hand_side);
+    return check;
+  }
+  case GT:{
+    llvm::Value* check = holder->builder.CreateICmpSGT(left_hand_side, right_hand_side);
+    return check;
+  }
+  case LE:{
+    llvm::Value* check = holder->builder.CreateICmpSLE(left_hand_side, right_hand_side);
+    return check;
+  }
+  case LT:{
+    llvm::Value* check = holder->builder.CreateICmpSLT(left_hand_side, right_hand_side);
+    return check;
   }
   default:
     assert(false && "cannot get here");

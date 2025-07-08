@@ -33,7 +33,7 @@ TEST(LexTest, EndOfFileReading){
 
 TEST(LexTest, NewToken){
     std::ofstream stream("/tmp/testing2.txt");
-    const char* file_input = "some_identifier function + equal";
+    const char* file_input = "some_identifier function + eq ne gt ge le lt";
     stream << file_input;
     stream.close();
 
@@ -42,6 +42,11 @@ TEST(LexTest, NewToken){
     EXPECT_EQ(tokenizer.getNextType(), lex::FunctionDecl);
     EXPECT_EQ(tokenizer.getNextType(), lex::Add);
     EXPECT_EQ(tokenizer.getNextType(), lex::EqualKeyword);
+    EXPECT_EQ(tokenizer.getNextType(), lex::NEquals);
+    EXPECT_EQ(tokenizer.getNextType(), lex::GreaterThan);
+    EXPECT_EQ(tokenizer.getNextType(), lex::GreaterEqual);
+    EXPECT_EQ(tokenizer.getNextType(), lex::LessEqual);
+    EXPECT_EQ(tokenizer.getNextType(), lex::LessThan);
 
     std::remove("/tmp/testing2.txt");
 }

@@ -36,7 +36,14 @@ private:
   // for binary expression
   const static inline std::unordered_map<lex::TokenType, int> precedence_level =
       {
+          // eq, ne, gt, ge, lt, le
           {lex::EqualKeyword, 1},
+          {lex::NEquals, 1},
+          {lex::GreaterThan, 1},
+          {lex::GreaterEqual, 1},
+          {lex::LessThan, 1},
+          {lex::LessEqual, 1},
+
           {lex::Add, 2},
           {lex::Multiply, 3},
   };
