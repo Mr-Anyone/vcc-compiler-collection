@@ -8,10 +8,34 @@ using lex::Token;
 Parser::Parser(const char *filename, ContextHolder context)
     : m_tokenizer(filename), m_context(context) {}
 
-ASTBase *Parser::buildSyntaxTree() { return buildFunctionDecl(); }
+void Parser::start(){
+    static bool started_before = false;
+    if(!started_before){
+        buildSyntaxTree();
+        started_before = true;
+    }
+}
+
+const std::vector<ASTBase*>& Parser::getSyntaxTree(){ return m_function_decls; }
+
+const std::vector<ASTBase*>& Parser::buildSyntaxTree() {
+    assert(m_function_decls.size() == 0 && "can only be called once");
+    while(m_tokenizer.getCurrentType() == lex::FunctionDecl){
+        ASTBase* base = buildFunctionDecl();
+        m_function_decls.push_back(base);
+    }
+
+    if(m_tokenizer.getCurrentType() != lex::EndOfFile){
+        logError("cannot parse things starting here", m_tokenizer.current());
+    }
+
+    return m_function_decls;
+}
 
 
 ASTBase * Parser::logError(const char *message, lex::Token current_token) {
+    m_error = true;
+
   std::cerr << current_token.getPos().row << ":" << current_token.getPos().col << " Error: " << message << "\n";
   std::string line = m_tokenizer.getLine(current_token.getPos());
   std::cerr <<  line << "\n";
@@ -283,4 +307,12 @@ ASTBase *Parser::buildCallExpr() {
   m_tokenizer.consume();
 
   return new CallExpr(function_name, expressions);
+}
+
+ContextHolder Parser::getHolder(){
+    return m_context;
+}
+
+bool Parser::haveError()const{
+    return m_error;
 }

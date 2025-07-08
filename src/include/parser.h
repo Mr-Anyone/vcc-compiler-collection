@@ -12,10 +12,14 @@ class Parser {
 public:
   Parser(const char *filename, ContextHolder context);
 
-  // nullptr if failed
-  ASTBase *buildSyntaxTree();
+  void start();
+  const std::vector<ASTBase*>& getSyntaxTree();
+  ContextHolder getHolder();
+  bool haveError() const;
 
 private:
+  const std::vector<ASTBase*>&  buildSyntaxTree();
+
   // building the function decl
   ASTBase *buildFunctionDecl();
   FunctionArgLists *buildFunctionArgList();
@@ -51,6 +55,10 @@ private:
   ContextHolder m_context;
   lex::Tokenizer m_tokenizer;
   Sema m_actions;
+
+  bool m_error = false;
+
+  std::vector<ASTBase*> m_function_decls;
 };
 
 #endif

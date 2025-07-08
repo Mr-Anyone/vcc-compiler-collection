@@ -1,23 +1,17 @@
+#include "context.h"
 #include "parser.h"
+#include "driver.h"
 #include <iostream>
+#include <llvm/Support/Casting.h>
 
-int main(int argc, char* argv[]) {
-  // FIXME: move this into its own function!
-  ContextHolder context = std::make_shared<GlobalContext>();
-  Parser parser("testing.txt", context);
-
-  ASTBase *base = parser.buildSyntaxTree();
-  ASTBase *base_two = parser.buildSyntaxTree();
-  ASTBase *base_three = parser.buildSyntaxTree();
-
-
-  llvm::Function *function = llvm::cast<llvm::Function>(base->codegen(context));
-  llvm::Function *function_two = llvm::cast<llvm::Function>(base_two->codegen(context));
-  llvm::Function *function_three = llvm::cast<llvm::Function>(base_three->codegen(context));
-  function->dump();
-  function_two->dump();
-  function_three->dump();
-
+int main() {
+    Parser parser = parseFile("testing.txt"); 
+    ContextHolder holder = parser.getHolder();
+    for(ASTBase* tree : parser.getSyntaxTree()){
+        llvm::Function* func = 
+            llvm::dyn_cast<llvm::Function>(tree->codegen(parser.getHolder()));
+        func->dump();
+    }
 
   return 0;
 }

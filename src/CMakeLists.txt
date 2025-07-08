@@ -6,6 +6,7 @@ set(
     symbol_table.cpp
     ast.cpp
     sema.cpp
+    driver.cpp
     # FIXME: maybe add this into a different standard library
     stream.cpp
 )
