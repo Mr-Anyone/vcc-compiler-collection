@@ -106,6 +106,8 @@ BinaryExpression::getFromLexType(lex::Token token) {
   switch (token.getType()) {
   case lex::Add:
     return Add;
+  case lex::Subtract:
+    return Subtract;
   case lex::Multiply:
     return Multiply;
   case lex::EqualKeyword:
@@ -189,6 +191,17 @@ void DeclarationStatement::dump(){
     std::cout << "name: " << m_name;
 }
 
+WhileStatement::WhileStatement(ASTBase* cond, std::vector<ASTBase*>&&expression)
+    : ASTBase({cond}), m_cond(cond), m_expressions(expression){
+    for(ASTBase* base: m_expressions){
+        addChildren(base);
+    }
+}
+
+void WhileStatement::dump(){
+    return;
+}
+
 // ======================================================
 // ====================== CODE GEN ======================
 llvm::Value *ASTBase::codegen(ContextHolder holder) {
@@ -255,6 +268,11 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
         holder->builder.CreateICmpSGT(left_hand_side, right_hand_side);
     return check;
   }
+  case Subtract:{
+    llvm::Value* subtract = holder->builder.CreateSub(left_hand_side, 
+            right_hand_side);
+    return subtract;
+  }
   case LE: {
     llvm::Value *check =
         holder->builder.CreateICmpSLE(left_hand_side, right_hand_side);
@@ -312,6 +330,9 @@ llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
 
   return nullptr;
 }
+void AssignmentStatement::dump() {
+    std::cout << "name: " << m_name;
+}
 
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
   // FIXME: must add semantics analysis
@@ -345,6 +366,9 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
       function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
   m_function->setDSOLocal(true);
 
+  // add this to symbol table
+  holder->symbol_table.addFunction(this);
+
   // generating code for something
   llvm::BasicBlock *block =
       llvm::BasicBlock::Create(holder->context, "", m_function);
@@ -358,8 +382,6 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
     statement->codegen(holder);
   }
 
-  // add this to symbol table
-  holder->symbol_table.addFunction(this);
   return m_function;
 }
 
@@ -398,6 +420,8 @@ llvm::Value *IfStatement::codegen(ContextHolder holder) {
   for (ASTBase *expression : m_expressions) {
     expression->codegen(holder);
   }
+
+  assert(m_expressions.size() >= 1 && "must be true for now");
   ASTBase *last_expression = m_expressions[m_expressions.size() - 1];
   if (dynamic_cast<ReturnStatement *>(last_expression) == nullptr)
     holder->builder.CreateBr(fallthrough_block);
@@ -417,4 +441,36 @@ llvm::Value* DeclarationStatement::codegen(ContextHolder holder){
     llvm::Value* exp =  m_expression->codegen(holder);
     llvm::Value* return_val = holder->builder.CreateStore(exp, alloc_loc); 
     return return_val;
+}
+
+llvm::Value* WhileStatement::codegen(ContextHolder holder) {
+    llvm::BasicBlock* cond_block = 
+        llvm::BasicBlock::Create(holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
+    llvm::BasicBlock* while_true_block = 
+        llvm::BasicBlock::Create(holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
+    llvm::BasicBlock* fallthrough = 
+        llvm::BasicBlock::Create(holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
+
+    holder->builder.CreateBr(cond_block);
+
+    // set up the cond block
+    holder->builder.SetInsertPoint(cond_block);
+    llvm::Value* cond = m_cond->codegen(holder);
+    assert(cond->getType()->isIntegerTy()&& "must be integer");
+    cond = holder->builder.CreateICmpNE(cond, llvm::ConstantInt::get(cond->getType(), 0));
+    holder->builder.CreateCondBr(cond, while_true_block, fallthrough);
+
+    // set up while body block 
+    holder->builder.SetInsertPoint(while_true_block);
+    for(ASTBase* statement: m_expressions){
+        statement->codegen(holder);
+    }
+    assert(m_expressions.size() >= 1 && "must be true for now");
+    ASTBase* last_statement = m_expressions[m_expressions.size() - 1];
+    if (dynamic_cast<ReturnStatement *>(last_statement) == nullptr)
+        holder->builder.CreateBr(cond_block);
+
+    holder->builder.SetInsertPoint(fallthrough);
+
+    return nullptr;
 }

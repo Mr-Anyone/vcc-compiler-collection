@@ -1,10 +1,12 @@
 # TODO
 
-- [] Add support for aggregate type
-- [] Floating point support
-- [] Better error handling and printing
-- [] The problem of implicit casting and semantics analysis
-- [] The C FFI problem with SDL
+- [ ] Add support for aggregate type
+- [ ] Floating point support
+- [ ] The C FFI problem with SDL
+- [ ] Name lookup problem
+- [ ] Semantics analysis
+- [X] Implicit casting for integer
+- [X] Better error handling and printing
 
 # Example Code 
 ```
@@ -34,7 +36,9 @@ identifier :== [a-zA-Z]+
 
 integer_literal :== [0-9]+
 
-statements :== <assignment_statement> | <return_statement> | <if_statement>
+statements :== <assignment_statement> | <return_statement> | <if_statement> | <while_statement>
+
+while_statement :== 'while', <expression>, 'then', <statements>+,'end'
 
 declaration_statement :== <type_qualification>, <identifier>, '=', <expression>, ';'
 

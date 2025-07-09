@@ -33,6 +33,7 @@ enum TokenType {
   If,       // If
   Then,     // Then
   End,      // End
+  While,    // while
 
   // Type qualifications
   TypeQualificationStart,
@@ -41,6 +42,7 @@ enum TokenType {
 
   BinaryOperatorStart, // Binary operator start
   Add,                 // +
+  Subtract,            // -
   Multiply,            // *
   EqualKeyword,        // eq
   NEquals,             // ne 
@@ -115,6 +117,7 @@ class Tokenizer {
             {"{", LeftBrace},
             {"}", RightBrace},
             {",", Comma},
+            {"while", While},
 
             {"if", If},
             {"then", Then},
@@ -136,6 +139,7 @@ class Tokenizer {
             {"=", Equal},
             {"ret", Ret},
             {"+", Add},
+            {"-", Subtract},
             {"*", Multiply}};
 
         const static inline std::set<char> binary_operator{'+'};

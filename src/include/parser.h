@@ -29,6 +29,7 @@ private:
   ASTBase *buildReturnStatement();
   ASTBase *buildStatement();
   ASTBase *buildIfStatement();
+  ASTBase *buildWhileStatement();
   ASTBase *buildDeclarationStatement();
 
   // Expressions
@@ -51,6 +52,8 @@ private:
           {lex::LessEqual, 1},
 
           {lex::Add, 2},
+          {lex::Subtract, 2},
+
           {lex::Multiply, 3},
   };
 

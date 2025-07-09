@@ -95,6 +95,7 @@ public:
   AssignmentStatement(const std::string &name, ASTBase *expression);
 
   virtual llvm::Value *codegen(ContextHolder holder);
+  virtual void dump() override;
   const std::string &getName();
 
 private:
@@ -127,7 +128,7 @@ private:
     std::vector<ASTBase*> m_expressions;
 };
 
-class DeclarationStatement: public ASTBase{
+class DeclarationStatement : public ASTBase{
 public:
     DeclarationStatement(const std::string & name, ASTBase* expression);
     virtual void dump() override;
@@ -136,6 +137,17 @@ public:
 private:
     std::string m_name;
     ASTBase* m_expression;
+};
+
+class WhileStatement : public ASTBase{
+public:
+    WhileStatement (ASTBase* cond, std::vector<ASTBase*>&& expressions);
+    virtual llvm::Value* codegen(ContextHolder holder) override;
+    virtual void dump() override;
+
+private:
+    ASTBase* m_cond;
+    std::vector<ASTBase*> m_expressions;
 };
 //============================== Expressions ==============================
 // These are expressions that yields some sort of value
@@ -186,6 +198,7 @@ class BinaryExpression : public ASTBase {
 public:
   enum BinaryExpressionType { 
       Add, 
+      Subtract, 
       Multiply, 
       Equal, 
       NEquals,

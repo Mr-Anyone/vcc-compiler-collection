@@ -72,7 +72,30 @@ ASTBase* Parser::buildIfStatement(){
     return new IfStatement(cond, std::move(expressions));
 }
 
-// statements :== <assignment_statement> | <return_statement> | <if_statement>
+// while_statement :== 'while', <expression> 'then', <statements>+,'end'
+ASTBase* Parser::buildWhileStatement(){
+    if(m_tokenizer.getCurrentType() != lex::While)
+        return logError("expected while");
+    m_tokenizer.consume();
+
+    ASTBase* cond = buildExpression();
+
+    if(m_tokenizer.getCurrentType() != lex::Then)
+        return logError("expected then");
+    m_tokenizer.consume();
+
+    std::vector<ASTBase*> expressions {};
+    while(ASTBase* statement = buildStatement())
+        expressions.push_back(statement);
+        
+    if(m_tokenizer.getCurrentType() != lex::End)
+        return logError("expected end");
+    m_tokenizer.consume();
+
+    return new WhileStatement(cond, std::move(expressions));
+}
+
+// statements :== <assignment_statement> | <return_statement> | <if_statement> | <while_statement>
 ASTBase *Parser::buildStatement() {
     if(m_tokenizer.getCurrentType() == lex::If)
         return buildIfStatement();
@@ -82,6 +105,9 @@ ASTBase *Parser::buildStatement() {
 
   if(m_tokenizer.current().isTypeQualification())
       return buildDeclarationStatement();
+
+  if(m_tokenizer.getCurrentType() == lex::While)
+      return buildWhileStatement();
 
   return buildAssignmentStatement();
 }
