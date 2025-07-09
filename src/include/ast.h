@@ -114,6 +114,29 @@ private:
   ASTBase *m_expression;
 };
 
+class IfStatement: public ASTBase{
+public:
+    IfStatement(ASTBase* cond, std::vector<ASTBase*>&& expressions);
+    virtual void dump() override;
+    virtual llvm::Value* codegen(ContextHolder holder) override;
+
+private:
+    // m_cond is a expression which may or may not be i1. 
+    // this is a terrible name
+    ASTBase* m_cond;
+    std::vector<ASTBase*> m_expressions;
+};
+
+class DeclarationStatement: public ASTBase{
+public:
+    DeclarationStatement(const std::string & name, ASTBase* expression);
+    virtual void dump() override;
+    virtual llvm::Value* codegen(ContextHolder holder) override;
+
+private:
+    std::string m_name;
+    ASTBase* m_expression;
+};
 //============================== Expressions ==============================
 // These are expressions that yields some sort of value
 

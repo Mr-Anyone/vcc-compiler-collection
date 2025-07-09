@@ -8,6 +8,7 @@ int main() {
     Parser parser = parseFile("testing.txt"); 
     ContextHolder holder = parser.getHolder();
     for(ASTBase* tree : parser.getSyntaxTree()){
+        tree->debugDump();
         llvm::Function* func = 
             llvm::dyn_cast<llvm::Function>(tree->codegen(parser.getHolder()));
         func->dump();

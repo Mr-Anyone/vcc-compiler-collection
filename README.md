@@ -26,15 +26,19 @@ function testing gives int
 function_decl :== 'function', <identifier>, 'gives', <type_qualification>, 
                         <function_args_list>, '{', <statements>+, ''}'
 
-function_args_list :== '[', args_declaration+, ']'
+function_args_list :== '[', <args_declaration>+, ']'
 
-args_declaration :== <type_qualification> + identifier + ','
+args_declaration :== <type_qualification>, identifier, ','
 
 identifier :== [a-zA-Z]+
 
 integer_literal :== [0-9]+
 
-statements :== <assignment_statement> | <return_statement>
+statements :== <assignment_statement> | <return_statement> | <if_statement>
+
+declaration_statement :== <type_qualification>, <identifier>, '=', <expression>, ';'
+
+if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 
 assignment_statement :== <identifier>, '=', <expression>, ';'
 
@@ -59,7 +63,8 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 
 ## Binary comparison
 
-1. Implicit conversion always happen for type that has less bits. For example, when adding `i16` with `i32`, `i16` will be sign extended to `i32` to perform the addition.
+1. Implicit conversion always happen for type that has less bits. For example, when adding `i16` with `i32`, `i16` will be sign extended to `i32` to perform the addition. Note boolean are exempted from this.
+2. Inside a if statement, the condition is false if and only if the value is 0. In other words, it is true if and only if the value is non zero.
 
 ## General Rules 
 

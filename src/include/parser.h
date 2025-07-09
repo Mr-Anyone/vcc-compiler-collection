@@ -28,6 +28,8 @@ private:
   ASTBase *buildAssignmentStatement();
   ASTBase *buildReturnStatement();
   ASTBase *buildStatement();
+  ASTBase *buildIfStatement();
+  ASTBase *buildDeclarationStatement();
 
   // Expressions
   ASTBase *buildExpression();
@@ -35,7 +37,7 @@ private:
   ASTBase *buildTrivialExpression();
   ASTBase *buildCallExpr();
 
-  inline ASTBase *logError(const char *message, lex::Token current_token);
+  inline ASTBase *logError(const char *message);
 
   // for binary expression
   const static inline std::unordered_map<lex::TokenType, int> precedence_level =

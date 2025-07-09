@@ -58,8 +58,9 @@ Token Tokenizer::readOneToken() {
   // put this into read one
   removeWhiteSpace();
 
+  FilePos pos = m_file.getPos();
   if (m_file.eof()) {
-    return Token(EndOfFile, m_file.getPos());
+    return Token(EndOfFile, pos);
   }
 
   std::string buf;
@@ -81,7 +82,7 @@ Token Tokenizer::readOneToken() {
         std::string lookup_term;
         lookup_term += c;
         // making the lookup term
-        Token return_result(keyword_map.at(lookup_term), m_file.getPos());
+        Token return_result(keyword_map.at(lookup_term), pos);
         return return_result;
       }
 
@@ -96,17 +97,17 @@ Token Tokenizer::readOneToken() {
   // this is a valid integer?
   if (is_valid_stoi(buf)) {
     long long result = std::stoll(buf);
-    Token return_result(result, m_file.getPos());
+    Token return_result(result, pos);
     return return_result;
   }
 
   // keywords function, gives, etc..
   if (isKeyword(buf)) {
-    return Token(getKeyword(buf), m_file.getPos());
+    return Token(getKeyword(buf), pos);
   }
 
   // it must be an identifier than
-  return Token(std::move(buf), m_file.getPos());
+  return Token(std::move(buf), pos);
 }
 
 bool Tokenizer::isKeyword(const std::string &keyword) {
@@ -225,4 +226,8 @@ FilePos Token::getPos() const{
 
 std::string Tokenizer::getLine(const FilePos& pos){
     return m_file.getLine(pos.loc);
+}
+
+bool Token::isTypeQualification() const {
+    return TypeQualificationStart < getType() && getType() < TypeQualificationEnd ;
 }

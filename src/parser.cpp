@@ -26,16 +26,17 @@ const std::vector<ASTBase*>& Parser::buildSyntaxTree() {
     }
 
     if(m_tokenizer.getCurrentType() != lex::EndOfFile){
-        logError("cannot parse things starting here", m_tokenizer.current());
+        logError("cannot parse things starting here");
     }
 
     return m_function_decls;
 }
 
 
-ASTBase * Parser::logError(const char *message, lex::Token current_token) {
+ASTBase * Parser::logError(const char *message) {
     m_error = true;
 
+    Token current_token = m_tokenizer.current();
   std::cerr << current_token.getPos().row << ":" << current_token.getPos().col << " Error: " << message << "\n";
   std::string line = m_tokenizer.getLine(current_token.getPos());
   std::cerr <<  line << "\n";
@@ -47,10 +48,40 @@ ASTBase * Parser::logError(const char *message, lex::Token current_token) {
   return nullptr;
 }
 
-// statements :== <assignment_statement> | <return_statement>
+// if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
+ASTBase* Parser::buildIfStatement(){
+    if(m_tokenizer.getCurrentType() != lex::If)
+        return logError("expected if");
+    m_tokenizer.consume();
+
+    ASTBase* cond = buildExpression();
+
+    if(m_tokenizer.getCurrentType() != lex::Then)
+        return logError("expected then");
+    m_tokenizer.consume();
+
+    std::vector<ASTBase*> expressions;
+    while(ASTBase* expression = buildStatement()){
+        expressions.push_back(expression);
+    }
+
+    if(m_tokenizer.getCurrentType() != lex::End)
+        return logError("expected end");
+    m_tokenizer.consume();
+
+    return new IfStatement(cond, std::move(expressions));
+}
+
+// statements :== <assignment_statement> | <return_statement> | <if_statement>
 ASTBase *Parser::buildStatement() {
+    if(m_tokenizer.getCurrentType() == lex::If)
+        return buildIfStatement();
+
   if (m_tokenizer.getCurrentType() == lex::Ret)
     return buildReturnStatement();
+
+  if(m_tokenizer.current().isTypeQualification())
+      return buildDeclarationStatement();
 
   return buildAssignmentStatement();
 }
@@ -59,17 +90,17 @@ ASTBase *Parser::buildStatement() {
 //                     <function_args_list>, '{', <expression>+, ''}'
 ASTBase *Parser::buildFunctionDecl() {
   if (m_tokenizer.current().getType() != lex::FunctionDecl)
-    return logError("function declaration must begin with keyword function", m_tokenizer.current());
+    return logError("function declaration must begin with keyword function");
 
   // eat function decl
   Token name_token = m_tokenizer.next();
   if (name_token.getType() != lex::Identifier)
-    return logError("function declaration does not have identifier", m_tokenizer.current());
+    return logError("function declaration does not have identifier");
 
   std::string name = name_token.getStringLiteral();
 
   if (m_tokenizer.getNextType() != lex::Gives)
-    return logError("function declaration must provide return type", m_tokenizer.current());
+    return logError("function declaration must provide return type");
 
   // FIXME: it is possible to have other types
   // currently only int is supported
@@ -77,7 +108,7 @@ ASTBase *Parser::buildFunctionDecl() {
   FunctionArgLists *arg_list = buildFunctionArgList();
 
   if (m_tokenizer.getCurrentType() != lex::LeftBrace)
-    return logError("expected {", m_tokenizer.current());
+    return logError("expected {");
   m_tokenizer.consume();
 
   // currently only assignment expression is supported
@@ -89,7 +120,7 @@ ASTBase *Parser::buildFunctionDecl() {
   }
 
   if (m_tokenizer.getCurrentType() != lex::RightBrace)
-    return logError("expected }", m_tokenizer.current());
+    return logError("expected }");
   m_tokenizer.consume();
 
   return new FunctionDecl(
@@ -104,16 +135,13 @@ ASTBase *Parser::buildAssignmentStatement() {
   assert(m_tokenizer.getCurrentType() == lex::Identifier);
   std::string name = m_tokenizer.current().getStringLiteral();
   if (m_tokenizer.getNextType() != lex::Equal)
-    return logError("expected =", m_tokenizer.current());
-
-  Token number_constant = m_tokenizer.next();
-  if (number_constant.getType() != lex::IntegerLiteral)
-    return logError("expected integer", m_tokenizer.current());
+    return logError("expected =");
+  m_tokenizer.consume();
 
   ASTBase *expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::SemiColon)
-    return logError("expected semi colon", m_tokenizer.current());
+    return logError("expected semi colon");
 
   m_tokenizer.consume();
 
@@ -125,7 +153,7 @@ ASTBase *Parser::buildAssignmentStatement() {
 //  args_declaration :== <type_qualification> + identifier + ','
 FunctionArgLists *Parser::buildFunctionArgList() {
   if (m_tokenizer.getNextType() != lex::LeftBracket) {
-    logError("expected [", m_tokenizer.current());
+    logError("expected [");
     return nullptr;
   }
 
@@ -137,20 +165,20 @@ FunctionArgLists *Parser::buildFunctionArgList() {
     lex::Token next_token = m_tokenizer.next();
 
     if (next_token.getType() != lex::Identifier) {
-      logError("expected [", m_tokenizer.current());
+      logError("expected [");
       return nullptr;
     }
     std::string name = next_token.getStringLiteral();
 
     if (m_tokenizer.getNextType() != lex::Comma) {
-      logError("expected comma", m_tokenizer.current());
+      logError("expected comma");
       return nullptr;
     }
     args.push_back(TypeInfo{Int32, name});
   }
 
   if (m_tokenizer.getCurrentType() != lex::RightBracket) {
-    logError("expected ]", m_tokenizer.current());
+    logError("expected ]");
     return nullptr;
   }
 
@@ -163,14 +191,14 @@ FunctionArgLists *Parser::buildFunctionArgList() {
 // return_statement :== 'ret', <expression> ';'
 ASTBase *Parser::buildReturnStatement() {
   if (m_tokenizer.getCurrentType() != lex::Ret) {
-    return logError("expected error", m_tokenizer.current());
+    return logError("expected error");
   }
   m_tokenizer.consume();
 
   ASTBase *expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::SemiColon) {
-    return logError("expected ;", m_tokenizer.current());
+    return logError("expected ;");
   }
   m_tokenizer.consume();
 
@@ -268,25 +296,25 @@ ASTBase *Parser::buildTrivialExpression() {
     ASTBase *value = buildExpression();
 
     if (m_tokenizer.getCurrentType() != lex::RightParentheses) {
-      return logError("expected )", m_tokenizer.current());
+      return logError("expected )");
     }
 
     m_tokenizer.consume();
     return value;
   }
 
-  return logError("cannot build trivial expression!", m_tokenizer.current());
+  return logError("cannot build trivial expression!");
 }
 
 // call_expressions :== <identifier>, '(', { <expression> ',' }+,  ')'
 ASTBase *Parser::buildCallExpr() {
   if (m_tokenizer.getCurrentType() != lex::Identifier)
-    return logError("expected identfier", m_tokenizer.current());
+    return logError("expected identfier");
 
   std::string function_name = m_tokenizer.current().getStringLiteral();
 
   if (m_tokenizer.getNextType() != lex::LeftParentheses)
-    return logError("expected (", m_tokenizer.current());
+    return logError("expected (");
   m_tokenizer.consume();
 
   std::vector<ASTBase *> expressions;
@@ -298,12 +326,12 @@ ASTBase *Parser::buildCallExpr() {
 
     // consume the comma
     if (m_tokenizer.getCurrentType() != lex::Comma)
-      return logError("expected ,", m_tokenizer.current());
+      return logError("expected ," );
     m_tokenizer.consume();
   }
 
   if (m_tokenizer.getCurrentType() != lex::RightParentheses)
-    return logError("expected )", m_tokenizer.current());
+    return logError("expected )");
   m_tokenizer.consume();
 
   return new CallExpr(function_name, expressions);
@@ -315,4 +343,29 @@ ContextHolder Parser::getHolder(){
 
 bool Parser::haveError()const{
     return m_error;
+}
+
+// declaration_statement :== <type_qualification>, <identifier>, '=', <expression>, ';'
+ASTBase* Parser::buildDeclarationStatement(){
+    // FIXME: there could be multiple types in the future
+    Token type_qualification = m_tokenizer.current();
+    if(!m_tokenizer.current().isTypeQualification())
+        return logError("expected type qualification");
+
+    if (m_tokenizer.getNextType() != lex::Identifier)
+        return logError("expected identifier");
+
+    std::string name = m_tokenizer.current().getStringLiteral();
+
+    if(m_tokenizer.getNextType() != lex::Equal)
+        return logError("expected =");
+    m_tokenizer.consume();
+
+    ASTBase* expression = buildExpression();
+
+    if(m_tokenizer.getCurrentType() != lex::SemiColon)
+        return logError("expected ;");
+    m_tokenizer.consume();
+
+    return new DeclarationStatement(name, expression);
 }

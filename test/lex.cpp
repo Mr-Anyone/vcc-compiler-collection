@@ -33,7 +33,7 @@ TEST(LexTest, EndOfFileReading){
 
 TEST(LexTest, NewToken){
     std::ofstream stream("/tmp/testing2.txt");
-    const char* file_input = "some_identifier function + eq ne gt ge le lt";
+    const char* file_input = "some_identifier function + eq ne gt ge le lt if then end";
     stream << file_input;
     stream.close();
 
@@ -47,6 +47,9 @@ TEST(LexTest, NewToken){
     EXPECT_EQ(tokenizer.getNextType(), lex::GreaterEqual);
     EXPECT_EQ(tokenizer.getNextType(), lex::LessEqual);
     EXPECT_EQ(tokenizer.getNextType(), lex::LessThan);
+    EXPECT_EQ(tokenizer.getNextType(), lex::If);
+    EXPECT_EQ(tokenizer.getNextType(), lex::Then);
+    EXPECT_EQ(tokenizer.getNextType(), lex::End);
 
     std::remove("/tmp/testing2.txt");
 }

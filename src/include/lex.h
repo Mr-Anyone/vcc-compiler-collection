@@ -30,9 +30,14 @@ enum TokenType {
   SemiColon, //;
   Equal,     // =
   Ret,       // ret
+  If,       // If
+  Then,     // Then
+  End,      // End
 
   // Type qualifications
+  TypeQualificationStart,
   Int,
+  TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start
   Add,                 // +
@@ -73,6 +78,7 @@ public:
   long long getIntegerLiteral() const;
   bool isBinaryOperator() const;
   FilePos getPos() const;
+  bool isTypeQualification()const;
 
 private:
   FilePos pos = {1, 1, 0};
@@ -109,6 +115,10 @@ class Tokenizer {
             {"{", LeftBrace},
             {"}", RightBrace},
             {",", Comma},
+
+            {"if", If},
+            {"then", Then},
+            {"end", End},
 
             // boolean stuff
             {"eq", EqualKeyword},

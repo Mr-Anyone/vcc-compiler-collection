@@ -22,6 +22,7 @@ public:
   // FIXME: it may be better to just return a struct that contains a bit
   // more type information
   llvm::Value *lookupLocalVariable(FunctionDecl *function, std::string name);
+  bool containsLocalVariable(FunctionDecl* function, const std::string& name);
 
 private:
   inline std::string makeLocalVariableLookupName(FunctionDecl *function,

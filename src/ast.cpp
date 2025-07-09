@@ -110,15 +110,15 @@ BinaryExpression::getFromLexType(lex::Token token) {
     return Multiply;
   case lex::EqualKeyword:
     return Equal;
-  case  lex::NEquals: 
+  case lex::NEquals:
     return NEquals;
-  case  lex::GreaterEqual: 
+  case lex::GreaterEqual:
     return GE;
-  case  lex::GreaterThan: 
+  case lex::GreaterThan:
     return GT;
-  case  lex::LessEqual: 
+  case lex::LessEqual:
     return LE;
-  case  lex::LessThan: 
+  case lex::LessThan:
     return LT;
   default:
     assert(false && "invalid token type");
@@ -141,7 +141,7 @@ void BinaryExpression::dump() {
   case Multiply:
     std::cout << "*";
     break;
-  case Equal: 
+  case Equal:
     std::cout << "equals";
     break;
   default:
@@ -172,6 +172,23 @@ CallExpr::CallExpr(const std::string &name,
 
 void CallExpr::dump() { std::cout << "name: " << m_func_name; }
 
+IfStatement::IfStatement(ASTBase *cond, std::vector<ASTBase *> &&expressions)
+    : ASTBase({cond}), m_cond(cond), m_expressions(expressions) {
+  for (ASTBase *expression : expressions) {
+    addChildren(expression);
+  }
+}
+
+void IfStatement::dump() {}
+
+DeclarationStatement::DeclarationStatement(const std::string &name,
+                                           ASTBase *base)
+    : ASTBase({base}), m_expression(base), m_name(name) {}
+
+void DeclarationStatement::dump(){
+    std::cout << "name: " << m_name;
+}
+
 // ======================================================
 // ====================== CODE GEN ======================
 llvm::Value *ASTBase::codegen(ContextHolder holder) {
@@ -189,19 +206,20 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
   llvm::Value *right_hand_side = m_rhs->codegen(holder);
   llvm::Value *left_hand_side = m_lhs->codegen(holder);
 
-  assert(right_hand_side->getType()->isIntegerTy() && 
-          left_hand_side->getType()->isIntegerTy() && 
-          "both side most be integer for now");
+  assert(right_hand_side->getType()->isIntegerTy() &&
+         left_hand_side->getType()->isIntegerTy() &&
+         "both side most be integer for now");
 
   // See Binary comparison rule
-  if(right_hand_side->getType()->getPrimitiveSizeInBits() > left_hand_side->getType()->getPrimitiveSizeInBits()){
-      left_hand_side 
-          = holder->builder.CreateSExt(left_hand_side, right_hand_side->getType());
-  }else if(left_hand_side->getType()->getPrimitiveSizeInBits() > right_hand_side->getType()->getPrimitiveSizeInBits()){
-      right_hand_side
-          = holder->builder.CreateSExt(right_hand_side, left_hand_side->getType());
+  if (right_hand_side->getType()->getPrimitiveSizeInBits() >
+      left_hand_side->getType()->getPrimitiveSizeInBits()) {
+    left_hand_side =
+        holder->builder.CreateSExt(left_hand_side, right_hand_side->getType());
+  } else if (left_hand_side->getType()->getPrimitiveSizeInBits() >
+             right_hand_side->getType()->getPrimitiveSizeInBits()) {
+    right_hand_side =
+        holder->builder.CreateSExt(right_hand_side, left_hand_side->getType());
   }
-
 
   assert(right_hand_side && left_hand_side && "cannot be null");
   assert(left_hand_side->getType() == right_hand_side->getType());
@@ -218,27 +236,33 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
   }
   case Equal: {
     left_hand_side->getType();
-    llvm::Value* equal_check = holder->builder.CreateICmpEQ(left_hand_side, right_hand_side);
+    llvm::Value *equal_check =
+        holder->builder.CreateICmpEQ(left_hand_side, right_hand_side);
     return equal_check;
   }
-  case NEquals:{
-    llvm::Value* not_equal_check = holder->builder.CreateICmpNE(left_hand_side, right_hand_side);
+  case NEquals: {
+    llvm::Value *not_equal_check =
+        holder->builder.CreateICmpNE(left_hand_side, right_hand_side);
     return not_equal_check;
   }
-  case GE:{
-    llvm::Value* check = holder->builder.CreateICmpSGE(left_hand_side, right_hand_side);
+  case GE: {
+    llvm::Value *check =
+        holder->builder.CreateICmpSGE(left_hand_side, right_hand_side);
     return check;
   }
-  case GT:{
-    llvm::Value* check = holder->builder.CreateICmpSGT(left_hand_side, right_hand_side);
+  case GT: {
+    llvm::Value *check =
+        holder->builder.CreateICmpSGT(left_hand_side, right_hand_side);
     return check;
   }
-  case LE:{
-    llvm::Value* check = holder->builder.CreateICmpSLE(left_hand_side, right_hand_side);
+  case LE: {
+    llvm::Value *check =
+        holder->builder.CreateICmpSLE(left_hand_side, right_hand_side);
     return check;
   }
-  case LT:{
-    llvm::Value* check = holder->builder.CreateICmpSLT(left_hand_side, right_hand_side);
+  case LT: {
+    llvm::Value *check =
+        holder->builder.CreateICmpSLT(left_hand_side, right_hand_side);
     return check;
   }
   default:
@@ -290,16 +314,18 @@ llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
 }
 
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
-    // FIXME: must add semantics analysis
+  // FIXME: must add semantics analysis
   llvm::Value *return_value = m_expression->codegen(holder);
   assert(return_value && "expression must return a value");
-  assert(return_value->getType()->isIntegerTy() && "must be integer type for now");
+  assert(return_value->getType()->isIntegerTy() &&
+         "must be integer type for now");
 
   // sign extend value for now!
-  if(!return_value->getType()->isIntegerTy(32)){
-      return_value = holder->builder.CreateSExt(return_value, llvm::Type::getInt32Ty(holder->context));
+  if (!return_value->getType()->isIntegerTy(32)) {
+    return_value = holder->builder.CreateSExt(
+        return_value, llvm::Type::getInt32Ty(holder->context));
   }
-  
+
   holder->builder.CreateRet(return_value);
 
   return nullptr;
@@ -321,7 +347,7 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
 
   // generating code for something
   llvm::BasicBlock *block =
-      llvm::BasicBlock::Create(holder->context, "main", m_function);
+      llvm::BasicBlock::Create(holder->context, "", m_function);
   holder->builder.SetInsertPoint(block);
 
   // copy the parameter into llvm ir
@@ -351,4 +377,44 @@ llvm::Value *CallExpr::codegen(ContextHolder holder) {
       holder->builder.CreateCall(function->getFunctionType(), function, args);
 
   return result;
+}
+
+llvm::Value *IfStatement::codegen(ContextHolder holder) {
+  llvm::Function *function = getFirstFunctionDecl()->getLLVMFunction();
+  llvm::BasicBlock *true_if_block =
+      llvm::BasicBlock::Create(holder->context, "", function);
+  llvm::BasicBlock *fallthrough_block =
+      llvm::BasicBlock::Create(holder->context, "", function);
+
+  llvm::Value *cond = m_cond->codegen(holder);
+  assert(cond->getType()->isIntegerTy() && "must be integer type");
+  cond = holder->builder.CreateICmpNE(
+      cond, llvm::ConstantInt::get(cond->getType(), 0));
+
+  llvm::Value *stuff =
+      holder->builder.CreateCondBr(cond, true_if_block, fallthrough_block);
+
+  holder->builder.SetInsertPoint(true_if_block);
+  for (ASTBase *expression : m_expressions) {
+    expression->codegen(holder);
+  }
+  ASTBase *last_expression = m_expressions[m_expressions.size() - 1];
+  if (dynamic_cast<ReturnStatement *>(last_expression) == nullptr)
+    holder->builder.CreateBr(fallthrough_block);
+
+  holder->builder.SetInsertPoint(fallthrough_block);
+
+  return nullptr;
+}
+
+llvm::Value* DeclarationStatement::codegen(ContextHolder holder){
+    // initialize the first variable
+    FunctionDecl* func = getFirstFunctionDecl();
+    llvm::Value* alloc_loc = 
+        holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
+    holder->symbol_table.addLocalVariable(func, m_name, alloc_loc);
+
+    llvm::Value* exp =  m_expression->codegen(holder);
+    llvm::Value* return_val = holder->builder.CreateStore(exp, alloc_loc); 
+    return return_val;
 }

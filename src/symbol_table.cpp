@@ -32,6 +32,11 @@ llvm::Value *SymbolTable::lookupLocalVariable(FunctionDecl *function,
   return m_local_table[lookup_name];
 }
 
+bool SymbolTable::containsLocalVariable(FunctionDecl* function, const std::string& name){
+    std::string lookup_name = makeLocalVariableLookupName(function, name);
+    return m_local_table.contains(lookup_name);
+
+}
 std::string SymbolTable::makeLocalVariableLookupName(FunctionDecl *function,
                                                      std::string name) {
   return function->getName() + "$" + name;
