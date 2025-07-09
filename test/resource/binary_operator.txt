@@ -1,0 +1,20 @@
+function add_two gives int[
+    int a,
+    int b,
+]{
+    ret a +b;
+}
+
+function is_equal gives int[
+    int a,
+    int b,
+]{
+    ret (a eq b) + (a ne b) + (a le b) + (a lt b) + (a ge b) + (a gt b);
+}
+
+function test_three gives int [
+    int a,
+    int b,
+]{
+    ret a ne b;
+}

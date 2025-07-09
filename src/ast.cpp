@@ -189,6 +189,20 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
   llvm::Value *right_hand_side = m_rhs->codegen(holder);
   llvm::Value *left_hand_side = m_lhs->codegen(holder);
 
+  assert(right_hand_side->getType()->isIntegerTy() && 
+          left_hand_side->getType()->isIntegerTy() && 
+          "both side most be integer for now");
+
+  // See Binary comparison rule
+  if(right_hand_side->getType()->getPrimitiveSizeInBits() > left_hand_side->getType()->getPrimitiveSizeInBits()){
+      left_hand_side 
+          = holder->builder.CreateSExt(left_hand_side, right_hand_side->getType());
+  }else if(left_hand_side->getType()->getPrimitiveSizeInBits() > right_hand_side->getType()->getPrimitiveSizeInBits()){
+      right_hand_side
+          = holder->builder.CreateSExt(right_hand_side, left_hand_side->getType());
+  }
+
+
   assert(right_hand_side && left_hand_side && "cannot be null");
   assert(left_hand_side->getType() == right_hand_side->getType());
   switch (m_kind) {
@@ -203,7 +217,6 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
     return reuslt;
   }
   case Equal: {
-    assert(left_hand_side->getType() == llvm::Type::getInt32Ty(holder->context));
     left_hand_side->getType();
     llvm::Value* equal_check = holder->builder.CreateICmpEQ(left_hand_side, right_hand_side);
     return equal_check;
@@ -238,8 +251,6 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
 }
 
 llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
-
-  // this is usually a pointer
   // FIXME: it seems that we need to encode more type
   // information
   llvm::Value *loc_value =

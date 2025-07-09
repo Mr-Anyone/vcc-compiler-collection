@@ -59,7 +59,7 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 
 ## Binary comparison
 
-1. When an implicit conversion happens for `i1` with a type `in` , `i1` will be zero extended.
+1. Implicit conversion always happen for type that has less bits. For example, when adding `i16` with `i32`, `i16` will be sign extended to `i32` to perform the addition.
 
 ## General Rules 
 
