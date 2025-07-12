@@ -5,6 +5,8 @@
 - [ ] The C FFI problem with SDL
 - [ ] Name lookup problem
 - [ ] Semantics analysis
+- [ ] String Type  
+- [ ] Array Type
 - [X] Implicit casting for integer
 - [X] Better error handling and printing
 
@@ -70,10 +72,9 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 1. Implicit conversion always happen for type that has less bits. For example, when adding `i16` with `i32`, `i16` will be sign extended to `i32` to perform the addition. Note boolean are exempted from this.
 2. Inside a if statement, the condition is false if and only if the value is 0. In other words, it is true if and only if the value is non zero.
 
-## General Rules 
-
-1. Variables names cannot contain '$', they are reserved for implementation
 
 ## Name Lookup
 
-1. Within the same function, two declaration cannot share the same name. 
+1. If, while, and function defines a scope that begins with '{'  and ends with '}'. Excluding code in between '{', and '}'.
+2. Within the same scope, two declaration cannot share the same name. 
+3. Name lookup will start at the current scope and climb upwards.
