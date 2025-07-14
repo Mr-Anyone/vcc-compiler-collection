@@ -37,7 +37,7 @@ enum TokenType {
 
   // Type qualifications
   TypeQualificationStart,
-  Int,
+  Int, // int
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start

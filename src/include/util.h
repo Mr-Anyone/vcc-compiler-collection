@@ -38,4 +38,20 @@ inline std::string getASTClassName(ASTBase *node) {
   return (status == 0 && demangled) ? demangled.get() : ti.name();
 }
 
+template<typename T, typename U> 
+bool isa(U a){
+    if(dynamic_cast<T*>(a))
+        return true;
+
+    return false;
+} 
+
+template<typename T, typename U> 
+T* dyncast(U a){
+    if(T* casted = dynamic_cast<T*>(a))
+        return casted;
+
+    return nullptr;
+} 
+
 #endif

@@ -27,11 +27,10 @@ public:
   void setParent(ASTBase *parent);
   void addChildren(ASTBase *children);
   void removeChildren(ASTBase *children);
+  const std::set<ASTBase*>& getChildren() const;
 
   // depth = 1 is start
   void debugDump(int depth = 1);
-  const std::string &getName();
-
 private:
   ASTBase *m_parent;
   std::string m_name;

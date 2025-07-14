@@ -1,17 +1,21 @@
 #include "context.h"
 #include "parser.h"
 #include "driver.h"
+#include "util.h"
+
 #include <iostream>
 #include <llvm/Support/Casting.h>
 
 int main() {
     Parser parser = parseFile("testing.txt"); 
     ContextHolder holder = parser.getHolder();
+    Sema sema; 
     for(ASTBase* tree : parser.getSyntaxTree()){
-        tree->debugDump();
+        bool is_good = sema.checkFunction(dyncast<FunctionDecl>(tree));
+        assert(is_good);
+
         llvm::Function* func = 
             llvm::dyn_cast<llvm::Function>(tree->codegen(parser.getHolder()));
-        func->dump();
     }
 
   return 0;

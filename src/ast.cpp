@@ -34,6 +34,10 @@ ASTBase::ASTBase(const std::vector<ASTBase *> childrens)
   }
 }
 
+const std::set<ASTBase*>& ASTBase::getChildren() const {
+    return m_childrens;
+}
+
 void ASTBase::removeChildren(ASTBase *children) {
   assert(m_childrens.find(children) != m_childrens.end() &&
          "must contain element to begin with");
@@ -83,7 +87,13 @@ AssignmentStatement::AssignmentStatement(const std::string &name,
 
 const std::string &AssignmentStatement::getName() { return m_name; }
 
-void FunctionDecl::dump() { std::cout << "name: " << m_name; }
+void FunctionDecl::dump() { 
+    std::cout << "name: " << m_name << " args: ";
+    for(auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it){
+        std::cout << it->name << ", ";
+
+    }
+}
 
 ReturnStatement::ReturnStatement(ASTBase *expression)
     : ASTBase({expression}), m_expression(expression) {}
