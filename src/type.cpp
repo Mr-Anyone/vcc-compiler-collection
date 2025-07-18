@@ -35,8 +35,8 @@ llvm::Type* BuiltinType::getType(ContextHolder holder){
     }
 }
 
-StructType::StructType(const std::vector<Type*>& element):
-    m_elements(element){
+StructType::StructType(const std::vector<Element>& element,const std::string& name ):
+    m_elements(element), m_name(name){
 
 }
 
@@ -45,11 +45,13 @@ llvm::Type* StructType::getType(ContextHolder holder){
         return m_llvm_type;
 
     std::vector<llvm::Type*> elements {}; 
-    for(Type* type : m_elements){
+    for(Element ele : m_elements){
+        Type* type = ele.type;
         llvm::Type* llvm_type = type->getType(holder);
         elements.push_back(llvm_type);
     }
 
     m_llvm_type =  llvm::StructType::create(elements);
+    m_llvm_type->setName(m_name);
     return m_llvm_type;
 }

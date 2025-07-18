@@ -338,7 +338,7 @@ llvm::Value *FunctionArgLists::codegen(ContextHolder holder) {
 
     // allocating one integer
     llvm::Value *alloc_loc =
-        holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
+        holder->builder.CreateAlloca(arg.getType());
     holder->builder.CreateStore(&arg, alloc_loc);
 
     holder->symbol_table.addLocalVariable(this, name, alloc_loc);

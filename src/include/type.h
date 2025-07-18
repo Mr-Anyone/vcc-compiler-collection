@@ -39,10 +39,15 @@ private:
 
 class StructType : public Type {
 public:
-  StructType(const std::vector<Type*>& elements);
+  struct Element{
+    std::string name;
+    Type* type;
+  };
+  StructType(const std::vector<Element>& elements, const std::string& name);
   virtual llvm::Type *getType(ContextHolder holder) override;
 private:
-  std::vector<Type*> m_elements;
+  std::vector<Element> m_elements;
+  std::string m_name; 
   llvm::StructType* m_llvm_type = nullptr;
 };
 

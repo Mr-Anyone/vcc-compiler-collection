@@ -29,6 +29,7 @@ function testing gives int
 # Grammar Specification
 
 ```
+top_level :== <function_decl> | <struct_definition>
 function_decl :== 'function', <identifier>, 'gives', <type_qualification>, 
                         <function_args_list>, '{', <statements>+, ''}'
 
@@ -54,7 +55,8 @@ return_statement :== 'ret', <expression> ';'
 
 type_qualification :== 'int' | 'struct', <identifier>
 
-struct_definition :== 'struct', <identifier> ,'{', {<type_qualification> <identifier>}+, '}'
+struct_definition :== 'struct', <identifier> ,'{'
+                        , {<type_qualification> <identifier>}+, '}'
 
 expression :==  <binary_expression>
 

@@ -18,24 +18,96 @@ void Parser::start(){
 
 const std::vector<ASTBase*>& Parser::getSyntaxTree(){ return m_function_decls; }
 
-
+// type_qualification :== 'int' | 'struct', <identifier>
 Type* Parser::buildTypeQualification(){
-    assert(m_tokenizer.current().isTypeQualification());
-
     if(m_tokenizer.getCurrentType() == lex::Int){
         m_tokenizer.consume();
         return new BuiltinType(BuiltinType::Int);
     }
 
-    assert(false && "don't know how to parse other types yet");
+    if(m_tokenizer.getCurrentType() == lex::Struct){
+        m_tokenizer.consume();
+        if(m_tokenizer.getCurrentType() != lex::Identifier){
+            logError("expected identifier");
+            return nullptr;
+        }
+
+        std::string struct_name = m_tokenizer.current().getStringLiteral();
+        m_tokenizer.consume();
+
+        assert(m_struct_defs.contains(struct_name) && "undefined reference to struct");
+        return m_struct_defs[struct_name];
+    }
+
     return nullptr;
 }
 
+// struct_definition :== 'struct', <identifier> ,'{'
+//                  , {<type_qualification> <identifier>}+, '}'
+void Parser::addStructDefinition(){
+    if(m_tokenizer.getCurrentType() != lex::Struct){
+        logError("expected struct");
+        return;
+    }
+
+    if(m_tokenizer.getNextType() != lex::Identifier){
+        logError("expected identifier");
+        return;
+    }
+    std::string name = m_tokenizer.current().getStringLiteral();
+
+    if(m_tokenizer.getNextType() != lex::LeftBrace){
+        logError("expected {");
+        return;
+    }
+    m_tokenizer.consume();
+
+    // parsing the struct
+    std::vector<StructType::Element> elements; 
+    while(Type* current = buildTypeQualification()){
+        if(m_tokenizer.getCurrentType() != lex::Identifier){
+            logError("expected identifier");
+            return;
+        }
+
+        // FIXME: we need to check that there are no duplicated name
+        std::string name = m_tokenizer.current().getStringLiteral();
+        elements.push_back({name, current});
+        if(m_tokenizer.getNextType() != lex::Comma){
+            logError("expected ,");
+            return;
+        }
+        m_tokenizer.consume();
+    }
+
+    if(m_tokenizer.getCurrentType() != lex::RightBrace){
+        logError("expected }");
+        return;
+    }
+
+    m_tokenizer.consume();
+
+    // Finally, inserting the element into the table
+    assert(!m_struct_defs.contains(name) && "we have duplicated definition of the same struct");
+    m_struct_defs[name] = new StructType(elements, name);
+}
+
+// top_level :== <function_decl> | <struct_definition>
 const std::vector<ASTBase*>& Parser::buildSyntaxTree() {
     assert(m_function_decls.size() == 0 && "can only be called once");
-    while(m_tokenizer.getCurrentType() == lex::FunctionDecl){
-        ASTBase* base = buildFunctionDecl();
-        m_function_decls.push_back(base);
+    while(m_tokenizer.getCurrentType() != lex::EndOfFile){
+        if(m_tokenizer.getCurrentType() == lex::FunctionDecl){
+            ASTBase* base = buildFunctionDecl();
+            m_function_decls.push_back(base);
+            continue;
+        }
+
+        if(m_tokenizer.getCurrentType() == lex::Struct){
+            addStructDefinition();
+            continue;
+        }
+
+        break;
     }
 
     if(m_tokenizer.getCurrentType() != lex::EndOfFile){
@@ -192,7 +264,6 @@ ASTBase *Parser::buildAssignmentStatement() {
 //  args_declaration :== <type_qualification> + identifier + ','
 FunctionArgLists *Parser::buildFunctionArgList() {
   if (m_tokenizer.getCurrentType() != lex::LeftBracket) {
-      m_tokenizer.current().dump();
     logError("expected [");
     return nullptr;
   }
@@ -220,7 +291,6 @@ FunctionArgLists *Parser::buildFunctionArgList() {
   }
 
   if (m_tokenizer.getCurrentType() != lex::RightBracket) {
-      m_tokenizer.current().dump();
     logError("expected ]");
     return nullptr;
   }

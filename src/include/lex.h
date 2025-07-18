@@ -35,11 +35,11 @@ enum TokenType {
   Then,     // Then
   End,      // End
   While,    // while
-  Struct,    // struct
 
   // Type qualifications
   TypeQualificationStart,
   Int, // int
+  Struct,    // struct
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start

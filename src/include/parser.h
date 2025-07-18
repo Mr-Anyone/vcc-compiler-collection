@@ -21,7 +21,9 @@ private:
   const std::vector<ASTBase*>&  buildSyntaxTree();
 
   // Types, kind of like statements but not necessary
+  // return a pointer when success, nullptr otherwise 
   Type* buildTypeQualification();
+  void addStructDefinition();
 
   // building the function decl
   ASTBase *buildFunctionDecl();
@@ -66,7 +68,9 @@ private:
 
   bool m_error = false;
 
+  // Store the computation results
   std::vector<ASTBase*> m_function_decls;
+  std::unordered_map<std::string, StructType*> m_struct_defs;
 };
 
 #endif

@@ -16,7 +16,7 @@ TEST(Type, BasicTest){
     // struct Outer{
     //     int a, int b, int c,
     // }
-    StructType outer ({&a, &b, &c}); 
+    StructType outer ({{"a", &a}, {"b", &b}, {"c", &c}}, "asfdas"); 
     llvm::Type* interger = llvm::Type::getInt32Ty(holder->context);
-    outer.getType(holder)->dump();
+    EXPECT_EQ(outer.getType(holder)->getStructName(), "asfdas");
 }
