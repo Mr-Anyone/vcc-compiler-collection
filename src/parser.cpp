@@ -130,7 +130,9 @@ ASTBase *Parser::buildFunctionDecl() {
 
   // FIXME: it is possible to have other types
   // currently only int is supported
-  assert(m_tokenizer.getNextType() == lex::Int);
+  if(m_tokenizer.getNextType() != lex::Int)
+    return logError("expected int");
+
   FunctionArgLists *arg_list = buildFunctionArgList();
 
   if (m_tokenizer.getCurrentType() != lex::LeftBrace)
@@ -179,6 +181,7 @@ ASTBase *Parser::buildAssignmentStatement() {
 //  args_declaration :== <type_qualification> + identifier + ','
 FunctionArgLists *Parser::buildFunctionArgList() {
   if (m_tokenizer.getNextType() != lex::LeftBracket) {
+      m_tokenizer.current().dump();
     logError("expected [");
     return nullptr;
   }

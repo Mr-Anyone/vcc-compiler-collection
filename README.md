@@ -1,12 +1,12 @@
 # TODO
 
 - [ ] Add support for aggregate type
-- [ ] Floating point support
 - [ ] The C FFI problem with SDL
-- [ ] Name lookup problem
+- [X] Name lookup problem
 - [ ] Semantics analysis
 - [ ] String Type  
 - [ ] Array Type
+- [ ] Floating point support
 - [X] Trie like Symbol Table
 - [X] Implicit casting for integer
 - [X] Better error handling and printing
@@ -68,7 +68,7 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 
 # Semantics
 
-## Binary comparison
+## Binary operator
 
 1. Implicit conversion always happen for type that has less bits. For example, when adding `i16` with `i32`, `i16` will be sign extended to `i32` to perform the addition. Note boolean are exempted from this.
 2. Inside a if statement, the condition is false if and only if the value is 0. In other words, it is true if and only if the value is non zero.

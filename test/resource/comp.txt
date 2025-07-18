@@ -18,3 +18,13 @@ function test_three gives int [
 ]{
     ret a ne b;
 }
+
+function fib gives int[
+    int a,
+]{
+    if a le 1 then 
+        ret a;
+    end
+
+    ret fib(a-1 ,) + fib(a-2,);
+}
