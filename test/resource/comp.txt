@@ -28,3 +28,17 @@ function fib gives int[
 
     ret fib(a-1 ,) + fib(a-2,);
 }
+
+struct complex{
+    int a, 
+    int b,
+}
+
+function things_here gives int[
+    int a, 
+    int b,
+    struct complex c,
+]{
+    ret a + b;
+}
+
