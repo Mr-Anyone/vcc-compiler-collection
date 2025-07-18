@@ -3,7 +3,16 @@
 
 #include "context.h"
 #include <llvm/IR/Type.h>
+#include <memory.h> 
 
+
+class Type;
+using type_ptr_t = std::shared_ptr<Type>;
+
+// FIXME: A lot of the time Type is immutable 
+// Therefore maybe we could just return a pointer 
+// by heap allocating once and save a lot of save.
+// we might need something like a map to keep track
 class Type {
 public:
   virtual llvm::Type *getType(ContextHolder holder);
@@ -19,7 +28,7 @@ public:
     Int,
   };
 
-  BuiltinType(Builtin builtin, int bits_size);
+  BuiltinType(Builtin builtin);
   virtual llvm::Type *getType(ContextHolder holder) override;
 
 private:
@@ -27,13 +36,14 @@ private:
   int m_bits_size; 
 };
 
+
 class StructType : public Type {
 public:
-  StructType();
+  StructType(const std::vector<Type*>& elements);
   virtual llvm::Type *getType(ContextHolder holder) override;
-
 private:
-  std::vector<Type> m_elements;
+  std::vector<Type*> m_elements;
+  llvm::StructType* m_llvm_type = nullptr;
 };
 
 #endif

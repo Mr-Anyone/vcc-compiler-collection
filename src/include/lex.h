@@ -6,6 +6,7 @@
 #include <istream>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace lex {
 
@@ -34,6 +35,7 @@ enum TokenType {
   Then,     // Then
   End,      // End
   While,    // while
+  Struct,    // struct
 
   // Type qualifications
   TypeQualificationStart,
@@ -118,6 +120,7 @@ class Tokenizer {
             {"}", RightBrace},
             {",", Comma},
             {"while", While},
+            {"struct", Struct},
 
             {"if", If},
             {"then", Then},
@@ -142,6 +145,16 @@ class Tokenizer {
             {"-", Subtract},
             {"*", Multiply}};
 
+        static std::unordered_set<char> getOneCharacterToken(const std::unordered_map<std::string, TokenType>& map){
+            std::unordered_set<char> one_symbol {};
+            for(auto it = map.begin(), ie = map.end(); it != ie; ++it){
+                if(it->first.length() == 1)
+                    one_symbol.insert(it->first[0]);
+            }
+            return one_symbol;
+        }
+
+        const static inline std::unordered_set<char> one_character_token = getOneCharacterToken(keyword_map); 
         const static inline std::set<char> binary_operator{'+'};
   static bool isKeyword(const std::string& keyword);
   static bool isBinary(const std::string &keyword);

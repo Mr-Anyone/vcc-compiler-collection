@@ -18,6 +18,19 @@ void Parser::start(){
 
 const std::vector<ASTBase*>& Parser::getSyntaxTree(){ return m_function_decls; }
 
+
+Type* Parser::buildTypeQualification(){
+    assert(m_tokenizer.current().isTypeQualification());
+
+    if(m_tokenizer.getCurrentType() == lex::Int){
+        m_tokenizer.consume();
+        return new BuiltinType(BuiltinType::Int);
+    }
+
+    assert(false && "don't know how to parse other types yet");
+    return nullptr;
+}
+
 const std::vector<ASTBase*>& Parser::buildSyntaxTree() {
     assert(m_function_decls.size() == 0 && "can only be called once");
     while(m_tokenizer.getCurrentType() == lex::FunctionDecl){
@@ -127,11 +140,9 @@ ASTBase *Parser::buildFunctionDecl() {
 
   if (m_tokenizer.getNextType() != lex::Gives)
     return logError("function declaration must provide return type");
+  m_tokenizer.consume();
 
-  // FIXME: it is possible to have other types
-  // currently only int is supported
-  if(m_tokenizer.getNextType() != lex::Int)
-    return logError("expected int");
+  Type* return_type = buildTypeQualification();
 
   FunctionArgLists *arg_list = buildFunctionArgList();
 
@@ -152,7 +163,7 @@ ASTBase *Parser::buildFunctionDecl() {
   m_tokenizer.consume();
 
   return new FunctionDecl(
-      expressions, dynamic_cast<FunctionArgLists *>(arg_list), std::move(name));
+      expressions, dynamic_cast<FunctionArgLists *>(arg_list), std::move(name), return_type);
 }
 
 // assignment_expression :== <identifier>, '=', <expression>, ';'
@@ -180,21 +191,22 @@ ASTBase *Parser::buildAssignmentStatement() {
 // function_args_list :== '[', args_declaration+, ']'
 //  args_declaration :== <type_qualification> + identifier + ','
 FunctionArgLists *Parser::buildFunctionArgList() {
-  if (m_tokenizer.getNextType() != lex::LeftBracket) {
+  if (m_tokenizer.getCurrentType() != lex::LeftBracket) {
       m_tokenizer.current().dump();
     logError("expected [");
     return nullptr;
   }
+  m_tokenizer.consume();
 
   // parsing args declaration
   // FIXME: add a way to map token into type qualification
   std::vector<TypeInfo> args{};
-  while (m_tokenizer.getNextType() == lex::Int) {
-    // lex type_qualification = m_tokenizer.getCurrentType();
-    lex::Token next_token = m_tokenizer.next();
+  while (m_tokenizer.current().isTypeQualification()) {
+    Type* type = buildTypeQualification();
+    lex::Token next_token = m_tokenizer.current();
 
     if (next_token.getType() != lex::Identifier) {
-      logError("expected [");
+      logError("expected identifier");
       return nullptr;
     }
     std::string name = next_token.getStringLiteral();
@@ -203,10 +215,12 @@ FunctionArgLists *Parser::buildFunctionArgList() {
       logError("expected comma");
       return nullptr;
     }
-    args.push_back(TypeInfo{Int32, name});
+    args.push_back(TypeInfo{type, name});
+    m_tokenizer.consume();
   }
 
   if (m_tokenizer.getCurrentType() != lex::RightBracket) {
+      m_tokenizer.current().dump();
     logError("expected ]");
     return nullptr;
   }
@@ -376,12 +390,9 @@ bool Parser::haveError()const{
 
 // declaration_statement :== <type_qualification>, <identifier>, '=', <expression>, ';'
 ASTBase* Parser::buildDeclarationStatement(){
-    // FIXME: there could be multiple types in the future
-    Token type_qualification = m_tokenizer.current();
-    if(!m_tokenizer.current().isTypeQualification())
-        return logError("expected type qualification");
+    Type* parsed_type = buildTypeQualification();
 
-    if (m_tokenizer.getNextType() != lex::Identifier)
+    if (m_tokenizer.getCurrentType() != lex::Identifier)
         return logError("expected identifier");
 
     std::string name = m_tokenizer.current().getStringLiteral();
@@ -396,5 +407,5 @@ ASTBase* Parser::buildDeclarationStatement(){
         return logError("expected ;");
     m_tokenizer.consume();
 
-    return new DeclarationStatement(name, expression);
+    return new DeclarationStatement(name, expression, parsed_type);
 }

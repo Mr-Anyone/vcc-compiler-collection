@@ -8,6 +8,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Value.h"
 
+#include "type.h"
 #include "context.h"
 #include "lex.h"
 
@@ -43,6 +44,7 @@ private:
 
 // FIXME: remove me
 struct TypeInfo {
+    Type* type;
   std::string name;
 };
 
@@ -66,7 +68,7 @@ private:
 class FunctionDecl : public ASTBase {
 public:
   FunctionDecl(std::vector<ASTBase *> &expression, FunctionArgLists *arg_list,
-               std::string &&name);
+               std::string &&name, Type* return_type);
 
   virtual llvm::Value *codegen(ContextHolder holder) override;
   void dump() override;
@@ -75,6 +77,7 @@ public:
   llvm::Function *getLLVMFunction() const;
 
 private:
+  Type* m_return_type;
   std::vector<ASTBase *> m_statements;
   FunctionArgLists *m_arg_list;
   std::string m_name;
@@ -88,7 +91,7 @@ class AssignmentStatement : public ASTBase {
 public:
   AssignmentStatement(const std::string &name, ASTBase *expression);
 
-  virtual llvm::Value *codegen(ContextHolder holder);
+  virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual void dump() override;
   const std::string &getName();
 
@@ -124,13 +127,14 @@ private:
 
 class DeclarationStatement : public ASTBase{
 public:
-    DeclarationStatement(const std::string & name, ASTBase* expression);
+    DeclarationStatement(const std::string & name, ASTBase* expression, Type* type);
     virtual void dump() override;
     virtual llvm::Value* codegen(ContextHolder holder) override;
 
 private:
     std::string m_name;
     ASTBase* m_expression;
+    Type* m_type;
 };
 
 class WhileStatement : public ASTBase{

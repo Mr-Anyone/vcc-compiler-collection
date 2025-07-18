@@ -64,9 +64,9 @@ const std::string &FunctionDecl::getName() const { return m_name; }
 llvm::Function *FunctionDecl::getLLVMFunction() const { return m_function; }
 
 FunctionDecl::FunctionDecl(std::vector<ASTBase *> &statements,
-                           FunctionArgLists *arg_list, std::string &&name)
+                           FunctionArgLists *arg_list, std::string &&name, Type* ret)
     : ASTBase({arg_list}), m_statements(statements), m_arg_list(arg_list),
-      m_name(name) {
+      m_name(name), m_return_type(ret) {
   // making sure that arg_list is always the first in the syntax tree!
   for(ASTBase* statement: statements){
       addChildren(statement);
@@ -210,8 +210,8 @@ IfStatement::IfStatement(ASTBase *cond, std::vector<ASTBase *> &&expressions)
 void IfStatement::dump() {}
 
 DeclarationStatement::DeclarationStatement(const std::string &name,
-                                           ASTBase *base)
-    : ASTBase({base}), m_expression(base), m_name(name) {}
+                                           ASTBase *base, Type* type)
+    : ASTBase({base}), m_expression(base), m_name(name), m_type(type) {}
 
 void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
 
@@ -381,11 +381,11 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
   // FIXME: make this more efficient
   std::vector<llvm::Type *> args;
   for (auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it) {
-    args.push_back(llvm::Type::getInt32Ty(holder->context));
+    args.push_back(it->type->getType(holder));
   }
 
   llvm::FunctionType *function_type = llvm::FunctionType::get(
-      llvm::Type::getInt32Ty(holder->context), args, /*isVarArg=*/false);
+      m_return_type->getType(holder), args, /*isVarArg=*/false);
 
   m_function = llvm::Function::Create(
       function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
@@ -458,7 +458,7 @@ llvm::Value *DeclarationStatement::codegen(ContextHolder holder) {
   // initialize the first variable
   FunctionDecl *func = getFirstFunctionDecl();
   llvm::Value *alloc_loc =
-      holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
+      holder->builder.CreateAlloca(m_type->getType(holder));
   holder->symbol_table.addLocalVariable(this, m_name, alloc_loc);
 
   llvm::Value *exp = m_expression->codegen(holder);

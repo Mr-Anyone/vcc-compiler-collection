@@ -78,7 +78,6 @@ void TrieTree::insert(ASTBase *pos, std::string name, llvm::Value *value) {
           && "we must be at the location of scope def when we are inserting");
   assert(!traverse_trie->decls.contains(name) && "duplicate definition?");
   traverse_trie->decls[name] = value;
-  traverse_trie->dump();
 }
 
 void TrieTree::getTrieOrder(ASTBase *start,
@@ -113,7 +112,6 @@ llvm::Value *SymbolTable::lookupLocalVariable(ASTBase *at, std::string name) {
 }
 
 void TrieTree::TrieNode::dump(){
-    std::cout << "I am, " << this << ", at " << scope_def << " with decls: ";
     for(auto it = decls.begin(), ie=decls.end(); it!=ie; ++it){
         std::cout << it->first << ",";
     }

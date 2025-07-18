@@ -6,7 +6,7 @@
 #include "context.h"
 #include "lex.h"
 
-#include <istream>
+#include "type.h"
 
 class Parser {
 public:
@@ -19,6 +19,9 @@ public:
 
 private:
   const std::vector<ASTBase*>&  buildSyntaxTree();
+
+  // Types, kind of like statements but not necessary
+  Type* buildTypeQualification();
 
   // building the function decl
   ASTBase *buildFunctionDecl();

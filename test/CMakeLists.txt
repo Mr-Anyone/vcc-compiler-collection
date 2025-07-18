@@ -1,4 +1,4 @@
-add_executable(all_test lex.cpp stream.cpp comp.cpp)
+add_executable(all_test lex.cpp stream.cpp comp.cpp type.cpp)
 target_link_libraries(all_test GTest::gtest_main comp)
 
 file(GLOB resource_files "${CMAKE_CURRENT_SOURCE_DIR}/resource/*")

@@ -1,15 +1,16 @@
 # TODO
 
+- [X] Name lookup problem
+- [X] Trie like Symbol Table
+- [X] Implicit casting for integer
+- [X] Better error handling and printing
 - [ ] Add support for aggregate type
 - [ ] The C FFI problem with SDL
-- [X] Name lookup problem
 - [ ] Semantics analysis
 - [ ] String Type  
 - [ ] Array Type
 - [ ] Floating point support
-- [X] Trie like Symbol Table
-- [X] Implicit casting for integer
-- [X] Better error handling and printing
+- [ ] The heap allocation problem with ASTBase and Type
 
 # Example Code 
 ```

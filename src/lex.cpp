@@ -73,10 +73,7 @@ Token Tokenizer::readOneToken() {
       break;
     }
 
-    // consume if this is the first time
-    // FIXME: maybe just look up the keyword map instead?
-    if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' ||
-        c == ',' || c == '+' || c == ';' || c == '=' || c == '*') {
+    if (one_character_token.contains(c)) {
       if (is_first_time) {
         // creating the lookup term
         std::string lookup_term;
