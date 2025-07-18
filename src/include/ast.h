@@ -41,11 +41,8 @@ private:
   std::set<ASTBase *> m_childrens;
 };
 
-enum Type { Int32 };
-
+// FIXME: remove me
 struct TypeInfo {
-
-  Type kind;
   std::string name;
 };
 

@@ -9,6 +9,7 @@ set(
     driver.cpp
     # FIXME: maybe add this into a different standard library
     stream.cpp
+    type.cpp
 )
 
 add_executable(main main.cpp)

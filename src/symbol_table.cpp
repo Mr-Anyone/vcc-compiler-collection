@@ -78,6 +78,7 @@ void TrieTree::insert(ASTBase *pos, std::string name, llvm::Value *value) {
           && "we must be at the location of scope def when we are inserting");
   assert(!traverse_trie->decls.contains(name) && "duplicate definition?");
   traverse_trie->decls[name] = value;
+  traverse_trie->dump();
 }
 
 void TrieTree::getTrieOrder(ASTBase *start,

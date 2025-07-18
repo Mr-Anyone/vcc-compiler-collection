@@ -51,7 +51,9 @@ assignment_statement :== <identifier>, '=', <expression>, ';'
 
 return_statement :== 'ret', <expression> ';'
 
-type_qualification :== 'int'
+type_qualification :== 'int' | 'struct', <identifier>
+
+struct_definition :== 'struct', <identifier> ,'{', {<type_qualification> <identifier>}+, '}'
 
 expression :==  <binary_expression>
 
