@@ -22,19 +22,5 @@ private:
 };
 
 bool Sema::checkFunction(FunctionDecl *function_decl) {
-    // ensure we can always perform a valid name lookup
-    for(ASTBase* statement: function_decl->getChildren()){
-
-        // going inside the scope 
-        if(ScopeDeclarationTree::doesDeclareScope(statement)){
-            if(IfStatement* casted = dyncast<IfStatement>(statement)){
-
-            }
-
-            assert(false && "unreachable");
-
-        }
-    }
-    
   return true;
 }

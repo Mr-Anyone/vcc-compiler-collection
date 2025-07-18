@@ -7,6 +7,7 @@
 - [ ] Semantics analysis
 - [ ] String Type  
 - [ ] Array Type
+- [X] Trie like Symbol Table
 - [X] Implicit casting for integer
 - [X] Better error handling and printing
 
@@ -78,3 +79,8 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 1. If, while, and function defines a scope that begins with '{'  and ends with '}'. Excluding code in between '{', and '}'.
 2. Within the same scope, two declaration cannot share the same name. 
 3. Name lookup will start at the current scope and climb upwards.
+
+
+# Design Decision
+
+1. ASTBase must be immutable. Once created, it must not be changed. It will case bugs otherwise.

@@ -3,7 +3,7 @@
 #include "parser.h"
 
 TEST(CompTest, TestCompile){
-    Parser parser = parseFile("resource/binary_operator.txt");
+    Parser parser = parseFile("resource/comp.txt");
     for(ASTBase* base : parser.getSyntaxTree()){
         base->codegen(parser.getHolder());
     }

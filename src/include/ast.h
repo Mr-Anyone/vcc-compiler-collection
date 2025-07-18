@@ -22,8 +22,12 @@ public:
 
   // nullptr on failure
   FunctionDecl *getFirstFunctionDecl();
+  // gets the first ASTBase that defines a scope
+  // nullptr on failure, get the first ASTBase that represents a scope 
+  ASTBase* getScopeDeclLoc() const;
+  static bool doesDefineScope(ASTBase* at);
 
-  ASTBase *getParent();
+  ASTBase *getParent() const;
   void setParent(ASTBase *parent);
   void addChildren(ASTBase *children);
   void removeChildren(ASTBase *children);
@@ -46,20 +50,14 @@ struct TypeInfo {
 };
 
 //============================== Miscellaneous ==============================
-
-// FIXME: remove this class in the future. This makes
-// this makes codegen have non trivial behavior!
-// We are already expected a function declaration in the LLVM IR
-// level already, so what is the point of this class?
-// FIXME: maybe put this in private class?
-class FunctionArgLists {
+class FunctionArgLists: public ASTBase{
 public:
   using ArgsIter = std::vector<TypeInfo>::const_iterator;
 
   FunctionArgLists(std::vector<TypeInfo> &&args);
 
   // the first few alloc, and load instruction
-  void codegen(ContextHolder holder, FunctionDecl *function_decl);
+  virtual llvm::Value* codegen(ContextHolder holder) override;
 
   ArgsIter begin() const;
   ArgsIter end() const;

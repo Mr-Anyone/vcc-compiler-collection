@@ -1,10 +1,11 @@
 #include "symbol_table.h"
 #include "ast.h"
+#include "util.h"
 
-SymbolTable::SymbolTable() : m_local_table(), m_function_table() {}
+SymbolTable::SymbolTable() : m_local_variable_table(), m_function_table() {}
 
 void SymbolTable::addFunction(FunctionDecl *function_decl) {
-  const std::string &function_name = function_decl->getName();
+  std::string function_name = function_decl->getName();
   llvm::Function *function = function_decl->getLLVMFunction();
   assert(!m_function_table.contains(function_name));
 
@@ -16,28 +17,105 @@ llvm::Function *SymbolTable::lookupFunction(const std::string &name) {
   return m_function_table[name];
 }
 
-void SymbolTable::addLocalVariable(FunctionDecl *function, std::string name,
+llvm::Value *TrieTree::lookup(ASTBase *at, std::string name) const {
+  std::vector<ASTBase *> trie_order;
+  getTrieOrder(at, trie_order);
+
+  // The trie searching order
+  std::vector<node_t> search_order;
+  search_order.push_back(head);
+  node_t trie_at = head;
+  for (int i = 1; i < trie_order.size(); ++i) {
+    if (!trie_at->child.contains(trie_order[i]))
+      break;
+
+    trie_at = trie_at->child[trie_order[i]];
+    // we are now at at next
+    search_order.push_back(trie_at);
+  }
+  std::reverse(search_order.begin(), search_order.end());
+
+  for (node_t node : search_order) {
+    auto it = node->decls.find(name);
+    // found what we are looking for
+    if (it != node->decls.end())
+      return it->second;
+  }
+
+  assert(false && "failed name lookup. undefined reference?");
+  return nullptr;
+}
+
+TrieTree::TrieTree::TrieNode::TrieNode(ASTBase *decl)
+    : scope_def(decl), decls(), child() {
+  assert(ASTBase::doesDefineScope(decl) && "decl must define a scope");
+}
+
+TrieTree::TrieTree(FunctionDecl *decl)
+    : head(std::make_unique<TrieNode>(decl)) {}
+
+TrieTree::TrieTree() : head(nullptr) {}
+
+void TrieTree::insert(ASTBase *pos, std::string name, llvm::Value *value) {
+  std::vector<ASTBase *> trie_insert_order;
+  getTrieOrder(pos, trie_insert_order);
+
+  // at the end of the iteration, it must be that
+  node_t traverse_trie = head;
+  for (int i = 1; i < trie_insert_order.size(); ++i) {
+    ASTBase *next_scope = trie_insert_order[i];
+    if (traverse_trie->child.contains(next_scope)) {
+      traverse_trie = traverse_trie->child[next_scope];
+    } else {
+      node_t next_node = std::make_unique<TrieNode>(next_scope);
+      traverse_trie->child[next_scope] = next_node;
+      traverse_trie = next_node;
+    }
+  }
+
+  // finally adding the element into here
+  assert(traverse_trie->scope_def == pos->getScopeDeclLoc() 
+          && "we must be at the location of scope def when we are inserting");
+  assert(!traverse_trie->decls.contains(name) && "duplicate definition?");
+  traverse_trie->decls[name] = value;
+}
+
+void TrieTree::getTrieOrder(ASTBase *start,
+                            std::vector<ASTBase *> &trie_order) const {
+  assert(start && "must be true" && trie_order.size() == 0 &&
+         "must also be empty");
+  start = start->getScopeDeclLoc();
+  while (start) {
+    trie_order.push_back(start);
+    start = start->getScopeDeclLoc();
+  }
+  std::reverse(trie_order.begin(), trie_order.end());
+}
+
+void SymbolTable::addLocalVariable(ASTBase *loc, std::string name,
                                    llvm::Value *value) {
-  // reserved for implementation
-  assert(name.find('$') != name.size() && "cannot contain $");
+  // Create a trie it does not exist
+  if (!m_local_variable_table.contains(loc->getFirstFunctionDecl()->getName())) {
+    TrieTree lookup_table(loc->getFirstFunctionDecl());
+    m_local_variable_table[loc->getFirstFunctionDecl()->getName()] =
+        lookup_table;
+  }
 
-  std::string lookup_name = makeLocalVariableLookupName(function, name);
-  m_local_table[lookup_name] = value;
+  m_local_variable_table[loc->getFirstFunctionDecl()->getName()].insert(
+      loc, name, value);
 }
 
-llvm::Value *SymbolTable::lookupLocalVariable(FunctionDecl *function,
-                                              std::string name) {
-  std::string lookup_name = makeLocalVariableLookupName(function, name);
-  assert(m_local_table.contains(lookup_name));
-  return m_local_table[lookup_name];
+llvm::Value *SymbolTable::lookupLocalVariable(ASTBase *at, std::string name) {
+  std::string function_name = at->getFirstFunctionDecl()->getName();
+  const TrieTree &trie = m_local_variable_table[function_name];
+  return trie.lookup(at, name);
 }
 
-bool SymbolTable::containsLocalVariable(FunctionDecl* function, const std::string& name){
-    std::string lookup_name = makeLocalVariableLookupName(function, name);
-    return m_local_table.contains(lookup_name);
+void TrieTree::TrieNode::dump(){
+    std::cout << "I am, " << this << ", at " << scope_def << " with decls: ";
+    for(auto it = decls.begin(), ie=decls.end(); it!=ie; ++it){
+        std::cout << it->first << ",";
+    }
+    std::cout << "\n";
 
-}
-std::string SymbolTable::makeLocalVariableLookupName(FunctionDecl *function,
-                                                     std::string name) {
-  return function->getName() + "$" + name;
 }

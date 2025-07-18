@@ -16,6 +16,8 @@ int main() {
 
         llvm::Function* func = 
             llvm::dyn_cast<llvm::Function>(tree->codegen(parser.getHolder()));
+
+        func->dump();
     }
 
   return 0;

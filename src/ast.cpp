@@ -34,9 +34,7 @@ ASTBase::ASTBase(const std::vector<ASTBase *> childrens)
   }
 }
 
-const std::set<ASTBase*>& ASTBase::getChildren() const {
-    return m_childrens;
-}
+const std::set<ASTBase *> &ASTBase::getChildren() const { return m_childrens; }
 
 void ASTBase::removeChildren(ASTBase *children) {
   assert(m_childrens.find(children) != m_childrens.end() &&
@@ -57,7 +55,7 @@ void ASTBase::setParent(ASTBase *parent) {
   m_parent->m_childrens.insert(this);
 }
 
-ASTBase *ASTBase::getParent() { return m_parent; }
+ASTBase *ASTBase::getParent() const { return m_parent; }
 
 void ASTBase::dump() { return; }
 
@@ -67,11 +65,16 @@ llvm::Function *FunctionDecl::getLLVMFunction() const { return m_function; }
 
 FunctionDecl::FunctionDecl(std::vector<ASTBase *> &statements,
                            FunctionArgLists *arg_list, std::string &&name)
-    : ASTBase(statements), m_statements(statements), m_arg_list(arg_list),
-      m_name(name) {}
+    : ASTBase({arg_list}), m_statements(statements), m_arg_list(arg_list),
+      m_name(name) {
+  // making sure that arg_list is always the first in the syntax tree!
+  for(ASTBase* statement: statements){
+      addChildren(statement);
+  }
+}
 
 FunctionArgLists::FunctionArgLists(std::vector<TypeInfo> &&args)
-    : m_args(args) {}
+    : ASTBase({}), m_args(args) {}
 
 FunctionArgLists::ArgsIter FunctionArgLists::begin() const {
   return m_args.cbegin();
@@ -87,12 +90,11 @@ AssignmentStatement::AssignmentStatement(const std::string &name,
 
 const std::string &AssignmentStatement::getName() { return m_name; }
 
-void FunctionDecl::dump() { 
-    std::cout << "name: " << m_name << " args: ";
-    for(auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it){
-        std::cout << it->name << ", ";
-
-    }
+void FunctionDecl::dump() {
+  std::cout << "name: " << m_name << " args: ";
+  for (auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it) {
+    std::cout << it->name << ", ";
+  }
 }
 
 ReturnStatement::ReturnStatement(ASTBase *expression)
@@ -168,6 +170,20 @@ void IdentifierExpr::dump() { std::cout << "identifier: " << m_name; }
 
 void ConstantExpr::dump() { std::cout << m_value; }
 
+ASTBase *ASTBase::getScopeDeclLoc() const {
+  ASTBase *parent = getParent();
+  while (parent && !doesDefineScope(parent)) {
+    parent = parent->getParent();
+  }
+
+  return parent;
+}
+
+bool ASTBase::doesDefineScope(ASTBase *at) {
+  return isa<FunctionDecl>(at) || isa<IfStatement>(at) ||
+         isa<WhileStatement>(at);
+}
+
 FunctionDecl *ASTBase::getFirstFunctionDecl() {
   for (ASTBase *current = this; current; current = current->getParent()) {
     FunctionDecl *decl = nullptr;
@@ -197,20 +213,17 @@ DeclarationStatement::DeclarationStatement(const std::string &name,
                                            ASTBase *base)
     : ASTBase({base}), m_expression(base), m_name(name) {}
 
-void DeclarationStatement::dump(){
-    std::cout << "name: " << m_name;
+void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
+
+WhileStatement::WhileStatement(ASTBase *cond,
+                               std::vector<ASTBase *> &&expression)
+    : ASTBase({cond}), m_cond(cond), m_expressions(expression) {
+  for (ASTBase *base : m_expressions) {
+    addChildren(base);
+  }
 }
 
-WhileStatement::WhileStatement(ASTBase* cond, std::vector<ASTBase*>&&expression)
-    : ASTBase({cond}), m_cond(cond), m_expressions(expression){
-    for(ASTBase* base: m_expressions){
-        addChildren(base);
-    }
-}
-
-void WhileStatement::dump(){
-    return;
-}
+void WhileStatement::dump() { return; }
 
 // ======================================================
 // ====================== CODE GEN ======================
@@ -278,9 +291,9 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
         holder->builder.CreateICmpSGT(left_hand_side, right_hand_side);
     return check;
   }
-  case Subtract:{
-    llvm::Value* subtract = holder->builder.CreateSub(left_hand_side, 
-            right_hand_side);
+  case Subtract: {
+    llvm::Value *subtract =
+        holder->builder.CreateSub(left_hand_side, right_hand_side);
     return subtract;
   }
   case LE: {
@@ -306,14 +319,16 @@ llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
   // FIXME: it seems that we need to encode more type
   // information
   llvm::Value *loc_value =
-      holder->symbol_table.lookupLocalVariable(getFirstFunctionDecl(), m_name);
+      holder->symbol_table.lookupLocalVariable(this, m_name);
   llvm::Value *value = holder->builder.CreateLoad(
       llvm::Type::getInt32Ty(holder->context), loc_value);
 
   return value;
 }
 
-void FunctionArgLists::codegen(ContextHolder holder, FunctionDecl *func) {
+llvm::Value *FunctionArgLists::codegen(ContextHolder holder) {
+  FunctionDecl *func = getFirstFunctionDecl();
+
   // appending to symbol table
   int count = 0;
   llvm::Function *llvm_function = func->getLLVMFunction();
@@ -326,23 +341,23 @@ void FunctionArgLists::codegen(ContextHolder holder, FunctionDecl *func) {
         holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
     holder->builder.CreateStore(&arg, alloc_loc);
 
-    holder->symbol_table.addLocalVariable(func, name, alloc_loc);
+    holder->symbol_table.addLocalVariable(this, name, alloc_loc);
   }
+
+  return nullptr;
 }
 
 llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
   llvm::Value *expression_val = m_expression->codegen(holder);
   assert(expression_val && "must yield a non negative result");
   llvm::Value *alloc_loc =
-      holder->symbol_table.lookupLocalVariable(getFirstFunctionDecl(), m_name);
+      holder->symbol_table.lookupLocalVariable(this, m_name);
 
   holder->builder.CreateStore(expression_val, alloc_loc);
 
   return nullptr;
 }
-void AssignmentStatement::dump() {
-    std::cout << "name: " << m_name;
-}
+void AssignmentStatement::dump() { std::cout << "name: " << m_name; }
 
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
   // FIXME: must add semantics analysis
@@ -384,10 +399,8 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
       llvm::BasicBlock::Create(holder->context, "", m_function);
   holder->builder.SetInsertPoint(block);
 
-  // copy the parameter into llvm ir
-  m_arg_list->codegen(holder, this);
-
   // code generation for statement
+  m_arg_list->codegen(holder);
   for (ASTBase *statement : m_statements) {
     statement->codegen(holder);
   }
@@ -441,46 +454,47 @@ llvm::Value *IfStatement::codegen(ContextHolder holder) {
   return nullptr;
 }
 
-llvm::Value* DeclarationStatement::codegen(ContextHolder holder){
-    // initialize the first variable
-    FunctionDecl* func = getFirstFunctionDecl();
-    llvm::Value* alloc_loc = 
-        holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
-    holder->symbol_table.addLocalVariable(func, m_name, alloc_loc);
+llvm::Value *DeclarationStatement::codegen(ContextHolder holder) {
+  // initialize the first variable
+  FunctionDecl *func = getFirstFunctionDecl();
+  llvm::Value *alloc_loc =
+      holder->builder.CreateAlloca(llvm::Type::getInt32Ty(holder->context));
+  holder->symbol_table.addLocalVariable(this, m_name, alloc_loc);
 
-    llvm::Value* exp =  m_expression->codegen(holder);
-    llvm::Value* return_val = holder->builder.CreateStore(exp, alloc_loc); 
-    return return_val;
+  llvm::Value *exp = m_expression->codegen(holder);
+  llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
+  return return_val;
 }
 
-llvm::Value* WhileStatement::codegen(ContextHolder holder) {
-    llvm::BasicBlock* cond_block = 
-        llvm::BasicBlock::Create(holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
-    llvm::BasicBlock* while_true_block = 
-        llvm::BasicBlock::Create(holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
-    llvm::BasicBlock* fallthrough = 
-        llvm::BasicBlock::Create(holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
+llvm::Value *WhileStatement::codegen(ContextHolder holder) {
+  llvm::BasicBlock *cond_block = llvm::BasicBlock::Create(
+      holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
+  llvm::BasicBlock *while_true_block = llvm::BasicBlock::Create(
+      holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
+  llvm::BasicBlock *fallthrough = llvm::BasicBlock::Create(
+      holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
 
+  holder->builder.CreateBr(cond_block);
+
+  // set up the cond block
+  holder->builder.SetInsertPoint(cond_block);
+  llvm::Value *cond = m_cond->codegen(holder);
+  assert(cond->getType()->isIntegerTy() && "must be integer");
+  cond = holder->builder.CreateICmpNE(
+      cond, llvm::ConstantInt::get(cond->getType(), 0));
+  holder->builder.CreateCondBr(cond, while_true_block, fallthrough);
+
+  // set up while body block
+  holder->builder.SetInsertPoint(while_true_block);
+  for (ASTBase *statement : m_expressions) {
+    statement->codegen(holder);
+  }
+  assert(m_expressions.size() >= 1 && "must be true for now");
+  ASTBase *last_statement = m_expressions[m_expressions.size() - 1];
+  if (dynamic_cast<ReturnStatement *>(last_statement) == nullptr)
     holder->builder.CreateBr(cond_block);
 
-    // set up the cond block
-    holder->builder.SetInsertPoint(cond_block);
-    llvm::Value* cond = m_cond->codegen(holder);
-    assert(cond->getType()->isIntegerTy()&& "must be integer");
-    cond = holder->builder.CreateICmpNE(cond, llvm::ConstantInt::get(cond->getType(), 0));
-    holder->builder.CreateCondBr(cond, while_true_block, fallthrough);
+  holder->builder.SetInsertPoint(fallthrough);
 
-    // set up while body block 
-    holder->builder.SetInsertPoint(while_true_block);
-    for(ASTBase* statement: m_expressions){
-        statement->codegen(holder);
-    }
-    assert(m_expressions.size() >= 1 && "must be true for now");
-    ASTBase* last_statement = m_expressions[m_expressions.size() - 1];
-    if (dynamic_cast<ReturnStatement *>(last_statement) == nullptr)
-        holder->builder.CreateBr(cond_block);
-
-    holder->builder.SetInsertPoint(fallthrough);
-
-    return nullptr;
+  return nullptr;
 }
