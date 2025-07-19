@@ -18,10 +18,15 @@ void Parser::start(){
 
 const std::vector<ASTBase*>& Parser::getSyntaxTree(){ return m_function_decls; }
 
-// type_qualification :== 'int' | 'struct', <identifier>
+// type_qualification :== 'int', '*' | 'struct', <identifier>
 Type* Parser::buildTypeQualification(){
     if(m_tokenizer.getCurrentType() == lex::Int){
         m_tokenizer.consume();
+        if(m_tokenizer.peek().getType() == lex::Multiply){
+            m_tokenizer.consume();
+            return new PointerType(new BuiltinType(BuiltinType::Int)); 
+        }
+
         return new BuiltinType(BuiltinType::Int);
     }
 

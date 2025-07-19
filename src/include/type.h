@@ -3,11 +3,11 @@
 
 #include "context.h"
 #include <llvm/IR/Type.h>
+#include <memory.h>
 #include <optional>
-#include <memory.h> 
 
-// FIXME: A lot of the time Type is immutable 
-// Therefore maybe we could just return a pointer 
+// FIXME: A lot of the time Type is immutable
+// Therefore maybe we could just return a pointer
 // by heap allocating once and save a lot of save.
 // we might need something like a map to keep track
 class Type {
@@ -16,7 +16,34 @@ public:
 
   bool isStruct() const;
   bool isBuiltin() const;
+  bool isPointer() const;
+  bool isArray() const;
+
 private:
+};
+
+class ArrayType: public Type{
+public: 
+    // Creating an array of base*, with these amount of count
+    ArrayType(Type* base, int count);
+
+    Type* getBase();
+    int getCount();
+
+private:
+    int m_count; 
+    Type* m_base;
+};
+
+class PointerType : public Type {
+public:
+  PointerType(Type *m_pointee);
+
+  Type *getPointee();
+  virtual llvm::Type *getType(ContextHolder holder) override;
+
+private:
+  Type *m_pointee;
 };
 
 class BuiltinType : public Type {
@@ -30,27 +57,27 @@ public:
 
 private:
   Builtin m_builtin;
-  int m_bits_size; 
-  llvm::Type* m_llvm_type = nullptr;
+  int m_bits_size;
+  llvm::Type *m_llvm_type = nullptr;
 };
-
 
 class StructType : public Type {
 public:
-  struct Element{
+  struct Element {
     // FIXME: this can be deduced from array index. Why do we need this?
     int field_num;
     std::string name;
-    Type* type;
+    Type *type;
   };
-  StructType(const std::vector<Element>& elements, const std::string& name);
+  StructType(const std::vector<Element> &elements, const std::string &name);
   virtual llvm::Type *getType(ContextHolder holder) override;
 
-  std::optional<Element> getElement(const std::string& name);
+  std::optional<Element> getElement(const std::string &name);
+
 private:
   std::vector<Element> m_elements;
-  std::string m_name; 
-  llvm::StructType* m_llvm_type = nullptr;
+  std::string m_name;
+  llvm::StructType *m_llvm_type = nullptr;
 };
 
 #endif

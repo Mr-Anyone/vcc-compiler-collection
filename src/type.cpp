@@ -9,6 +9,10 @@ bool Type::isStruct() const {
   return dynamic_cast<const StructType *>(this) != nullptr;
 }
 
+bool Type::isPointer() const {
+  return dynamic_cast<const PointerType *>(this) != nullptr;
+}
+
 llvm::Type *Type::getType(ContextHolder holder) {
   assert(false && "please implement getType");
   return nullptr;
@@ -43,7 +47,8 @@ StructType::StructType(const std::vector<Element> &element,
     : m_elements(element), m_name(name) {
 #ifndef NDEBUG
   for (int i = 0; i < m_elements.size(); ++i) {
-    assert(m_elements[i].field_num == i && "The array makes no sense otherwise");
+    assert(m_elements[i].field_num == i &&
+           "The array makes no sense otherwise");
   }
 #endif
 }
@@ -72,4 +77,12 @@ StructType::getElement(const std::string &name) {
       return std::make_optional<Element>(element);
   }
   return std::nullopt;
+}
+
+PointerType::PointerType(Type *pointee) : m_pointee(pointee) {}
+
+Type *PointerType::getPointee() { return m_pointee; }
+
+llvm::Type *PointerType::getType(ContextHolder holder) {
+    return llvm::PointerType::get(m_pointee->getType(holder), /*AddressSpace=*/0);
 }

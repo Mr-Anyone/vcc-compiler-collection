@@ -69,3 +69,12 @@ gives int[
     struct some_placeholder e;
     ret a + b + c + d;
 }
+
+function pointer_type_test gives int [
+    int * a, 
+    int * b,
+]{
+    int* c;
+    ret 1;
+}
+

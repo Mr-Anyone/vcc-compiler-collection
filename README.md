@@ -6,11 +6,11 @@
 - [X] Better error handling and printing
 - [X] Add support for aggregate type
 - [X] Parse command line
+- [X] Pointer Type
 - [ ] The C FFI problem with SDL
 - [ ] Semantics analysis
-- [ ] Pointer Type
-- [ ] String Type  
 - [ ] Array Type
+- [ ] String Type  
 - [ ] Floating point support
 - [ ] The heap allocation problem with ASTBase and Type
 
@@ -21,6 +21,7 @@ function testing gives int
     int a,
     int b,
     int c,
+    array int c,
 ]{
     a = 10;
     b = 10;
@@ -56,7 +57,7 @@ assignment_statement :== <identifier>, '=', <expression>, ';'
 
 return_statement :== 'ret', <expression> ';'
 
-type_qualification :== 'int' | 'struct', <identifier>
+type_qualification :== 'int' {'*'}| 'struct', <identifier>
 
 struct_definition :== 'struct', <identifier> ,'{'
                         , {<type_qualification> <identifier>}+, '}'
