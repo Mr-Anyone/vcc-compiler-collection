@@ -128,6 +128,8 @@ private:
 
 class DeclarationStatement : public ASTBase {
 public:
+    // if expression is nullptr, it means that we just allocate space 
+    // and don't assign it to the thing
   DeclarationStatement(const std::string &name, ASTBase *expression,
                        Type *type);
   virtual void dump() override;

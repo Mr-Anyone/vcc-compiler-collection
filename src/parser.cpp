@@ -486,7 +486,7 @@ bool Parser::haveError()const{
     return m_error;
 }
 
-// declaration_statement :== <type_qualification>, <identifier>, '=', <expression>, ';'
+// declaration_statement :== <type_qualification>, <identifier>, {'=', <expression>} , ';'
 ASTBase* Parser::buildDeclarationStatement(){
     Type* parsed_type = buildTypeQualification();
 
@@ -495,7 +495,14 @@ ASTBase* Parser::buildDeclarationStatement(){
 
     std::string name = m_tokenizer.current().getStringLiteral();
 
-    if(m_tokenizer.getNextType() != lex::Equal)
+    //  we have this case 
+    // <type_qualification>, <identifier>, ';'
+    if(m_tokenizer.getNextType() == lex::SemiColon){
+        m_tokenizer.consume(); // applying the side effect
+        return new DeclarationStatement(name, nullptr, parsed_type);
+    }
+    
+    if(m_tokenizer.getCurrentType() != lex::Equal)
         return logError("expected =");
     m_tokenizer.consume();
 

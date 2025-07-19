@@ -43,15 +43,16 @@ identifier :== [a-zA-Z]+
 
 integer_literal :== [0-9]+
 
-statements :== <assignment_statement> | <return_statement> | <if_statement> | <while_statement>
+statements :== <assignment_statement> | <return_statement> | <if_statement> | <while_statement> 
+        | <declaration_statement>
 
 while_statement :== 'while', <expression>, 'then', <statements>+,'end'
 
-declaration_statement :== <type_qualification>, <identifier>, '=', <expression>, ';'
+declaration_statement :== <type_qualification>, <identifier>, {'=', <expression>} , ';'
 
 if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 
-assignment_statement :== <identifier>, '=', <expression>, ';'
+assignment_statement :== <identifier>, '=', <expression>, ';'  
 
 return_statement :== 'ret', <expression> ';'
 

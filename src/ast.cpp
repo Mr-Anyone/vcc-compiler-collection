@@ -212,7 +212,12 @@ void IfStatement::dump() {}
 
 DeclarationStatement::DeclarationStatement(const std::string &name,
                                            ASTBase *base, Type *type)
-    : ASTBase({base}), m_expression(base), m_name(name), m_type(type) {}
+    : ASTBase({}), m_expression(base), m_name(name), m_type(type) {
+  // it is possible that the child is a nullptr, meaning we only have to
+  // allocate space
+  if (base)
+    addChildren(base);
+}
 
 void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
 
@@ -478,9 +483,14 @@ llvm::Value *DeclarationStatement::codegen(ContextHolder holder) {
       holder->builder.CreateAlloca(m_type->getType(holder));
   holder->symbol_table.addLocalVariable(this, m_name, m_type, alloc_loc);
 
-  llvm::Value *exp = m_expression->codegen(holder);
-  llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
-  return return_val;
+  // if we don't have an initializer, we don't allocate space
+  if(m_expression){
+      llvm::Value *exp = m_expression->codegen(holder);
+      llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
+      return return_val;
+  }
+
+  return nullptr;
 }
 
 llvm::Value *WhileStatement::codegen(ContextHolder holder) {

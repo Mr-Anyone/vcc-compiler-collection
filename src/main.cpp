@@ -20,8 +20,6 @@ int main(int argc, char*argv []) {
     Sema sema; 
 
     for(ASTBase* tree : parser.getSyntaxTree()){
-        // bool is_good = sema.checkFunction(dyncast<FunctionDecl>(tree));
-        // assert(is_good);
         if(print_ast)
             tree->debugDump();
 

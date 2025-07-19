@@ -52,3 +52,20 @@ function test_struct gives int[
 ]{
     ret a + b + c.c.b;
 }
+
+struct some_placeholder{
+    int a,
+}
+
+function test_no_expression_declaration_statement
+gives int[
+    int a,
+    int b,
+] {
+    int c;
+    int d;
+    c = 20;
+    d = 40;
+    struct some_placeholder e;
+    ret a + b + c + d;
+}
