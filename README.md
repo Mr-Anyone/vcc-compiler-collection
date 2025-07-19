@@ -5,8 +5,10 @@
 - [X] Implicit casting for integer
 - [X] Better error handling and printing
 - [X] Add support for aggregate type
+- [X] Parse command line
 - [ ] The C FFI problem with SDL
 - [ ] Semantics analysis
+- [ ] Pointer Type
 - [ ] String Type  
 - [ ] Array Type
 - [ ] Floating point support
