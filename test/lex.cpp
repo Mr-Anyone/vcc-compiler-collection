@@ -33,7 +33,8 @@ TEST(LexTest, EndOfFileReading){
 
 TEST(LexTest, NewToken){
     std::ofstream stream("/tmp/testing2.txt");
-    const char* file_input = "some_identifier function + eq ne gt ge le lt if then end - while struct";
+    const char* file_input = "some_identifier function + eq ne gt ge le lt "
+        "if then end - while struct . ";
     stream << file_input;
     stream.close();
 
@@ -53,6 +54,7 @@ TEST(LexTest, NewToken){
     EXPECT_EQ(tokenizer.getNextType(), lex::Subtract);
     EXPECT_EQ(tokenizer.getNextType(), lex::While);
     EXPECT_EQ(tokenizer.getNextType(), lex::Struct);
+    EXPECT_EQ(tokenizer.getNextType(), lex::Fullstop);
 
     std::remove("/tmp/testing2.txt");
 }

@@ -64,12 +64,13 @@ const std::string &FunctionDecl::getName() const { return m_name; }
 llvm::Function *FunctionDecl::getLLVMFunction() const { return m_function; }
 
 FunctionDecl::FunctionDecl(std::vector<ASTBase *> &statements,
-                           FunctionArgLists *arg_list, std::string &&name, Type* ret)
+                           FunctionArgLists *arg_list, std::string &&name,
+                           Type *ret)
     : ASTBase({arg_list}), m_statements(statements), m_arg_list(arg_list),
       m_name(name), m_return_type(ret) {
   // making sure that arg_list is always the first in the syntax tree!
-  for(ASTBase* statement: statements){
-      addChildren(statement);
+  for (ASTBase *statement : statements) {
+    addChildren(statement);
   }
 }
 
@@ -210,7 +211,7 @@ IfStatement::IfStatement(ASTBase *cond, std::vector<ASTBase *> &&expressions)
 void IfStatement::dump() {}
 
 DeclarationStatement::DeclarationStatement(const std::string &name,
-                                           ASTBase *base, Type* type)
+                                           ASTBase *base, Type *type)
     : ASTBase({base}), m_expression(base), m_name(name), m_type(type) {}
 
 void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
@@ -224,6 +225,21 @@ WhileStatement::WhileStatement(ASTBase *cond,
 }
 
 void WhileStatement::dump() { return; }
+
+MemberAccessExpression::MemberAccessExpression(
+    const std::vector<std::string> &members)
+    : ASTBase({}), m_member_accesses(members) {
+  assert(m_member_accesses.size() > 1 &&
+         "must be true for member access. If it is one, what member are we "
+         "accessing?");
+}
+
+void MemberAccessExpression::dump() {
+  std::cout << "members: ";
+  for (std::string &member : m_member_accesses) {
+    std::cout << member << ", ";
+  }
+}
 
 // ======================================================
 // ====================== CODE GEN ======================
@@ -319,7 +335,7 @@ llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
   // FIXME: it seems that we need to encode more type
   // information
   llvm::Value *loc_value =
-      holder->symbol_table.lookupLocalVariable(this, m_name);
+      holder->symbol_table.lookupLocalVariable(this, m_name).value;
   llvm::Value *value = holder->builder.CreateLoad(
       llvm::Type::getInt32Ty(holder->context), loc_value);
 
@@ -333,15 +349,16 @@ llvm::Value *FunctionArgLists::codegen(ContextHolder holder) {
   int count = 0;
   llvm::Function *llvm_function = func->getLLVMFunction();
   for (llvm::Argument &arg : llvm_function->args()) {
-    const std::string &name = m_args[count++].name;
+    const std::string &name = m_args[count].name;
     arg.setName(name);
 
     // allocating one integer
-    llvm::Value *alloc_loc =
-        holder->builder.CreateAlloca(arg.getType());
+    llvm::Value *alloc_loc = holder->builder.CreateAlloca(arg.getType());
     holder->builder.CreateStore(&arg, alloc_loc);
 
-    holder->symbol_table.addLocalVariable(this, name, alloc_loc);
+    holder->symbol_table.addLocalVariable(this, name, m_args[count].type,
+                                          alloc_loc);
+    ++count;
   }
 
   return nullptr;
@@ -351,7 +368,7 @@ llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
   llvm::Value *expression_val = m_expression->codegen(holder);
   assert(expression_val && "must yield a non negative result");
   llvm::Value *alloc_loc =
-      holder->symbol_table.lookupLocalVariable(this, m_name);
+      holder->symbol_table.lookupLocalVariable(this, m_name).value;
 
   holder->builder.CreateStore(expression_val, alloc_loc);
 
@@ -459,7 +476,7 @@ llvm::Value *DeclarationStatement::codegen(ContextHolder holder) {
   FunctionDecl *func = getFirstFunctionDecl();
   llvm::Value *alloc_loc =
       holder->builder.CreateAlloca(m_type->getType(holder));
-  holder->symbol_table.addLocalVariable(this, m_name, alloc_loc);
+  holder->symbol_table.addLocalVariable(this, m_name, m_type, alloc_loc);
 
   llvm::Value *exp = m_expression->codegen(holder);
   llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
@@ -497,4 +514,38 @@ llvm::Value *WhileStatement::codegen(ContextHolder holder) {
   holder->builder.SetInsertPoint(fallthrough);
 
   return nullptr;
+}
+
+llvm::Value *MemberAccessExpression::codegen(ContextHolder holder) {
+  assert(m_member_accesses.size() > 1 &&
+         "member access must be greater than one because we need to have "
+         "multiple identifiers");
+  std::string &name = m_member_accesses[0];
+  CGTypeInfo base = holder->symbol_table.lookupLocalVariable(this, name);
+  StructType *underlying_type = dyncast<StructType>(base.type);
+  Type *final_type = nullptr;
+
+  std::vector<llvm::Value *> array_access_count{
+      llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), 0)};
+  for (int i = 1; i < m_member_accesses.size(); ++i) {
+    assert(underlying_type && "are you sure you can access this member?");
+    if (auto current_element =
+            underlying_type->getElement(m_member_accesses[i])) {
+
+      llvm::Value *index = llvm::ConstantInt::get(
+          llvm::Type::getInt32Ty(holder->context), current_element->field_num);
+      array_access_count.push_back(index);
+
+      final_type = current_element->type;
+      underlying_type = dyncast<StructType>(current_element->type);
+    } else {
+      assert(false && "cannot find such element in array!");
+    }
+  }
+
+  llvm::Value *computed_address = holder->builder.CreateGEP(
+      base.type->getType(holder), base.value, array_access_count);
+  llvm::Value *loaded_address =
+      holder->builder.CreateLoad(final_type->getType(holder), computed_address);
+  return loaded_address;
 }

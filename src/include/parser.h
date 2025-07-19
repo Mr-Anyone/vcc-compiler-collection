@@ -42,6 +42,7 @@ private:
   ASTBase *buildBinaryExpression(int min_precedence);
   ASTBase *buildTrivialExpression();
   ASTBase *buildCallExpr();
+  ASTBase *buildMemberAccessExpression();
 
   inline ASTBase *logError(const char *message);
 

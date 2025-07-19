@@ -17,7 +17,7 @@ llvm::Function *SymbolTable::lookupFunction(const std::string &name) {
   return m_function_table[name];
 }
 
-llvm::Value *TrieTree::lookup(ASTBase *at, std::string name) const {
+CGTypeInfo TrieTree::lookup(ASTBase *at, std::string name) const {
   std::vector<ASTBase *> trie_order;
   getTrieOrder(at, trie_order);
 
@@ -43,7 +43,7 @@ llvm::Value *TrieTree::lookup(ASTBase *at, std::string name) const {
   }
 
   assert(false && "failed name lookup. undefined reference?");
-  return nullptr;
+  return {nullptr, nullptr};
 }
 
 TrieTree::TrieTree::TrieNode::TrieNode(ASTBase *decl)
@@ -56,7 +56,7 @@ TrieTree::TrieTree(FunctionDecl *decl)
 
 TrieTree::TrieTree() : head(nullptr) {}
 
-void TrieTree::insert(ASTBase *pos, std::string name, llvm::Value *value) {
+void TrieTree::insert(ASTBase *pos, std::string name, Type* type, llvm::Value *value) {
   std::vector<ASTBase *> trie_insert_order;
   getTrieOrder(pos, trie_insert_order);
 
@@ -77,7 +77,7 @@ void TrieTree::insert(ASTBase *pos, std::string name, llvm::Value *value) {
   assert(traverse_trie->scope_def == pos->getScopeDeclLoc() 
           && "we must be at the location of scope def when we are inserting");
   assert(!traverse_trie->decls.contains(name) && "duplicate definition?");
-  traverse_trie->decls[name] = value;
+  traverse_trie->decls[name] = {value, type};
 }
 
 void TrieTree::getTrieOrder(ASTBase *start,
@@ -93,7 +93,7 @@ void TrieTree::getTrieOrder(ASTBase *start,
 }
 
 void SymbolTable::addLocalVariable(ASTBase *loc, std::string name,
-                                   llvm::Value *value) {
+                                   Type *type, llvm::Value* value) {
   // Create a trie it does not exist
   if (!m_local_variable_table.contains(loc->getFirstFunctionDecl()->getName())) {
     TrieTree lookup_table(loc->getFirstFunctionDecl());
@@ -102,10 +102,10 @@ void SymbolTable::addLocalVariable(ASTBase *loc, std::string name,
   }
 
   m_local_variable_table[loc->getFirstFunctionDecl()->getName()].insert(
-      loc, name, value);
+      loc, name, type, value);
 }
 
-llvm::Value *SymbolTable::lookupLocalVariable(ASTBase *at, std::string name) {
+CGTypeInfo SymbolTable::lookupLocalVariable(ASTBase *at, std::string name) {
   std::string function_name = at->getFirstFunctionDecl()->getName();
   const TrieTree &trie = m_local_variable_table[function_name];
   return trie.lookup(at, name);

@@ -64,6 +64,7 @@ void Parser::addStructDefinition(){
 
     // parsing the struct
     std::vector<StructType::Element> elements; 
+    int element_count  =  0;
     while(Type* current = buildTypeQualification()){
         if(m_tokenizer.getCurrentType() != lex::Identifier){
             logError("expected identifier");
@@ -72,12 +73,14 @@ void Parser::addStructDefinition(){
 
         // FIXME: we need to check that there are no duplicated name
         std::string name = m_tokenizer.current().getStringLiteral();
-        elements.push_back({name, current});
+        elements.push_back({element_count, name, current});
         if(m_tokenizer.getNextType() != lex::Comma){
             logError("expected ,");
             return;
         }
         m_tokenizer.consume();
+
+        ++element_count;
     }
 
     if(m_tokenizer.getCurrentType() != lex::RightBrace){
@@ -378,8 +381,31 @@ ASTBase *Parser::buildBinaryExpression(int min_precendence) {
   return result;
 }
 
+ASTBase* Parser::buildMemberAccessExpression(){
+    if(m_tokenizer.getCurrentType() != lex::Identifier){
+        return logError("expected identifier");
+    }
+
+    std::vector<std::string> identifiers; 
+    while(m_tokenizer.getCurrentType() == lex::Identifier 
+            && m_tokenizer.peek().getType() == lex::Fullstop){
+        identifiers.push_back(m_tokenizer.current().getStringLiteral());
+
+        // we have already checked for bot full stop as well from the while statement 
+        // from above
+        m_tokenizer.consume();
+        m_tokenizer.consume();
+    }
+
+    identifiers.push_back(m_tokenizer.current().getStringLiteral());
+    m_tokenizer.consume(); // consumes the final token
+
+    return new MemberAccessExpression (identifiers);
+
+}
+
 // trivial_expression :== <identifier> | <call_expression> |
-//                             '(', <expression>, ')' | <integer_literal>
+//                             '(', <expression>, ')' | <integer_literal>  | <member_access_expression>
 ASTBase *Parser::buildTrivialExpression() {
   // FIXME: add call expression
   // <integer_literal>
@@ -395,6 +421,8 @@ ASTBase *Parser::buildTrivialExpression() {
     // <identifier>  + '(' means call expr
     if (m_tokenizer.peek().getType() == lex::LeftParentheses)
       return buildCallExpr();
+    if(m_tokenizer.peek().getType() == lex::Fullstop)
+        return buildMemberAccessExpression();
 
     ASTBase *value =
         new IdentifierExpr(m_tokenizer.current().getStringLiteral());

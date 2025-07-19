@@ -6,6 +6,13 @@
 
 class FunctionDecl;
 class ASTBase;
+class Type;
+
+// Each TrieTrie insert and stores the following
+struct CGTypeInfo{
+    llvm::Value* value;  // the allocated location on the stack
+    Type* type;
+};
 
 /// There is only one TrieTree for every
 /// FunctionDecl
@@ -26,35 +33,38 @@ class ASTBase;
 ////      |-- If statement (symbols c)
 class TrieTree {
 public:
-    TrieTree();
-  TrieTree(FunctionDecl* decl);
+
+  TrieTree();
+  TrieTree(FunctionDecl *decl);
 
   /// insert a name with code gen value at a position pos
-  void insert(ASTBase *pos, std::string name, llvm::Value *value = nullptr);
+  void insert(ASTBase *pos, std::string name, Type* type, llvm::Value *value);
 
   /// looking up a variable name named name at pos
-  llvm::Value *lookup(ASTBase* pos, std::string name) const;
+  CGTypeInfo lookup(ASTBase *pos, std::string name) const;
 
 private:
-  /// Given an empty array, put something like {FunctionDecl, IfStatement, WhileStatement} 
-  /// into trie_order
-  void getTrieOrder(ASTBase* start, std::vector<ASTBase*>& trie_order) const;
+  /// Given an empty array, put something like {FunctionDecl, IfStatement,
+  /// WhileStatement} into trie_order
+  void getTrieOrder(ASTBase *start, std::vector<ASTBase *> &trie_order) const;
 
   struct TrieNode {
-      // FIXME: maybe adding a static method for heap allocation is a good idea?
-      // so then we can make this private
-      TrieNode(ASTBase* scope_decl);
+    // FIXME: maybe adding a static method for heap allocation is a good idea?
+    // so then we can make this private
+    TrieNode(ASTBase *scope_decl);
 
-      void dump();
+    void dump();
     // name to value
     ASTBase *scope_def; // must either be a scope specifier
-    std::unordered_map<std::string, llvm::Value *> decls; // data that is being stored
-    std::unordered_map<ASTBase*, std::shared_ptr<TrieNode>> child; // child[inner scope] = next;
+    std::unordered_map<std::string, CGTypeInfo>
+        decls; // data that is being stored
+    std::unordered_map<ASTBase *, std::shared_ptr<TrieNode>>
+        child; // child[inner scope] = next;
   };
   using node_t = std::shared_ptr<TrieNode>;
 
-  // The head of the TrieTree is not like a conventional. This  
-  // is always the function decl 
+  // The head of the TrieTree is not like a conventional. This
+  // is always the function decl
   node_t head;
 };
 
@@ -66,12 +76,12 @@ public:
   void addFunction(FunctionDecl *function_decl);
   llvm::Function *lookupFunction(const std::string &name);
 
-  /// Adding a name named name at loc with value value 
-  void addLocalVariable(ASTBase *loc, std::string name,
+  /// Adding a name named name at loc with value value
+  void addLocalVariable(ASTBase *loc, std::string name, Type *type,
                         llvm::Value *value);
   // FIXME: it may be better to just return a struct that contains a bit
   // more type information
-  llvm::Value *lookupLocalVariable(ASTBase *at, std::string name);
+  CGTypeInfo lookupLocalVariable(ASTBase *at, std::string name);
 
 private:
   std::unordered_map<std::string, TrieTree>

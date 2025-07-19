@@ -3,11 +3,8 @@
 
 #include "context.h"
 #include <llvm/IR/Type.h>
+#include <optional>
 #include <memory.h> 
-
-
-class Type;
-using type_ptr_t = std::shared_ptr<Type>;
 
 // FIXME: A lot of the time Type is immutable 
 // Therefore maybe we could just return a pointer 
@@ -34,17 +31,22 @@ public:
 private:
   Builtin m_builtin;
   int m_bits_size; 
+  llvm::Type* m_llvm_type = nullptr;
 };
 
 
 class StructType : public Type {
 public:
   struct Element{
+    // FIXME: this can be deduced from array index. Why do we need this?
+    int field_num;
     std::string name;
     Type* type;
   };
   StructType(const std::vector<Element>& elements, const std::string& name);
   virtual llvm::Type *getType(ContextHolder holder) override;
+
+  std::optional<Element> getElement(const std::string& name);
 private:
   std::vector<Element> m_elements;
   std::string m_name; 

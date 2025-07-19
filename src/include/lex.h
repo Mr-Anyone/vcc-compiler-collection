@@ -27,6 +27,7 @@ enum TokenType {
   RightBracket,     // ]
   Comma,            // ,
   FunctionDecl,     // 'function'
+  Fullstop,     // .
   Gives,
   SemiColon, //;
   Equal,     // =
@@ -140,6 +141,7 @@ class Tokenizer {
             {"gives", Gives},
             {";", SemiColon},
             {"=", Equal},
+            {".", Fullstop},
             {"ret", Ret},
             {"+", Add},
             {"-", Subtract},

@@ -34,11 +34,21 @@ struct complex{
     int b,
 }
 
-function things_here gives int[
-    int a, 
+struct inner{
+    int a,
     int b,
-    struct complex c,
-]{
-    ret a + b;
 }
 
+struct outer{
+    int a,
+    int b,
+    struct inner c,
+}
+
+function test_struct gives int[
+    int a,
+    int b,
+    struct outer c,
+]{
+    ret a + b + c.c.b;
+}

@@ -16,7 +16,12 @@ TEST(Type, BasicTest){
     // struct Outer{
     //     int a, int b, int c,
     // }
-    StructType outer ({{"a", &a}, {"b", &b}, {"c", &c}}, "asfdas"); 
+    StructType outer ({{0, "a", &a}, {1, "b", &b}, {2, "c", &c}}, "asfdas"); 
     llvm::Type* interger = llvm::Type::getInt32Ty(holder->context);
-    EXPECT_EQ(outer.getType(holder)->getStructName(), "asfdas");
+    // the struct name for codegen has a struct prefix
+    EXPECT_EQ(outer.getType(holder)->getStructName(), "struct.asfdas");
+    EXPECT_EQ(outer.getElement("c").value().name, "c");
+    EXPECT_EQ(outer.getElement("c").value().field_num, 2);
+    EXPECT_EQ(outer.getElement("c").value().type->getType(holder), 
+            llvm::Type::getInt32Ty(holder->context));
 }

@@ -4,7 +4,7 @@
 - [X] Trie like Symbol Table
 - [X] Implicit casting for integer
 - [X] Better error handling and printing
-- [ ] Add support for aggregate type
+- [X] Add support for aggregate type
 - [ ] The C FFI problem with SDL
 - [ ] Semantics analysis
 - [ ] String Type  
@@ -64,7 +64,9 @@ binary_expression :== <trivial_expression> |
                             <trivial_expression>, <bin_op>, <binary_expression>
 
 trivial_expression :== <identifier> | <call_expression> |
-                            '(', <expression>, ')' | <integer_literal>
+                            '(', <expression>, ')' | <integer_literal> | <member_access_expression>
+
+member_access_expression :== <identifier> | <identifier>, '.', <member_access_expression>
 
 call_expressions :== <identifier>, '(', {<expression> ',' }+,  ')'
 
@@ -88,4 +90,9 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 
 # Design Decision
 
-1. ASTBase must be immutable. Once created, it must not be changed. It will case bugs otherwise.
+1. ASTBase must be immutable. Once created, it must not be changed. It will cause bugs otherwise.
+
+## Known Problems 
+
+1. Signed and unsigned integer comparison.
+
