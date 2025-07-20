@@ -20,7 +20,7 @@ const std::vector<ASTBase*>& Parser::getSyntaxTree(){ return m_function_decls; }
 
 // type_qualification :== 'int' {'*'} | 'struct', <identifier> |
 //                     'array', '(', <integer_literal>, ')', <type_qualification>
-
+//                     'ptr', <type_qualification>
 Type* Parser::buildTypeQualification(){
     // we have an array type
     // 'array', '(', <integer_literal>, ')', <type_qualification>
@@ -46,6 +46,13 @@ Type* Parser::buildTypeQualification(){
 
         Type* base = buildTypeQualification();
         return new ArrayType(base, count);
+    }
+
+    // 'ptr', <type_qualification>
+    if(m_tokenizer.getCurrentType() == lex::Ptr){
+        m_tokenizer.consume();
+        Type* pointee = buildTypeQualification();
+        return new PointerType(pointee);
     }
 
     // we have builtin

@@ -77,3 +77,10 @@ gives int[
 ]{
     ret 10;
 }
+
+function some_test_t 
+gives int [
+    ptr int a, 
+]{
+    ret a;
+}

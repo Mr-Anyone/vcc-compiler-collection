@@ -42,6 +42,7 @@ enum TokenType {
   Int, // int
   Struct,    // struct
   Array,    // array
+  Ptr,    // ptr
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start
@@ -141,6 +142,7 @@ class Tokenizer {
             {"int", Int},
             {"array", Array},
             {"gives", Gives},
+            {"ptr", Ptr},
             {";", SemiColon},
             {"=", Equal},
             {".", Fullstop},

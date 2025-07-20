@@ -7,7 +7,7 @@
 - [X] Add support for aggregate type
 - [X] Parse command line
 - [X] Array Type
-- [ ] Pointer Type
+- [X] Pointer Type
 - [ ] The C FFI problem with SDL
 - [ ] Semantics analysis
 - [ ] String Type  
@@ -57,8 +57,9 @@ assignment_statement :== <identifier>, '=', <expression>, ';'
 
 return_statement :== 'ret', <expression> ';'
 
-type_qualification :== 'int' {'*'} | 'struct', <identifier> |
-                    'array', '(', <integer_literal>, ')', <type_qualification>
+type_qualification :== 'int' | 'struct', <identifier> |
+                    'array', '(', <integer_literal>, ')', <type_qualification> |
+                    'ptr', <type_qualification>
 
 struct_definition :== 'struct', <identifier> ,'{'
                         , {<type_qualification> <identifier>}+, '}'
