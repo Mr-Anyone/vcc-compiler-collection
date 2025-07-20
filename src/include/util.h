@@ -36,7 +36,7 @@ inline std::string getASTClassName(ASTBase *node) {
       abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status), std::free);
 
   return (status == 0 && demangled) ? demangled.get() : ti.name();
-}
+};
 
 template<typename T, typename U> 
 bool isa(U a){

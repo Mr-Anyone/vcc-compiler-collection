@@ -18,8 +18,37 @@ void Parser::start(){
 
 const std::vector<ASTBase*>& Parser::getSyntaxTree(){ return m_function_decls; }
 
-// type_qualification :== 'int', '*' | 'struct', <identifier>
+// type_qualification :== 'int' {'*'} | 'struct', <identifier> |
+//                     'array', '(', <integer_literal>, ')', <type_qualification>
+
 Type* Parser::buildTypeQualification(){
+    // we have an array type
+    // 'array', '(', <integer_literal>, ')', <type_qualification>
+    if(m_tokenizer.getCurrentType() == lex::Array){
+        if(m_tokenizer.getNextType() != lex::LeftParentheses){
+            logError("expectex (");
+            return nullptr;
+        }
+        m_tokenizer.consume();
+
+        if(m_tokenizer.getCurrentType() != lex::IntegerLiteral){
+            logError("expected integer");
+            return nullptr;
+        }
+        int count = m_tokenizer.current().getIntegerLiteral();
+        m_tokenizer.consume();
+
+        if(m_tokenizer.getCurrentType() != lex::RightParentheses){
+            logError("expected )");
+            return nullptr; 
+        }
+        m_tokenizer.consume();
+
+        Type* base = buildTypeQualification();
+        return new ArrayType(base, count);
+    }
+
+    // we have builtin
     if(m_tokenizer.getCurrentType() == lex::Int){
         m_tokenizer.consume();
         if(m_tokenizer.peek().getType() == lex::Multiply){
@@ -30,6 +59,7 @@ Type* Parser::buildTypeQualification(){
         return new BuiltinType(BuiltinType::Int);
     }
 
+    // we have a structure
     if(m_tokenizer.getCurrentType() == lex::Struct){
         m_tokenizer.consume();
         if(m_tokenizer.getCurrentType() != lex::Identifier){

@@ -41,6 +41,7 @@ enum TokenType {
   TypeQualificationStart,
   Int, // int
   Struct,    // struct
+  Array,    // array
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start
@@ -138,6 +139,7 @@ class Tokenizer {
             // binary stuff
 
             {"int", Int},
+            {"array", Array},
             {"gives", Gives},
             {";", SemiColon},
             {"=", Equal},

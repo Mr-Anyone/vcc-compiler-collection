@@ -1,4 +1,5 @@
 #include "ast.h"
+#include "type.h"
 #include "util.h"
 
 #include <cassert>

@@ -70,11 +70,10 @@ gives int[
     ret a + b + c + d;
 }
 
-function pointer_type_test gives int [
-    int * a, 
-    int * b,
+function test_array_parameter 
+gives int[
+    array (10) struct some_placeholder a, 
+    array (10) array (20) int b,
 ]{
-    int* c;
-    ret 1;
+    ret 10;
 }
-

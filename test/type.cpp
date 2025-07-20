@@ -35,4 +35,19 @@ TEST(Type, BasicTest) {
   EXPECT_EQ(pointer_to_a.getPointee(), &a);
   EXPECT_EQ(pointer_to_a.getType(holder),
             llvm::Type::getInt32PtrTy(holder->context));
+
+  // array (10) array (20) int
+  ArrayType base(&a, 20);
+  ArrayType array(&base, 10);
+  EXPECT_TRUE(base.isArray());
+  EXPECT_FALSE(array.isStruct());
+  EXPECT_FALSE(array.isBuiltin());
+  EXPECT_FALSE(array.isPointer());
+  EXPECT_TRUE(array.getBase()->isArray());
+  EXPECT_TRUE(array.getBase()->getAs<ArrayType>()->getBase()->isBuiltin());
+  EXPECT_EQ(
+      array.getType(holder),
+      llvm::ArrayType::get(
+          llvm::ArrayType::get(llvm::Type::getInt32Ty(holder->context), 20),
+          10));
 }

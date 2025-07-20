@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include <llvm/IR/Type.h>
 #include <string>
 #include <vector>
 
@@ -10,7 +11,9 @@
 
 #include "context.h"
 #include "lex.h"
-#include "type.h"
+
+// defined in type.h
+struct TypeInfo;
 
 class FunctionDecl;
 
@@ -43,11 +46,6 @@ private:
   std::set<ASTBase *> m_childrens;
 };
 
-// FIXME: remove me
-struct TypeInfo {
-  Type *type;
-  std::string name;
-};
 
 //============================== Miscellaneous ==============================
 class FunctionArgLists : public ASTBase {
@@ -235,5 +233,6 @@ public:
 private:
   std::vector<std::string> m_member_accesses;
 };
+
 
 #endif

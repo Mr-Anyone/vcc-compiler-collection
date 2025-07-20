@@ -13,6 +13,10 @@ bool Type::isPointer() const {
   return dynamic_cast<const PointerType *>(this) != nullptr;
 }
 
+bool Type::isArray() const {
+  return dynamic_cast<const ArrayType *>(this) != nullptr;
+}
+
 llvm::Type *Type::getType(ContextHolder holder) {
   assert(false && "please implement getType");
   return nullptr;
@@ -84,5 +88,23 @@ PointerType::PointerType(Type *pointee) : m_pointee(pointee) {}
 Type *PointerType::getPointee() { return m_pointee; }
 
 llvm::Type *PointerType::getType(ContextHolder holder) {
-    return llvm::PointerType::get(m_pointee->getType(holder), /*AddressSpace=*/0);
+  return llvm::PointerType::get(m_pointee->getType(holder), /*AddressSpace=*/0);
 }
+
+ArrayType::ArrayType(Type *base, int count) : m_count(count), m_base(base) {}
+
+Type* ArrayType::getBase(){
+    return m_base;
+}
+
+int ArrayType::getCount(){
+    return m_count;
+}
+
+llvm::Type* ArrayType::getType(ContextHolder holder){
+    if(m_llvm_type)
+        return m_llvm_type;
+
+    return llvm::ArrayType::get(m_base->getType(holder), m_count);
+}
+

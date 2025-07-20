@@ -6,6 +6,8 @@
 #include <memory.h>
 #include <optional>
 
+#include "util.h"
+
 // FIXME: A lot of the time Type is immutable
 // Therefore maybe we could just return a pointer
 // by heap allocating once and save a lot of save.
@@ -13,6 +15,8 @@
 class Type {
 public:
   virtual llvm::Type *getType(ContextHolder holder);
+
+  template <typename T> T *getAs() { return dyncast<T>(this); }
 
   bool isStruct() const;
   bool isBuiltin() const;
@@ -22,17 +26,20 @@ public:
 private:
 };
 
-class ArrayType: public Type{
-public: 
-    // Creating an array of base*, with these amount of count
-    ArrayType(Type* base, int count);
+class ArrayType : public Type {
+public:
+  // Creating an array of base*, with these amount of count
+  ArrayType(Type *base, int count);
 
-    Type* getBase();
-    int getCount();
+  Type *getBase();
+  int getCount();
+
+  virtual llvm::Type *getType(ContextHolder holder) override;
 
 private:
-    int m_count; 
-    Type* m_base;
+  llvm::Type* m_llvm_type = nullptr;
+  int m_count;
+  Type *m_base;
 };
 
 class PointerType : public Type {
@@ -78,6 +85,14 @@ private:
   std::vector<Element> m_elements;
   std::string m_name;
   llvm::StructType *m_llvm_type = nullptr;
+};
+
+/// FIXME: it seems that we need to better organize
+/// header files in the future!
+/// used by ast.h implementation
+struct TypeInfo {
+  Type *type;
+  std::string name;
 };
 
 #endif
