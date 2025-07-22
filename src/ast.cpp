@@ -56,7 +56,7 @@ void ASTBase::setParent(ASTBase *parent) {
   m_parent->m_childrens.insert(this);
 }
 
-ASTBase *ASTBase::getParent() const { return m_parent; }
+const ASTBase *ASTBase::getParent() const { return m_parent; }
 
 void ASTBase::dump() { return; }
 
@@ -172,8 +172,8 @@ void IdentifierExpr::dump() { std::cout << "identifier: " << m_name; }
 
 void ConstantExpr::dump() { std::cout << m_value; }
 
-ASTBase *ASTBase::getScopeDeclLoc() const {
-  ASTBase *parent = getParent();
+const ASTBase *ASTBase::getScopeDeclLoc() const {
+  const ASTBase *parent = getParent();
   while (parent && !doesDefineScope(parent)) {
     parent = parent->getParent();
   }
@@ -181,15 +181,15 @@ ASTBase *ASTBase::getScopeDeclLoc() const {
   return parent;
 }
 
-bool ASTBase::doesDefineScope(ASTBase *at) {
-  return isa<FunctionDecl>(at) || isa<IfStatement>(at) ||
-         isa<WhileStatement>(at);
+bool ASTBase::doesDefineScope(const ASTBase *at) {
+  return isa<const FunctionDecl>(at) || isa<const IfStatement>(at) ||
+         isa<const WhileStatement>(at);
 }
 
-FunctionDecl *ASTBase::getFirstFunctionDecl() {
-  for (ASTBase *current = this; current; current = current->getParent()) {
-    FunctionDecl *decl = nullptr;
-    if ((decl = dynamic_cast<FunctionDecl *>(current)))
+const FunctionDecl *ASTBase::getFirstFunctionDecl() const {
+  for (const ASTBase *current = this; current; current = current->getParent()) {
+    const FunctionDecl *decl = nullptr;
+    if ((decl = dynamic_cast<const FunctionDecl *>(current)))
       return decl;
   }
 
@@ -232,19 +232,146 @@ WhileStatement::WhileStatement(ASTBase *cond,
 
 void WhileStatement::dump() { return; }
 
-MemberAccessExpression::MemberAccessExpression(
-    const std::vector<std::string> &members)
-    : ASTBase({}), m_member_accesses(members) {
-  assert(m_member_accesses.size() > 1 &&
-         "must be true for member access. If it is one, what member are we "
-         "accessing?");
+MemberAccessExpression::MemberAccessExpression(const std::string &name,
+                                               const std::string &member,
+                                               bool compute_ref)
+    : m_base_name(name), m_member(member), m_compute_ref(compute_ref),
+      RefYieldExpression({}) {}
+
+MemberAccessExpression::MemberAccessExpression(RefYieldExpression *parent,
+                                               const std::string &member,
+                                               bool compute_ref)
+    : m_member(member), RefYieldExpression({}), m_parent(parent),
+      m_compute_ref(compute_ref) {
+  parent->addChildren(this);
 }
 
 void MemberAccessExpression::dump() {
-  std::cout << "members: ";
-  for (std::string &member : m_member_accesses) {
-    std::cout << member << ", ";
+  std::cout << "." << m_member << " is_ref: " << m_compute_ref
+            << " child: " << m_child_posfix_expression << " this: " << this;
+}
+
+ArrayAccessExpresion::ArrayAccessExpresion(const std::string &name,
+                                           ASTBase *expression,
+                                           bool compute_ref)
+    : RefYieldExpression({expression}), m_has_base_name(true),
+      m_index_expression(expression), m_base_name(name),
+      m_compute_ref(compute_ref) {}
+
+ArrayAccessExpresion::ArrayAccessExpresion(RefYieldExpression *parent,
+                                           ASTBase *index_expression,
+                                           bool compute_ref)
+    : RefYieldExpression({index_expression}),
+      m_index_expression(index_expression), m_parent_expression(parent),
+      m_compute_ref(compute_ref) {
+  parent->addChildren(this);
+}
+
+void ArrayAccessExpresion::dump() {
+
+  std::cout << "[]"
+            << " is_ref: " << (m_compute_ref)
+            << " child*: " << m_child_posfix_expression << " this: " << this;
+}
+
+RefYieldExpression::RefYieldExpression(const std::vector<ASTBase *> &childrens)
+    : ASTBase({childrens}) {}
+
+Type *ArrayAccessExpresion::getType(ContextHolder holder) {
+  // FIXME: this is a jank hack
+  if (!m_parent_expression)
+    return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
+
+  // trying to get type from parent expression!
+  if (ArrayAccessExpresion *parent =
+          dyncast<ArrayAccessExpresion>(m_parent_expression)) {
+    return parent->getChildType(holder);
   }
+
+  assert(isa<MemberAccessExpression>(m_parent_expression) &&
+         "must be member expresion beacuse we have no options left!");
+  MemberAccessExpression *parent =
+      dyncast<MemberAccessExpression>(m_parent_expression);
+  return parent->getChildType(holder);
+}
+
+Type *ArrayAccessExpresion::getChildType(ContextHolder holder) {
+  Type *current_type = getType(holder);
+  assert(current_type->isArray() &&
+         "array access expression must have array type!");
+
+  return current_type->getAs<ArrayType>()->getBase();
+}
+
+Type *MemberAccessExpression::getType(ContextHolder holder) {
+  if (!m_parent)
+    return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
+
+  // FIXME: this shares a lot same code with ArrayAccessExpression::getType,
+  // maybe we should have a standard interface that solves this entirely?
+  if (ArrayAccessExpresion *parent = dyncast<ArrayAccessExpresion>(m_parent)) {
+    return parent->getChildType(holder);
+  }
+  assert(isa<MemberAccessExpression>(m_parent));
+  MemberAccessExpression *parent = dyncast<MemberAccessExpression>(m_parent);
+  return parent->getChildType(holder);
+}
+
+Type *MemberAccessExpression::getChildType(ContextHolder holder) {
+  return getType(holder)
+      ->getAs<StructType>()
+      ->getElement(m_member)
+      .value()
+      .type;
+}
+
+void ArrayAccessExpresion::setChildPosfixExpression(RefYieldExpression *child) {
+  m_child_posfix_expression = child;
+}
+
+void MemberAccessExpression::setChildPosfixExpression(
+    RefYieldExpression *child) {
+  m_child_posfix_expression = child;
+}
+
+llvm::Value *RefYieldExpression::getRef(ContextHolder holder) {
+  assert(false && "please implement this!'");
+}
+
+llvm::Value *MemberAccessExpression::getRef(ContextHolder holder) {
+  llvm::Value *start_of_pointer =
+      (m_parent == nullptr)
+          ? holder->symbol_table.lookupLocalVariable(this, m_base_name).value
+          : m_parent->getRef(holder);
+
+  // getting the actual field number
+  Type *current_type = getType(holder);
+  int field_num =
+      current_type->getAs<StructType>()->getElement(m_member)->field_num;
+  llvm::Value *zero =
+      llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), 0);
+  llvm::Value *offset = llvm::ConstantInt::get(
+      llvm::Type::getInt32Ty(holder->context), field_num);
+
+  return holder->builder.CreateGEP(current_type->getType(holder),
+                                   start_of_pointer, {zero, offset});
+}
+
+llvm::Value *ArrayAccessExpresion::getRef(ContextHolder holder) {
+  // if we don't have a parent, then we can get the
+  // location from a symbol table lookup! It means we
+  // are at the most top level! Or else we get the location from parent's getRef
+  llvm::Value *start_of_pointer =
+      (m_parent_expression == nullptr)
+          ? holder->symbol_table.lookupLocalVariable(this, m_base_name).value
+          : m_parent_expression->getRef(holder);
+
+  llvm::Type *llvm_type = getType(holder)->getType(holder);
+  llvm::ConstantInt *zero =
+      llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), 0);
+  llvm::Value *offset = m_index_expression->codegen(holder);
+
+  return holder->builder.CreateGEP(llvm_type, start_of_pointer, {zero, offset});
 }
 
 // ======================================================
@@ -349,7 +476,7 @@ llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
 }
 
 llvm::Value *FunctionArgLists::codegen(ContextHolder holder) {
-  FunctionDecl *func = getFirstFunctionDecl();
+  const FunctionDecl *func = getFirstFunctionDecl();
 
   // appending to symbol table
   int count = 0;
@@ -479,16 +606,16 @@ llvm::Value *IfStatement::codegen(ContextHolder holder) {
 
 llvm::Value *DeclarationStatement::codegen(ContextHolder holder) {
   // initialize the first variable
-  FunctionDecl *func = getFirstFunctionDecl();
+  const FunctionDecl *func = getFirstFunctionDecl();
   llvm::Value *alloc_loc =
       holder->builder.CreateAlloca(m_type->getType(holder));
   holder->symbol_table.addLocalVariable(this, m_name, m_type, alloc_loc);
 
   // if we don't have an initializer, we don't allocate space
-  if(m_expression){
-      llvm::Value *exp = m_expression->codegen(holder);
-      llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
-      return return_val;
+  if (m_expression) {
+    llvm::Value *exp = m_expression->codegen(holder);
+    llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
+    return return_val;
   }
 
   return nullptr;
@@ -528,35 +655,30 @@ llvm::Value *WhileStatement::codegen(ContextHolder holder) {
 }
 
 llvm::Value *MemberAccessExpression::codegen(ContextHolder holder) {
-  assert(m_member_accesses.size() > 1 &&
-         "member access must be greater than one because we need to have "
-         "multiple identifiers");
-  std::string &name = m_member_accesses[0];
-  CGTypeInfo base = holder->symbol_table.lookupLocalVariable(this, name);
-  StructType *underlying_type = dyncast<StructType>(base.type);
-  Type *final_type = nullptr;
+  if (m_child_posfix_expression)
+    return m_child_posfix_expression->codegen(holder);
 
-  std::vector<llvm::Value *> array_access_count{
-      llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), 0)};
-  for (int i = 1; i < m_member_accesses.size(); ++i) {
-    assert(underlying_type && "are you sure you can access this member?");
-    if (auto current_element =
-            underlying_type->getElement(m_member_accesses[i])) {
+  // we are at the base case
+  llvm::Value *ref_loc = getRef(holder);
+  if (m_compute_ref)
+    return ref_loc;
 
-      llvm::Value *index = llvm::ConstantInt::get(
-          llvm::Type::getInt32Ty(holder->context), current_element->field_num);
-      array_access_count.push_back(index);
+  llvm::Type *child_type =
+      getType(holder)->getAs<StructType>()->getElement(m_member)->type->getType(
+          holder);
+  return holder->builder.CreateLoad(child_type, ref_loc);
+}
 
-      final_type = current_element->type;
-      underlying_type = dyncast<StructType>(current_element->type);
-    } else {
-      assert(false && "cannot find such element in array!");
-    }
-  }
+llvm::Value *ArrayAccessExpresion::codegen(ContextHolder holder) {
+  // the leaf would return the result
+  if (m_child_posfix_expression)
+    return m_child_posfix_expression->codegen(holder);
 
-  llvm::Value *computed_address = holder->builder.CreateGEP(
-      base.type->getType(holder), base.value, array_access_count);
-  llvm::Value *loaded_address =
-      holder->builder.CreateLoad(final_type->getType(holder), computed_address);
-  return loaded_address;
+  // we are at the leaf
+  llvm::Value *start_of_pointer = getRef(holder);
+  if (m_compute_ref)
+    return start_of_pointer;
+
+  return holder->builder.CreateLoad(getChildType(holder)->getType(holder),
+                                    start_of_pointer);
 }

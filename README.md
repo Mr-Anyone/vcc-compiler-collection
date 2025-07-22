@@ -70,9 +70,11 @@ binary_expression :== <trivial_expression> |
                             <trivial_expression>, <bin_op>, <binary_expression>
 
 trivial_expression :== <identifier> | <call_expression> |
-                            '(', <expression>, ')' | <integer_literal> | <member_access_expression>
+                            '(', <expression>, ')' | <integer_literal> | <postfix_expression>
 
-member_access_expression :== <identifier> | <identifier>, '.', <member_access_expression>
+postfix_expression :== <identifier> | 
+    <postfix_expression>, '.', <identifier> | 
+    <postfix_expression>, '[', <expression>, ']'
 
 call_expressions :== <identifier>, '(', {<expression> ',' }+,  ')'
 

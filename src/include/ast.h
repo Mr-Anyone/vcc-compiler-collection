@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include <llvm-14/llvm/IR/Attributes.h>
 #include <llvm/IR/Type.h>
 #include <string>
 #include <vector>
@@ -14,7 +15,6 @@
 
 // defined in type.h
 struct TypeInfo;
-
 class FunctionDecl;
 
 class ASTBase {
@@ -25,27 +25,26 @@ public:
   ASTBase(const std::vector<ASTBase *> childrens);
 
   // nullptr on failure
-  FunctionDecl *getFirstFunctionDecl();
+  const FunctionDecl *getFirstFunctionDecl() const;
   // gets the first ASTBase that defines a scope
   // nullptr on failure, get the first ASTBase that represents a scope
-  ASTBase *getScopeDeclLoc() const;
-  static bool doesDefineScope(ASTBase *at);
+  const ASTBase *getScopeDeclLoc() const;
+  static bool doesDefineScope(const ASTBase *at);
 
-  ASTBase *getParent() const;
+  const ASTBase *getParent() const;
+  const std::set<ASTBase *> &getChildren() const;
+  void debugDump(int depth = 1);
+
+protected:
   void setParent(ASTBase *parent);
   void addChildren(ASTBase *children);
   void removeChildren(ASTBase *children);
-  const std::set<ASTBase *> &getChildren() const;
-
-  // depth = 1 is start
-  void debugDump(int depth = 1);
 
 private:
   ASTBase *m_parent;
   std::string m_name;
   std::set<ASTBase *> m_childrens;
 };
-
 
 //============================== Miscellaneous ==============================
 class FunctionArgLists : public ASTBase {
@@ -126,8 +125,8 @@ private:
 
 class DeclarationStatement : public ASTBase {
 public:
-    // if expression is nullptr, it means that we just allocate space 
-    // and don't assign it to the thing
+  // if expression is nullptr, it means that we just allocate space
+  // and don't assign it to the thing
   DeclarationStatement(const std::string &name, ASTBase *expression,
                        Type *type);
   virtual void dump() override;
@@ -223,16 +222,84 @@ private:
   BinaryExpressionType m_kind;
 };
 
-class MemberAccessExpression : public ASTBase {
+// This is a virtual base class to be inherited from 
+// so that Derived::codegen can use getRef from parent 
+// to generate code!
+class RefYieldExpression : public ASTBase {
 public:
-  MemberAccessExpression(const std::vector<std::string>& member_access_order);
+  RefYieldExpression(const std::vector<ASTBase *> &childrens);
+
+  /// The type of the child, null pointer if not found or error
+protected:
+  virtual llvm::Value* getRef(ContextHolder holder);
+
+  friend class MemberAccessExpression;
+  friend class ArrayAccessExpresion;
+};
+
+// FIXME: maybe we should do type deduction here instead!
+// The parser parse enough type so that this won't be a problem
+class MemberAccessExpression : public RefYieldExpression {
+public:
+  MemberAccessExpression(const std::string &name, const std::string &member,
+                         bool compute_ref);
+  // from nested postfix-expression
+  MemberAccessExpression(RefYieldExpression *parent, const std::string &member,
+                         bool compute_ref);
 
   virtual void dump() override;
   virtual llvm::Value *codegen(ContextHolder holder) override;
+  virtual llvm::Value* getRef(ContextHolder holder) override;
+
+  Type *getType(ContextHolder holder);
+  Type *getChildType(ContextHolder holder);
+
+  void setChildPosfixExpression(RefYieldExpression *child);
 
 private:
-  std::vector<std::string> m_member_accesses;
+  ///=== CODEGEN Options ====
+  // This is ignored when PosfixExpression::getRef or PosfixExpression::getValue
+  // is called
+  bool m_compute_ref;
+
+  // either we have a m_base_name for symbol lookup or we must have a parent
+  // expression
+  RefYieldExpression *m_parent = nullptr, *m_child_posfix_expression = nullptr;
+  std::string m_base_name; // only used when m_kind == First
+  std::string m_member;    // the member we are accessing
 };
 
+// FIXME: maybe we should do type deduction here instead!
+class ArrayAccessExpresion : public RefYieldExpression {
+public:
+  ArrayAccessExpresion(const std::string &name, ASTBase *expression,
+                       bool compute_ref);
+  ArrayAccessExpresion(RefYieldExpression *parent, ASTBase *expression,
+                       bool compute_ref);
+
+  virtual void dump() override;
+  virtual llvm::Value *codegen(ContextHolder holder) override;
+  virtual llvm::Value* getRef(ContextHolder holder) override;
+
+  Type *getType(ContextHolder holder);
+  Type *getChildType(ContextHolder holder);
+
+  void setChildPosfixExpression(RefYieldExpression *child);
+
+private:
+  ///=== CODEGEN Options ====
+  // This is ignored when PosfixExpression::getRef or PosfixExpression::getValue
+  // is called
+  bool m_compute_ref,
+      m_has_base_name = false; // FIXME: I don't think we really need this. This
+                               // is only used for to find Type*
+
+  ASTBase *m_index_expression; // the index number
+  // either we have a m_base_name for symbol lookup or we must have a parent
+  // expression
+  std::string m_base_name; //
+  RefYieldExpression *m_parent_expression = nullptr,
+                   *m_child_posfix_expression; // the member we are accessing
+};
 
 #endif

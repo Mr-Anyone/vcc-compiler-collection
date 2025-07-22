@@ -102,6 +102,8 @@ class Tokenizer {
 
         // consume token
         const Token next();
+        const Token next(int n);
+
         // don't consume token
         const Token peek();
         const Token &current();

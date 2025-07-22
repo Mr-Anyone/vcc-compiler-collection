@@ -4,7 +4,7 @@
 
 SymbolTable::SymbolTable() : m_local_variable_table(), m_function_table() {}
 
-void SymbolTable::addFunction(FunctionDecl *function_decl) {
+void SymbolTable::addFunction(const FunctionDecl *function_decl) {
   std::string function_name = function_decl->getName();
   llvm::Function *function = function_decl->getLLVMFunction();
   assert(!m_function_table.contains(function_name));
@@ -17,8 +17,8 @@ llvm::Function *SymbolTable::lookupFunction(const std::string &name) {
   return m_function_table[name];
 }
 
-CGTypeInfo TrieTree::lookup(ASTBase *at, std::string name) const {
-  std::vector<ASTBase *> trie_order;
+CGTypeInfo TrieTree::lookup(const ASTBase *at, std::string name) const {
+  std::vector<const ASTBase *> trie_order;
   getTrieOrder(at, trie_order);
 
   // The trie searching order
@@ -46,24 +46,24 @@ CGTypeInfo TrieTree::lookup(ASTBase *at, std::string name) const {
   return {nullptr, nullptr};
 }
 
-TrieTree::TrieTree::TrieNode::TrieNode(ASTBase *decl)
+TrieTree::TrieTree::TrieNode::TrieNode(const ASTBase *decl)
     : scope_def(decl), decls(), child() {
   assert(ASTBase::doesDefineScope(decl) && "decl must define a scope");
 }
 
-TrieTree::TrieTree(FunctionDecl *decl)
+TrieTree::TrieTree(const FunctionDecl *decl)
     : head(std::make_unique<TrieNode>(decl)) {}
 
 TrieTree::TrieTree() : head(nullptr) {}
 
-void TrieTree::insert(ASTBase *pos, std::string name, Type* type, llvm::Value *value) {
-  std::vector<ASTBase *> trie_insert_order;
+void TrieTree::insert(const ASTBase *pos, std::string name, Type* type, llvm::Value *value) {
+  std::vector<const ASTBase *> trie_insert_order;
   getTrieOrder(pos, trie_insert_order);
 
   // at the end of the iteration, it must be that
   node_t traverse_trie = head;
   for (int i = 1; i < trie_insert_order.size(); ++i) {
-    ASTBase *next_scope = trie_insert_order[i];
+    const ASTBase *next_scope = trie_insert_order[i];
     if (traverse_trie->child.contains(next_scope)) {
       traverse_trie = traverse_trie->child[next_scope];
     } else {
@@ -80,8 +80,8 @@ void TrieTree::insert(ASTBase *pos, std::string name, Type* type, llvm::Value *v
   traverse_trie->decls[name] = {value, type};
 }
 
-void TrieTree::getTrieOrder(ASTBase *start,
-                            std::vector<ASTBase *> &trie_order) const {
+void TrieTree::getTrieOrder(const ASTBase *start,
+                            std::vector<const ASTBase *> &trie_order) const {
   assert(start && "must be true" && trie_order.size() == 0 &&
          "must also be empty");
   start = start->getScopeDeclLoc();

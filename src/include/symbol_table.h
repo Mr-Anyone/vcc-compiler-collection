@@ -35,30 +35,30 @@ class TrieTree {
 public:
 
   TrieTree();
-  TrieTree(FunctionDecl *decl);
+  TrieTree(const FunctionDecl *decl);
 
   /// insert a name with code gen value at a position pos
-  void insert(ASTBase *pos, std::string name, Type* type, llvm::Value *value);
+  void insert(const ASTBase *pos, std::string name, Type* type, llvm::Value *value);
 
   /// looking up a variable name named name at pos
-  CGTypeInfo lookup(ASTBase *pos, std::string name) const;
+  CGTypeInfo lookup(const ASTBase *pos, std::string name) const;
 
 private:
   /// Given an empty array, put something like {FunctionDecl, IfStatement,
   /// WhileStatement} into trie_order
-  void getTrieOrder(ASTBase *start, std::vector<ASTBase *> &trie_order) const;
+  void getTrieOrder(const ASTBase *start, std::vector<const ASTBase *> &trie_order) const;
 
   struct TrieNode {
     // FIXME: maybe adding a static method for heap allocation is a good idea?
     // so then we can make this private
-    TrieNode(ASTBase *scope_decl);
+    TrieNode(const ASTBase *scope_decl);
 
     void dump();
     // name to value
-    ASTBase *scope_def; // must either be a scope specifier
+    const ASTBase *scope_def; // must either be a scope specifier
     std::unordered_map<std::string, CGTypeInfo>
         decls; // data that is being stored
-    std::unordered_map<ASTBase *, std::shared_ptr<TrieNode>>
+    std::unordered_map<const ASTBase *, std::shared_ptr<TrieNode>>
         child; // child[inner scope] = next;
   };
   using node_t = std::shared_ptr<TrieNode>;
@@ -73,7 +73,7 @@ class SymbolTable {
 public:
   SymbolTable();
 
-  void addFunction(FunctionDecl *function_decl);
+  void addFunction(const FunctionDecl *function_decl);
   llvm::Function *lookupFunction(const std::string &name);
 
   /// Adding a name named name at loc with value value

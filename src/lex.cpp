@@ -19,6 +19,19 @@ Tokenizer::Tokenizer(const char *filename) : m_file(filename) {
   m_current_token = readOneToken();
 }
 
+const Token Tokenizer::next(int n){
+    int pos = m_file.tellg();
+
+    assert(n >= 1 && "makes no sense otherwise");
+    Token current = readOneToken();
+    for(int i = 0;i<n-1; ++i){
+        current = readOneToken();
+    }
+
+    m_file.seekg(pos);
+    return current;
+
+}
 static bool is_valid_stoi(const std::string &str) {
   for (char c : str) {
     if (!std::isdigit(c))

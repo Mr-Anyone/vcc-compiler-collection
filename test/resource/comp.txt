@@ -84,3 +84,30 @@ gives int [
 ]{
     ret a;
 }
+struct inner_two{
+    array (100) int get,
+}
+
+struct outer_two{
+    struct inner_two testing,
+}
+
+function test_array_access
+gives int [
+    int c,
+]{
+    array (10) array (130) struct inner_two  b;
+    ret  b[8][123].get[10] + c;
+}
+
+struct most_basic_struct{
+    int a,
+}
+
+function test_struct_two
+gives int[
+    int a,
+]{
+    struct most_basic_struct test; 
+    ret a + test.a;
+}
