@@ -44,10 +44,14 @@ private:
   ASTBase *buildCallExpr();
 
   // FIXME: there can be a lot of cleanup.
-  // In fact this entire thinh could be parsed without recursion
-  RefYieldExpression *buildPosfixExpression(RefYieldExpression *lhs = nullptr);
+  // In fact this entire thing could be parsed without recursion
+  /// lhs - the left hand side of the expression
+  /// is_ref_type - True implies ast yields ref when codegen is called,
+  /// otherwise codegen returns value
+  RefYieldExpression *buildPosfixExpression(RefYieldExpression *lhs = nullptr,
+                                            bool is_ref_type=false);
   RefYieldExpression *
-  buildTailPosfixExpression(RefYieldExpression *lhs); // helper for above
+  buildTailPosfixExpression(RefYieldExpression *lhs, bool is_ref_type); // helper for above
 
   inline ASTBase *logError(const char *message);
 

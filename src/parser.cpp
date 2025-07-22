@@ -16,6 +16,14 @@ void Parser::start() {
   }
 }
 
+/// if the next token is either '.' or '[' we have another posfix expression
+inline static bool isFullstopOrLeftBracket(const Token &next) {
+  if (next.getType() == lex::Fullstop || next.getType() == lex::LeftBracket)
+    return true;
+
+  return false;
+}
+
 const std::vector<ASTBase *> &Parser::getSyntaxTree() {
   return m_function_decls;
 }
@@ -289,14 +297,25 @@ ASTBase *Parser::buildFunctionDecl() {
                           std::move(name), return_type);
 }
 
-// assignment_expression :== <identifier>, '=', <expression>, ';'
+// assignment_statement :== <identifier>, '=', <expression>, ';'
+//      | <posfix_expression> ,'=' <expression>, ';'
 ASTBase *Parser::buildAssignmentStatement() {
   if (m_tokenizer.getCurrentType() != lex::Identifier)
     return nullptr;
 
   assert(m_tokenizer.getCurrentType() == lex::Identifier);
-  std::string name = m_tokenizer.current().getStringLiteral();
-  if (m_tokenizer.getNextType() != lex::Equal)
+  ASTBase *lhs = nullptr;
+  if (isFullstopOrLeftBracket(m_tokenizer.peek())) {
+    // we have the following case
+    //       <posfix_expression> ,'=' <expression>, ';'
+    lhs = buildPosfixExpression(/*lhs*/nullptr, /*is_ref_type*/true);
+  } else {
+    // assignment_statement :== <identifier>, '=', <expression>, ';'
+    lhs = new IdentifierExpr(m_tokenizer.current().getStringLiteral(), /*compute_ref*/true);
+    m_tokenizer.consume();
+  }
+
+  if (m_tokenizer.getCurrentType() != lex::Equal)
     return logError("expected =");
   m_tokenizer.consume();
 
@@ -307,7 +326,7 @@ ASTBase *Parser::buildAssignmentStatement() {
 
   m_tokenizer.consume();
 
-  return new AssignmentStatement(name, expression);
+  return new AssignmentStatement(lhs, expression);
 }
 
 // FIXME: maybe put arg_declaration into its own function?
@@ -429,15 +448,8 @@ ASTBase *Parser::buildBinaryExpression(int min_precendence) {
   return result;
 }
 
-/// if the next token is either '.' or '[' we have another posfix expression
-inline static bool isFullstopOrLeftBracket(const Token &next) {
-  if (next.getType() == lex::Fullstop || next.getType() == lex::LeftBracket)
-    return true;
-
-  return false;
-}
-
-static void appendChild(RefYieldExpression *expression, RefYieldExpression *child) {
+static void appendChild(RefYieldExpression *expression,
+                        RefYieldExpression *child) {
   if (ArrayAccessExpresion *cool = dyncast<ArrayAccessExpresion>(expression)) {
     cool->setChildPosfixExpression(child);
     return;
@@ -451,7 +463,7 @@ static void appendChild(RefYieldExpression *expression, RefYieldExpression *chil
 
 //     <postfix_expression>, '.', <identifier> |
 //     <postfix_expression>, '[', <expression>, ']'
-RefYieldExpression *Parser::buildTailPosfixExpression(RefYieldExpression *lhs) {
+RefYieldExpression *Parser::buildTailPosfixExpression(RefYieldExpression *lhs, bool is_ref_type) {
   assert(lhs && "we must have a parent if we made it here");
   assert(isFullstopOrLeftBracket(m_tokenizer.current()));
   if (m_tokenizer.getCurrentType() == lex::Fullstop) {
@@ -465,13 +477,13 @@ RefYieldExpression *Parser::buildTailPosfixExpression(RefYieldExpression *lhs) {
     m_tokenizer.consume();
 
     bool compute_ref =
-        isFullstopOrLeftBracket(m_tokenizer.current()) ? true : false;
+        (isFullstopOrLeftBracket(m_tokenizer.current()) || is_ref_type) ? true : false;
     MemberAccessExpression *expression =
         new MemberAccessExpression(lhs, member, compute_ref);
     appendChild(lhs, expression); // building the syntax tree
 
     if (isFullstopOrLeftBracket(m_tokenizer.current()))
-      buildPosfixExpression(expression);
+      buildPosfixExpression(expression, is_ref_type);
 
     return expression;
   }
@@ -492,24 +504,24 @@ RefYieldExpression *Parser::buildTailPosfixExpression(RefYieldExpression *lhs) {
     return nullptr;
   }
   m_tokenizer.consume();
-  bool compute_ref = isFullstopOrLeftBracket(m_tokenizer.current());
+  bool compute_ref = isFullstopOrLeftBracket(m_tokenizer.current()) || is_ref_type;
   ArrayAccessExpresion *new_expression =
       new ArrayAccessExpresion(lhs, expression, compute_ref);
   appendChild(lhs, new_expression); // building the syntax tree
-  if (compute_ref)
-    buildTailPosfixExpression(new_expression);
+  if (isFullstopOrLeftBracket(m_tokenizer.current()))
+    buildPosfixExpression(new_expression, is_ref_type);
   return new_expression;
 }
 
 // postfix_expression :== <identifier> |
 //     <postfix_expression>, '.', <identifier> |
 //     <postfix_expression>, '[', <expression>, ']'
-RefYieldExpression *Parser::buildPosfixExpression(RefYieldExpression *lhs) {
+RefYieldExpression *Parser::buildPosfixExpression(RefYieldExpression *lhs, bool is_ref_type) {
   // the tail case for the following:
   //     <postfix_expression>, '.', <identifier> |
   //     <postfix_expression>, '[', <expression>, ']'
   if (isFullstopOrLeftBracket(m_tokenizer.current())) {
-    return buildTailPosfixExpression(lhs);
+    return buildTailPosfixExpression(lhs, is_ref_type);
   }
 
   //
@@ -538,12 +550,12 @@ RefYieldExpression *Parser::buildPosfixExpression(RefYieldExpression *lhs) {
     m_tokenizer.consume();
 
     bool compute_ref =
-        isFullstopOrLeftBracket(m_tokenizer.current()) ? true : false;
+        (isFullstopOrLeftBracket(m_tokenizer.current()) || is_ref_type) ? true : false;
 
     ArrayAccessExpresion *array_access =
         new ArrayAccessExpresion(name, expresion, compute_ref);
-    if (compute_ref)
-      buildPosfixExpression(array_access);
+    if (isFullstopOrLeftBracket(m_tokenizer.current()))
+      buildPosfixExpression(array_access, is_ref_type);
     return array_access;
   }
 
@@ -560,11 +572,11 @@ RefYieldExpression *Parser::buildPosfixExpression(RefYieldExpression *lhs) {
   m_tokenizer.consume();
 
   bool compute_ref =
-      isFullstopOrLeftBracket(m_tokenizer.current()) ? true : false;
+      (isFullstopOrLeftBracket(m_tokenizer.current()) || is_ref_type) ? true : false;
   MemberAccessExpression *access =
       new MemberAccessExpression(name, literal, compute_ref);
-  if (compute_ref)
-    buildPosfixExpression(access);
+  if (isFullstopOrLeftBracket(m_tokenizer.current()))
+    buildPosfixExpression(access, is_ref_type);
   return access;
 }
 

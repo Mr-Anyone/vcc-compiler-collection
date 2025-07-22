@@ -87,14 +87,14 @@ private:
 //============================== Statements ==============================
 class AssignmentStatement : public ASTBase {
 public:
-  AssignmentStatement(const std::string &name, ASTBase *expression);
+  AssignmentStatement(ASTBase* ref_expression, ASTBase *expression);
 
   virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual void dump() override;
   const std::string &getName();
 
 private:
-  std::string m_name;
+  ASTBase* m_ref_expr; // The right hand side of the equation
   ASTBase *m_expression;
 };
 
@@ -165,12 +165,18 @@ private:
 
 class IdentifierExpr : public ASTBase {
 public:
-  IdentifierExpr(const std::string &name);
+  /// Create an identifier expression
+  ///
+  /// name - the name of the identifier/variable
+  /// compute_ref - true if codegen returns an address, otherwise returns the
+  /// value to the identifier
+  IdentifierExpr(const std::string &name, bool compute_ref = false);
 
   virtual void dump() override;
   virtual llvm::Value *codegen(ContextHolder holder) override;
 
 private:
+  bool m_compute_ref;
   std::string m_name;
 };
 
@@ -222,8 +228,8 @@ private:
   BinaryExpressionType m_kind;
 };
 
-// This is a virtual base class to be inherited from 
-// so that Derived::codegen can use getRef from parent 
+// This is a virtual base class to be inherited from
+// so that Derived::codegen can use getRef from parent
 // to generate code!
 class RefYieldExpression : public ASTBase {
 public:
@@ -231,7 +237,7 @@ public:
 
   /// The type of the child, null pointer if not found or error
 protected:
-  virtual llvm::Value* getRef(ContextHolder holder);
+  virtual llvm::Value *getRef(ContextHolder holder);
 
   friend class MemberAccessExpression;
   friend class ArrayAccessExpresion;
@@ -249,7 +255,7 @@ public:
 
   virtual void dump() override;
   virtual llvm::Value *codegen(ContextHolder holder) override;
-  virtual llvm::Value* getRef(ContextHolder holder) override;
+  virtual llvm::Value *getRef(ContextHolder holder) override;
 
   Type *getType(ContextHolder holder);
   Type *getChildType(ContextHolder holder);
@@ -279,7 +285,7 @@ public:
 
   virtual void dump() override;
   virtual llvm::Value *codegen(ContextHolder holder) override;
-  virtual llvm::Value* getRef(ContextHolder holder) override;
+  virtual llvm::Value *getRef(ContextHolder holder) override;
 
   Type *getType(ContextHolder holder);
   Type *getChildType(ContextHolder holder);
@@ -299,7 +305,7 @@ private:
   // expression
   std::string m_base_name; //
   RefYieldExpression *m_parent_expression = nullptr,
-                   *m_child_posfix_expression; // the member we are accessing
+                     *m_child_posfix_expression; // the member we are accessing
 };
 
 #endif

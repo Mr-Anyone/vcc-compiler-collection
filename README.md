@@ -53,7 +53,8 @@ declaration_statement :== <type_qualification>, <identifier>, {'=', <expression>
 
 if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 
-assignment_statement :== <identifier>, '=', <expression>, ';'  
+assignment_statement :== <identifier>, '=', <expression>, ';'
+    | <posfix_expression> ,'=' <expression>, ';'
 
 return_statement :== 'ret', <expression> ';'
 
@@ -70,11 +71,11 @@ binary_expression :== <trivial_expression> |
                             <trivial_expression>, <bin_op>, <binary_expression>
 
 trivial_expression :== <identifier> | <call_expression> |
-                            '(', <expression>, ')' | <integer_literal> | <postfix_expression>
+                            '(', <expression>, ')' | <integer_literal> | <posfix_expression>
 
-postfix_expression :== <identifier> | 
-    <postfix_expression>, '.', <identifier> | 
-    <postfix_expression>, '[', <expression>, ']'
+posfix_expression :== <identifier> | 
+    <posfix_expression>, '.', <identifier> | 
+    <posfix_expression>, '[', <expression>, ']'
 
 call_expressions :== <identifier>, '(', {<expression> ',' }+,  ')'
 
@@ -104,3 +105,36 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 
 1. Signed and unsigned integer comparison.
 
+2. Wrong ast ordering
+```
+struct vec2{
+    int a,
+    int b,
+}
+
+function some_test_here
+gives struct vec2[
+]{
+    struct vec2 a;
+    a.a = 10;
+    a.b = 20;
+
+    ret a;
+}
+```
+gives: 
+```
+FunctionDecl name: some_test_here args:
+  FunctionArgLists
+  DeclarationStatement name: a
+  AssignmentStatement
+      ConstantExpr 10
+      MemberAccessExpression a.a is_ref: 1 child: 0 this: 0x58512afd79c0
+  AssignmentStatement
+      MemberAccessExpression a.b is_ref: 1 child: 0 this: 0x58512afd7b80
+      ConstantExpr 20
+  ReturnStatement
+      IdentifierExpr identifier: a compute-ref: false
+```
+
+Why is ConstantExpr infront of MemberAccessExpr?

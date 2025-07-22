@@ -86,11 +86,9 @@ FunctionArgLists::ArgsIter FunctionArgLists::end() const {
   return m_args.cend();
 }
 
-AssignmentStatement::AssignmentStatement(const std::string &name,
-                                         ASTBase *expression)
-    : ASTBase({expression}), m_name(name), m_expression(expression) {}
-
-const std::string &AssignmentStatement::getName() { return m_name; }
+AssignmentStatement::AssignmentStatement(ASTBase *ref_expr, ASTBase *expression)
+    : ASTBase({ref_expr, expression}), m_ref_expr(ref_expr),
+      m_expression(expression) {}
 
 void FunctionDecl::dump() {
   std::cout << "name: " << m_name << " args: ";
@@ -102,8 +100,8 @@ void FunctionDecl::dump() {
 ReturnStatement::ReturnStatement(ASTBase *expression)
     : ASTBase({expression}), m_expression(expression) {}
 
-IdentifierExpr::IdentifierExpr(const std::string &name)
-    : ASTBase({}), m_name(name) {}
+IdentifierExpr::IdentifierExpr(const std::string &name, bool compute_ref)
+    : ASTBase({}), m_name(name), m_compute_ref(compute_ref) {}
 
 ConstantExpr::ConstantExpr(int value) : ASTBase({}), m_value(value) {}
 
@@ -168,7 +166,10 @@ void BinaryExpression::dump() {
   return;
 }
 
-void IdentifierExpr::dump() { std::cout << "identifier: " << m_name; }
+void IdentifierExpr::dump() {
+  std::cout << "identifier: " << m_name
+            << " compute-ref: " << (m_compute_ref ? "true" : "false");
+}
 
 void ConstantExpr::dump() { std::cout << m_value; }
 
@@ -247,6 +248,10 @@ MemberAccessExpression::MemberAccessExpression(RefYieldExpression *parent,
 }
 
 void MemberAccessExpression::dump() {
+  // if we don't have a parent, we must have a valid m_base_name
+  if (!m_parent)
+    std::cout << m_base_name;
+
   std::cout << "." << m_member << " is_ref: " << m_compute_ref
             << " child: " << m_child_posfix_expression << " this: " << this;
 }
@@ -469,9 +474,11 @@ llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
   // information
   llvm::Value *loc_value =
       holder->symbol_table.lookupLocalVariable(this, m_name).value;
+  if(m_compute_ref)
+      return loc_value;
+
   llvm::Value *value = holder->builder.CreateLoad(
       llvm::Type::getInt32Ty(holder->context), loc_value);
-
   return value;
 }
 
@@ -500,14 +507,14 @@ llvm::Value *FunctionArgLists::codegen(ContextHolder holder) {
 llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
   llvm::Value *expression_val = m_expression->codegen(holder);
   assert(expression_val && "must yield a non negative result");
-  llvm::Value *alloc_loc =
-      holder->symbol_table.lookupLocalVariable(this, m_name).value;
+  llvm::Value *alloc_loc = m_ref_expr->codegen(holder);
 
   holder->builder.CreateStore(expression_val, alloc_loc);
 
   return nullptr;
 }
-void AssignmentStatement::dump() { std::cout << "name: " << m_name; }
+
+void AssignmentStatement::dump() {}
 
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
   // FIXME: must add semantics analysis
