@@ -1,5 +1,5 @@
 " Keywords
-syntax keyword mydslKeyword function gives while then end if ret int struct array
+syntax keyword mydslKeyword function gives while then end if ret int struct array ptr
 
 " Operators
 syntax match mydslOperator "+\|-\|\*\|/\|eq\|ne\|ge\|gt\|le"

@@ -387,7 +387,6 @@ Type *BinaryExpression::getType(ContextHolder holder) {
 }
 
 Type *ArrayAccessExpresion::getType(ContextHolder holder) {
-  // FIXME: this is a jank hack
   if (!m_parent_expression)
     return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
 
@@ -544,18 +543,8 @@ void AssignmentStatement::dump() {}
 llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
   // FIXME: must add semantics analysis
   llvm::Value *return_value = m_expression->codegen(holder);
-  assert(return_value && "expression must return a value");
-  assert(return_value->getType()->isIntegerTy() &&
-         "must be integer type for now");
-
-  // sign extend value for now!
-  if (!return_value->getType()->isIntegerTy(32)) {
-    return_value = holder->builder.CreateSExt(
-        return_value, llvm::Type::getInt32Ty(holder->context));
-  }
 
   holder->builder.CreateRet(return_value);
-
   return nullptr;
 }
 

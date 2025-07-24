@@ -37,7 +37,7 @@ public:
   virtual llvm::Type *getType(ContextHolder holder) override;
 
 private:
-  llvm::Type* m_llvm_type = nullptr;
+  llvm::Type *m_llvm_type = nullptr;
   int m_count;
   Type *m_base;
 };
@@ -55,11 +55,10 @@ private:
 
 class BuiltinType : public Type {
 public:
-  enum Builtin {
-    Int,
-  };
+  enum Builtin { Int, Float };
 
   BuiltinType(Builtin builtin);
+  Builtin getKind() const;
   virtual llvm::Type *getType(ContextHolder holder) override;
 
 private:
@@ -94,5 +93,4 @@ struct TypeInfo {
   Type *type;
   std::string name;
 };
-
 #endif

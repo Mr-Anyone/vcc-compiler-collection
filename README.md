@@ -8,10 +8,11 @@
 - [X] Parse command line
 - [X] Array Type
 - [X] Pointer Type
-- [ ] Semantics analysis
+- [X] Floating point support
+- [ ] Add source location 
+- [ ] Add comments
 - [ ] The C FFI problem with SDL
 - [ ] String Type  
-- [ ] Floating point support
 - [ ] The heap allocation problem with ASTBase and Type
 
 # Example Code 
@@ -33,6 +34,7 @@ function testing gives int
 
 ```
 top_level :== <function_decl> | <struct_definition>
+
 function_decl :== 'function', <identifier>, 'gives', <type_qualification>, 
                         <function_args_list>, '{', <statements>+, ''}'
 
@@ -60,7 +62,7 @@ return_statement :== 'ret', <expression> ';'
 
 type_qualification :== 'int' | 'struct', <identifier> |
                     'array', '(', <integer_literal>, ')', <type_qualification> |
-                    'ptr', <type_qualification>
+                    'ptr', <type_qualification> | 'float'
 
 struct_definition :== 'struct', <identifier> ,'{'
                         , {<type_qualification> <identifier>}+, '}'
@@ -84,10 +86,37 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 
 # Semantics
 
-## Binary operator
+## General Expression Semantics
 
-1. Implicit conversion always happen for type that has less bits. For example, when adding `i16` with `i32`, `i16` will be sign extended to `i32` to perform the addition. Note boolean are exempted from this.
-2. Inside a if statement, the condition is false if and only if the value is 0. In other words, it is true if and only if the value is non zero.
+1. Implicit conversion always happen for type that has less bits. For example, when adding `i16` with `i32`, `i16` will be sign extended to `i32` to perform the addition. This applies to boolean expression.
+
+```
+(a eq b) + c # (a eq b ) will be sign extended into i32, likely resulting in overflow
+```
+
+2. Implicit conversion will take place between right hand side and left hand side of a binary expression if the two given type are float and int.  In such case, the implicit conversion will take place in int and be converted into a float.
+
+```
+int a = 10; 
+float b = 20; 
+a + b; # a will be converted into float implicitly
+```
+
+3. The only valid operation for pointer type is addition, and the result is always incremented by the size of the pointee. 
+
+```
+ptr int a; 
+a + 10; # a is added by sizeof(int)*10, in other words be lowered using getelementpr
+```
+
+## Statements
+1. Inside a if statement, the condition is false if and only if the value is 0. In other words, it is true if and only if the value is non zero.
+
+```
+int a = 0;
+if a + 1 then # yields true, but if a = 0, yields false
+end
+```
 
 
 ## Name Lookup

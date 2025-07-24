@@ -27,22 +27,23 @@ enum TokenType {
   RightBracket,     // ]
   Comma,            // ,
   FunctionDecl,     // 'function'
-  Fullstop,     // .
+  Fullstop,         // .
   Gives,
   SemiColon, //;
   Equal,     // =
   Ret,       // ret
-  If,       // If
-  Then,     // Then
-  End,      // End
-  While,    // while
+  If,        // If
+  Then,      // Then
+  End,       // End
+  While,     // while
 
   // Type qualifications
   TypeQualificationStart,
-  Int, // int
-  Struct,    // struct
-  Array,    // array
+  Int,    // int
+  Struct, // struct
+  Array,  // array
   Ptr,    // ptr
+  Float,  // float
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start
@@ -50,7 +51,7 @@ enum TokenType {
   Subtract,            // -
   Multiply,            // *
   EqualKeyword,        // eq
-  NEquals,             // ne 
+  NEquals,             // ne
   GreaterThan,         // gt
   GreaterEqual,        // ge
   LessThan,            // lt
@@ -65,7 +66,7 @@ enum TokenType {
 
 struct Token {
 public:
-    // error state
+  // error state
   Token();
 
   // for identifier
@@ -85,7 +86,7 @@ public:
   long long getIntegerLiteral() const;
   bool isBinaryOperator() const;
   FilePos getPos() const;
-  bool isTypeQualification()const;
+  bool isTypeQualification() const;
 
 private:
   FilePos pos = {1, 1, 0};
@@ -97,74 +98,78 @@ private:
 };
 
 class Tokenizer {
-    public:
-        Tokenizer(const char *filename);
+public:
+  Tokenizer(const char *filename);
 
-        // consume token
-        const Token next();
-        const Token next(int n);
+  // consume token
+  const Token next();
+  const Token next(int n);
 
-        // don't consume token
-        const Token peek();
-        const Token &current();
+  // don't consume token
+  const Token peek();
+  const Token &current();
 
-        // consume the token
-        void consume();
-        TokenType getNextType();
-        TokenType getCurrentType();
+  // consume the token
+  void consume();
+  TokenType getNextType();
+  TokenType getCurrentType();
 
-        std::string getLine(const FilePos& pos);
-    private:
-        const static inline std::unordered_map<std::string, TokenType> keyword_map = {
-            {"function", FunctionDecl},
-            {"(", LeftParentheses},
-            {")", RightParentheses},
-            {"[", LeftBracket},
-            {"]", RightBracket},
-            {"{", LeftBrace},
-            {"}", RightBrace},
-            {",", Comma},
-            {"while", While},
-            {"struct", Struct},
+  std::string getLine(const FilePos &pos);
 
-            {"if", If},
-            {"then", Then},
-            {"end", End},
+private:
+  const static inline std::unordered_map<std::string, TokenType> keyword_map = {
+      {"function", FunctionDecl},
+      {"(", LeftParentheses},
+      {")", RightParentheses},
+      {"[", LeftBracket},
+      {"]", RightBracket},
+      {"{", LeftBrace},
+      {"}", RightBrace},
+      {",", Comma},
+      {"while", While},
+      {"struct", Struct},
 
-            // boolean stuff
-            {"eq", EqualKeyword},
-            {"ne", NEquals},
-            {"gt", GreaterThan},
-            {"ge", GreaterEqual},
-            {"le", LessEqual},
-            {"lt", LessThan},
+      {"if", If},
+      {"then", Then},
+      {"end", End},
 
-            // binary stuff
+      // boolean stuff
+      {"eq", EqualKeyword},
+      {"ne", NEquals},
+      {"gt", GreaterThan},
+      {"ge", GreaterEqual},
+      {"le", LessEqual},
+      {"lt", LessThan},
 
-            {"int", Int},
-            {"array", Array},
-            {"gives", Gives},
-            {"ptr", Ptr},
-            {";", SemiColon},
-            {"=", Equal},
-            {".", Fullstop},
-            {"ret", Ret},
-            {"+", Add},
-            {"-", Subtract},
-            {"*", Multiply}};
+      // binary stuff
 
-        static std::unordered_set<char> getOneCharacterToken(const std::unordered_map<std::string, TokenType>& map){
-            std::unordered_set<char> one_symbol {};
-            for(auto it = map.begin(), ie = map.end(); it != ie; ++it){
-                if(it->first.length() == 1)
-                    one_symbol.insert(it->first[0]);
-            }
-            return one_symbol;
-        }
+      {"int", Int},
+      {"float", Float},
+      {"array", Array},
+      {"gives", Gives},
+      {"ptr", Ptr},
+      {";", SemiColon},
+      {"=", Equal},
+      {".", Fullstop},
+      {"ret", Ret},
+      {"+", Add},
+      {"-", Subtract},
+      {"*", Multiply}};
 
-        const static inline std::unordered_set<char> one_character_token = getOneCharacterToken(keyword_map); 
-        const static inline std::set<char> binary_operator{'+'};
-  static bool isKeyword(const std::string& keyword);
+  static std::unordered_set<char>
+  getOneCharacterToken(const std::unordered_map<std::string, TokenType> &map) {
+    std::unordered_set<char> one_symbol{};
+    for (auto it = map.begin(), ie = map.end(); it != ie; ++it) {
+      if (it->first.length() == 1)
+        one_symbol.insert(it->first[0]);
+    }
+    return one_symbol;
+  }
+
+  const static inline std::unordered_set<char> one_character_token =
+      getOneCharacterToken(keyword_map);
+  const static inline std::set<char> binary_operator{'+'};
+  static bool isKeyword(const std::string &keyword);
   static bool isBinary(const std::string &keyword);
   static TokenType getKeyword(const std::string &keyword);
 

@@ -28,9 +28,9 @@ const std::vector<ASTBase *> &Parser::getSyntaxTree() {
   return m_function_decls;
 }
 
-// type_qualification :== 'int' {'*'} | 'struct', <identifier> |
+// type_qualification :== 'int' | 'struct', <identifier> |
 //                     'array', '(', <integer_literal>, ')',
-//                     <type_qualification> | 'ptr', <type_qualification>
+//                     <type_qualification> | 'ptr', <type_qualification> | 'float'
 Type *Parser::buildTypeQualification() {
   // we have an array type
   // 'array', '(', <integer_literal>, ')', <type_qualification>
@@ -68,14 +68,16 @@ Type *Parser::buildTypeQualification() {
   // we have builtin
   if (m_tokenizer.getCurrentType() == lex::Int) {
     m_tokenizer.consume();
-    if (m_tokenizer.peek().getType() == lex::Multiply) {
-      m_tokenizer.consume();
-      return new PointerType(new BuiltinType(BuiltinType::Int));
-    }
 
     return new BuiltinType(BuiltinType::Int);
   }
 
+  // we have float builtin
+  if(m_tokenizer.getCurrentType() == lex::Float){
+      m_tokenizer.consume();
+
+      return new BuiltinType(BuiltinType::Float);
+  }
   // we have a structure
   if (m_tokenizer.getCurrentType() == lex::Struct) {
     m_tokenizer.consume();

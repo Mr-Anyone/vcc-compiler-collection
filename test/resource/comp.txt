@@ -111,3 +111,11 @@ gives int[
     struct most_basic_struct test; 
     ret a + test.a;
 }
+
+function test_float_add 
+gives float[
+    float a, 
+    float b, 
+]{
+    ret a + b;
+}

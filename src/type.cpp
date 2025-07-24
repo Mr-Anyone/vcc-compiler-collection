@@ -24,6 +24,7 @@ llvm::Type *Type::getType(ContextHolder holder) {
 
 BuiltinType::BuiltinType(Builtin builtin) : m_builtin(builtin) {
   switch (m_builtin) {
+  case Float:
   case Int:
     m_bits_size = 32;
     break;
@@ -32,6 +33,8 @@ BuiltinType::BuiltinType(Builtin builtin) : m_builtin(builtin) {
   }
 }
 
+BuiltinType::Builtin BuiltinType::getKind() const { return m_builtin; }
+
 llvm::Type *BuiltinType::getType(ContextHolder holder) {
   if (m_llvm_type)
     return m_llvm_type;
@@ -39,6 +42,9 @@ llvm::Type *BuiltinType::getType(ContextHolder holder) {
   switch (m_builtin) {
   case Int:
     m_llvm_type = llvm::Type::getIntNTy(holder->context, m_bits_size);
+    return m_llvm_type;
+  case Float:
+    m_llvm_type = llvm::Type::getFloatTy(holder->context);
     return m_llvm_type;
   default:
     assert(false && "should be not possible");
@@ -93,18 +99,14 @@ llvm::Type *PointerType::getType(ContextHolder holder) {
 
 ArrayType::ArrayType(Type *base, int count) : m_count(count), m_base(base) {}
 
-Type* ArrayType::getBase(){
-    return m_base;
-}
+Type *ArrayType::getBase() { return m_base; }
 
-int ArrayType::getCount(){
-    return m_count;
-}
+int ArrayType::getCount() { return m_count; }
 
-llvm::Type* ArrayType::getType(ContextHolder holder){
-    if(m_llvm_type)
-        return m_llvm_type;
+llvm::Type *ArrayType::getType(ContextHolder holder) {
+  if (m_llvm_type)
+    return m_llvm_type;
 
-    return llvm::ArrayType::get(m_base->getType(holder), m_count);
+  return llvm::ArrayType::get(m_base->getType(holder), m_count);
 }
 
