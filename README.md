@@ -8,8 +8,8 @@
 - [X] Parse command line
 - [X] Array Type
 - [X] Pointer Type
-- [ ] The C FFI problem with SDL
 - [ ] Semantics analysis
+- [ ] The C FFI problem with SDL
 - [ ] String Type  
 - [ ] Floating point support
 - [ ] The heap allocation problem with ASTBase and Type

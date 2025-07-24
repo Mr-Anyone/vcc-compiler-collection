@@ -282,44 +282,12 @@ void ArrayAccessExpresion::dump() {
 RefYieldExpression::RefYieldExpression(const std::vector<ASTBase *> &childrens)
     : ASTBase({childrens}) {}
 
-Type *ArrayAccessExpresion::getType(ContextHolder holder) {
-  // FIXME: this is a jank hack
-  if (!m_parent_expression)
-    return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
-
-  // trying to get type from parent expression!
-  if (ArrayAccessExpresion *parent =
-          dyncast<ArrayAccessExpresion>(m_parent_expression)) {
-    return parent->getChildType(holder);
-  }
-
-  assert(isa<MemberAccessExpression>(m_parent_expression) &&
-         "must be member expresion beacuse we have no options left!");
-  MemberAccessExpression *parent =
-      dyncast<MemberAccessExpression>(m_parent_expression);
-  return parent->getChildType(holder);
-}
-
 Type *ArrayAccessExpresion::getChildType(ContextHolder holder) {
   Type *current_type = getType(holder);
   assert(current_type->isArray() &&
          "array access expression must have array type!");
 
   return current_type->getAs<ArrayType>()->getBase();
-}
-
-Type *MemberAccessExpression::getType(ContextHolder holder) {
-  if (!m_parent)
-    return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
-
-  // FIXME: this shares a lot same code with ArrayAccessExpression::getType,
-  // maybe we should have a standard interface that solves this entirely?
-  if (ArrayAccessExpresion *parent = dyncast<ArrayAccessExpresion>(m_parent)) {
-    return parent->getChildType(holder);
-  }
-  assert(isa<MemberAccessExpression>(m_parent));
-  MemberAccessExpression *parent = dyncast<MemberAccessExpression>(m_parent);
-  return parent->getChildType(holder);
 }
 
 Type *MemberAccessExpression::getChildType(ContextHolder holder) {
@@ -377,6 +345,63 @@ llvm::Value *ArrayAccessExpresion::getRef(ContextHolder holder) {
   llvm::Value *offset = m_index_expression->codegen(holder);
 
   return holder->builder.CreateGEP(llvm_type, start_of_pointer, {zero, offset});
+}
+
+Type *FunctionDecl::getReturnType() const { return m_return_type; }
+
+// ================================================================================
+// ====================== Expression Implementation::getType
+// ======================
+Type *MemberAccessExpression::getType(ContextHolder holder) {
+  if (!m_parent)
+    return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
+
+  // FIXME: this shares a lot same code with ArrayAccessExpression::getType,
+  // maybe we should have a standard interface that solves this entirely?
+  if (ArrayAccessExpresion *parent = dyncast<ArrayAccessExpresion>(m_parent)) {
+    return parent->getChildType(holder);
+  }
+  assert(isa<MemberAccessExpression>(m_parent));
+  MemberAccessExpression *parent = dyncast<MemberAccessExpression>(m_parent);
+  return parent->getChildType(holder);
+}
+
+Type *ConstantExpr::getType(ContextHolder holder) {
+  return new BuiltinType(BuiltinType::Int);
+}
+
+Type *IdentifierExpr::getType(ContextHolder holder) {
+  return holder->symbol_table.lookupLocalVariable(this, m_name).type;
+}
+
+Type *CallExpr::getType(ContextHolder holder) {
+  return holder->symbol_table.lookupFunction(m_func_name)->getReturnType();
+}
+
+Type *ParenthesesExpression::getType(ContextHolder holder) {
+  return dynamic_cast<Expression *>(m_child)->getType(holder);
+}
+
+Type *BinaryExpression::getType(ContextHolder holder) {
+  assert(false && "not sure what to do this");
+}
+
+Type *ArrayAccessExpresion::getType(ContextHolder holder) {
+  // FIXME: this is a jank hack
+  if (!m_parent_expression)
+    return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
+
+  // trying to get type from parent expression!
+  if (ArrayAccessExpresion *parent =
+          dyncast<ArrayAccessExpresion>(m_parent_expression)) {
+    return parent->getChildType(holder);
+  }
+
+  assert(isa<MemberAccessExpression>(m_parent_expression) &&
+         "must be member expresion beacuse we have no options left!");
+  MemberAccessExpression *parent =
+      dyncast<MemberAccessExpression>(m_parent_expression);
+  return parent->getChildType(holder);
 }
 
 // ======================================================
@@ -474,8 +499,8 @@ llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
   // information
   llvm::Value *loc_value =
       holder->symbol_table.lookupLocalVariable(this, m_name).value;
-  if(m_compute_ref)
-      return loc_value;
+  if (m_compute_ref)
+    return loc_value;
 
   llvm::Value *value = holder->builder.CreateLoad(
       llvm::Type::getInt32Ty(holder->context), loc_value);
@@ -566,7 +591,8 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
 }
 
 llvm::Value *CallExpr::codegen(ContextHolder holder) {
-  llvm::Function *function = holder->symbol_table.lookupFunction(m_func_name);
+  llvm::Function *function =
+      holder->symbol_table.lookupFunction(m_func_name)->getLLVMFunction();
   assert(function && "this must exist for codegen!");
   assert(function->arg_size() == m_expressions.size() &&
          "expected the same number of argument");

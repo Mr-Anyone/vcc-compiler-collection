@@ -73,6 +73,7 @@ public:
 
   const std::string &getName() const;
   llvm::Function *getLLVMFunction() const;
+  Type *getReturnType() const;
 
 private:
   Type *m_return_type;
@@ -87,14 +88,14 @@ private:
 //============================== Statements ==============================
 class AssignmentStatement : public ASTBase {
 public:
-  AssignmentStatement(ASTBase* ref_expression, ASTBase *expression);
+  AssignmentStatement(ASTBase *ref_expression, ASTBase *expression);
 
   virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual void dump() override;
   const std::string &getName();
 
 private:
-  ASTBase* m_ref_expr; // The right hand side of the equation
+  ASTBase *m_ref_expr; // The right hand side of the equation
   ASTBase *m_expression;
 };
 
@@ -150,12 +151,18 @@ private:
 };
 //============================== Expressions ==============================
 // These are expressions that yields some sort of value
+class Expression {
+public:
+  virtual Type *getType(ContextHolder holder) = 0;
+};
 
-class ConstantExpr : public ASTBase {
+class ConstantExpr : public ASTBase, Expression {
 public:
   explicit ConstantExpr(int value);
   virtual void dump() override;
   virtual llvm::Value *codegen(ContextHolder holder) override;
+
+  virtual Type *getType(ContextHolder holder) override;
 
   int getValue();
 
@@ -163,7 +170,7 @@ private:
   int m_value;
 };
 
-class IdentifierExpr : public ASTBase {
+class IdentifierExpr : public ASTBase, Expression {
 public:
   /// Create an identifier expression
   ///
@@ -175,31 +182,36 @@ public:
   virtual void dump() override;
   virtual llvm::Value *codegen(ContextHolder holder) override;
 
+  virtual Type *getType(ContextHolder holder) override;
+
 private:
   bool m_compute_ref;
   std::string m_name;
 };
 
-class CallExpr : public ASTBase {
+class CallExpr : public ASTBase, Expression {
 public:
   CallExpr(const std::string &name, const std::vector<ASTBase *> &expressions);
   llvm::Value *codegen(ContextHolder holder) override;
   void dump() override;
+
+  virtual Type *getType(ContextHolder holder) override;
 
 private:
   std::string m_func_name;
   std::vector<ASTBase *> m_expressions;
 };
 
-class ParenthesesExpression : public ASTBase {
+class ParenthesesExpression : public ASTBase, Expression {
 public:
   ParenthesesExpression(ASTBase *child);
 
+  virtual Type *getType(ContextHolder holder) override;
 private:
   ASTBase *m_child;
 };
 
-class BinaryExpression : public ASTBase {
+class BinaryExpression : public ASTBase, Expression {
 public:
   enum BinaryExpressionType {
     Add,
@@ -213,6 +225,7 @@ public:
     LT,
   };
   static BinaryExpressionType getFromLexType(lex::Token lex_type);
+  virtual Type *getType(ContextHolder holder) override;
 
 public:
   BinaryExpression(ASTBase *lhs, BinaryExpressionType type);
@@ -245,7 +258,7 @@ protected:
 
 // FIXME: maybe we should do type deduction here instead!
 // The parser parse enough type so that this won't be a problem
-class MemberAccessExpression : public RefYieldExpression {
+class MemberAccessExpression : public RefYieldExpression, Expression {
 public:
   MemberAccessExpression(const std::string &name, const std::string &member,
                          bool compute_ref);
@@ -257,7 +270,7 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
 
-  Type *getType(ContextHolder holder);
+  virtual Type *getType(ContextHolder holder) override;
   Type *getChildType(ContextHolder holder);
 
   void setChildPosfixExpression(RefYieldExpression *child);
@@ -276,7 +289,7 @@ private:
 };
 
 // FIXME: maybe we should do type deduction here instead!
-class ArrayAccessExpresion : public RefYieldExpression {
+class ArrayAccessExpresion : public RefYieldExpression, Expression {
 public:
   ArrayAccessExpresion(const std::string &name, ASTBase *expression,
                        bool compute_ref);
@@ -287,7 +300,7 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
 
-  Type *getType(ContextHolder holder);
+  virtual Type *getType(ContextHolder holder) override;
   Type *getChildType(ContextHolder holder);
 
   void setChildPosfixExpression(RefYieldExpression *child);

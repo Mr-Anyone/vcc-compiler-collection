@@ -9,9 +9,9 @@ class ASTBase;
 class Type;
 
 // Each TrieTrie insert and stores the following
-struct CGTypeInfo{
-    llvm::Value* value;  // the allocated location on the stack
-    Type* type;
+struct CGTypeInfo {
+  llvm::Value *value; // the allocated location on the stack
+  Type *type;
 };
 
 /// There is only one TrieTree for every
@@ -33,12 +33,12 @@ struct CGTypeInfo{
 ////      |-- If statement (symbols c)
 class TrieTree {
 public:
-
   TrieTree();
   TrieTree(const FunctionDecl *decl);
 
   /// insert a name with code gen value at a position pos
-  void insert(const ASTBase *pos, std::string name, Type* type, llvm::Value *value);
+  void insert(const ASTBase *pos, std::string name, Type *type,
+              llvm::Value *value);
 
   /// looking up a variable name named name at pos
   CGTypeInfo lookup(const ASTBase *pos, std::string name) const;
@@ -46,7 +46,8 @@ public:
 private:
   /// Given an empty array, put something like {FunctionDecl, IfStatement,
   /// WhileStatement} into trie_order
-  void getTrieOrder(const ASTBase *start, std::vector<const ASTBase *> &trie_order) const;
+  void getTrieOrder(const ASTBase *start,
+                    std::vector<const ASTBase *> &trie_order) const;
 
   struct TrieNode {
     // FIXME: maybe adding a static method for heap allocation is a good idea?
@@ -74,7 +75,7 @@ public:
   SymbolTable();
 
   void addFunction(const FunctionDecl *function_decl);
-  llvm::Function *lookupFunction(const std::string &name);
+  const FunctionDecl *lookupFunction(const std::string &name);
 
   /// Adding a name named name at loc with value value
   void addLocalVariable(ASTBase *loc, std::string name, Type *type,
@@ -87,7 +88,7 @@ private:
   std::unordered_map<std::string, TrieTree>
       m_local_variable_table; // m_local_variable_table[function name] = the
                               // corresponding TrieTree.
-  std::unordered_map<std::string, llvm::Function *> m_function_table;
+  std::unordered_map<std::string, const FunctionDecl *> m_function_table;
 };
 
 #endif

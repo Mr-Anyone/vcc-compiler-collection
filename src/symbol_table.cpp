@@ -6,13 +6,12 @@ SymbolTable::SymbolTable() : m_local_variable_table(), m_function_table() {}
 
 void SymbolTable::addFunction(const FunctionDecl *function_decl) {
   std::string function_name = function_decl->getName();
-  llvm::Function *function = function_decl->getLLVMFunction();
   assert(!m_function_table.contains(function_name));
 
-  m_function_table[function_name] = function;
+  m_function_table[function_name] = function_decl;
 }
 
-llvm::Function *SymbolTable::lookupFunction(const std::string &name) {
+const FunctionDecl *SymbolTable::lookupFunction(const std::string &name) {
   assert(m_function_table.contains(name));
   return m_function_table[name];
 }
