@@ -9,8 +9,8 @@
 - [X] Array Type
 - [X] Pointer Type
 - [X] Floating point support
+- [X] Add comments
 - [ ] Add source location 
-- [ ] Add comments
 - [ ] The C FFI problem with SDL
 - [ ] String Type  
 - [ ] The heap allocation problem with ASTBase and Type

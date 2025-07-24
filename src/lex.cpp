@@ -19,18 +19,17 @@ Tokenizer::Tokenizer(const char *filename) : m_file(filename) {
   m_current_token = readOneToken();
 }
 
-const Token Tokenizer::next(int n){
-    int pos = m_file.tellg();
+const Token Tokenizer::next(int n) {
+  int pos = m_file.tellg();
 
-    assert(n >= 1 && "makes no sense otherwise");
-    Token current = readOneToken();
-    for(int i = 0;i<n-1; ++i){
-        current = readOneToken();
-    }
+  assert(n >= 1 && "makes no sense otherwise");
+  Token current = readOneToken();
+  for (int i = 0; i < n - 1; ++i) {
+    current = readOneToken();
+  }
 
-    m_file.seekg(pos);
-    return current;
-
+  m_file.seekg(pos);
+  return current;
 }
 static bool is_valid_stoi(const std::string &str) {
   for (char c : str) {
@@ -56,11 +55,20 @@ void Tokenizer::removeWhiteSpace() {
   if (!m_file.good())
     return;
 
-  char c;
-  while ((c = m_file.peek())) {
-    if (!(c == ' ' || c == '\n')) {
-      break;
+  char peek;
+  while ((peek = m_file.peek()) && !m_file.eof()) {
+    // skip the entire line if we see a comment
+    if (peek == '#') {
+      char c = m_file.get();
+      while (c != '\n') {
+        c = m_file.get();
+      }
+
+      continue;
     }
+
+    if (peek != ' ' && peek != '\n')
+      break;
 
     // consume the thing character
     m_file.get();
@@ -82,7 +90,7 @@ Token Tokenizer::readOneToken() {
     char c;
     m_file.get(c);
 
-    if (c == ' ' || c == '\n' || c==0 ) {
+    if (c == ' ' || c == '\n' || c == 0) {
       break;
     }
 
@@ -121,7 +129,7 @@ Token Tokenizer::readOneToken() {
 }
 
 bool Tokenizer::isKeyword(const std::string &keyword) {
-    return keyword_map.contains(keyword);
+  return keyword_map.contains(keyword);
 }
 
 const Token &Tokenizer::current() { return m_current_token; }
@@ -194,13 +202,11 @@ const char *tokenTypeToString(TokenType type) {
   }
 }
 
-Token::Token(): type(Invalid){
-}
+Token::Token() : type(Invalid) {}
 
 void Token::dump() const {
   std::cout << "Token type: " << tokenTypeToString(type) << std::endl;
 }
-
 
 Token::Token(TokenType type, FilePos pos) : type(type), pos(pos) {
   assert((type == LeftParentheses || type == RightParentheses ||
@@ -208,7 +214,8 @@ Token::Token(TokenType type, FilePos pos) : type(type), pos(pos) {
          "it must be parenthesis type style or keyword!");
 }
 
-Token::Token(std::string &&string, FilePos pos) : type(Identifier), string_literal(string), pos(pos) {}
+Token::Token(std::string &&string, FilePos pos)
+    : type(Identifier), string_literal(string), pos(pos) {}
 
 const std::string &Token::getStringLiteral() const {
   assert(type == Identifier);
@@ -230,14 +237,12 @@ TokenType Tokenizer::getNextType() { return next().getType(); }
 
 TokenType Tokenizer::getCurrentType() { return m_current_token.getType(); }
 
-FilePos Token::getPos() const{
-    return pos; 
-}
+FilePos Token::getPos() const { return pos; }
 
-std::string Tokenizer::getLine(const FilePos& pos){
-    return m_file.getLine(pos.loc);
+std::string Tokenizer::getLine(const FilePos &pos) {
+  return m_file.getLine(pos.loc);
 }
 
 bool Token::isTypeQualification() const {
-    return TypeQualificationStart < getType() && getType() < TypeQualificationEnd ;
+  return TypeQualificationStart < getType() && getType() < TypeQualificationEnd;
 }

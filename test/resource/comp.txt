@@ -119,3 +119,12 @@ gives float[
 ]{
     ret a + b;
 }
+
+# testing one
+function test_comments #testing two
+gives float [#real test
+    float a, 
+    float b,
+] {
+    ret a + b;
+}    #asfasd
