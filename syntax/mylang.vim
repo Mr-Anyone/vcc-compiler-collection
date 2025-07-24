@@ -11,8 +11,13 @@ syntax match mydslDelimiter "[{}()\[\],;]"
 " Integer literals
 syntax match mydslNumber "\<\d\+\>"
 
+" Match comments starting with '#' until the end of the line
+syntax match mydslComment "#.*$"
+
+
 " Highlight groups
 highlight link mydslKeyword       Keyword
 highlight link mydslOperator      Operator
 highlight link mydslDelimiter     Delimiter
 highlight link mydslNumber        Number
+highlight link mydslComment       Comment
