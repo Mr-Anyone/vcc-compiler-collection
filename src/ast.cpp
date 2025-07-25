@@ -442,10 +442,9 @@ llvm::Value *ConstantExpr::codegen(ContextHolder holder) {
   return value;
 }
 
-llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
-  llvm::Value *right_hand_side = m_rhs->codegen(holder);
-  llvm::Value *left_hand_side = m_lhs->codegen(holder);
-
+llvm::Value *BinaryExpression::handleInteger(ContextHolder holder,
+                                             llvm::Value *right_hand_side,
+                                             llvm::Value *left_hand_side) {
   assert(right_hand_side->getType()->isIntegerTy() &&
          left_hand_side->getType()->isIntegerTy() &&
          "both side most be integer for now");
@@ -521,6 +520,91 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
     assert(false && "cannot get here");
     return nullptr;
   }
+}
+
+llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
+  llvm::Value *right_hand_side = m_rhs->codegen(holder);
+  llvm::Value *left_hand_side = m_lhs->codegen(holder);
+
+  if (right_hand_side->getType()->isIntegerTy() &&
+      left_hand_side->getType()->isIntegerTy())
+    return handleInteger(holder, left_hand_side, right_hand_side);
+
+  assert((right_hand_side->getType()->isFloatingPointTy() ||
+          left_hand_side->getType()->isFloatingPointTy()) &&
+         "either side must be a floating point");
+
+  // Implicit conversion will take place between right hand side and left hand
+  // side of a binary expression if the two given type are float and int.  In
+  // such case, the implicit conversion will take place in int and be converted
+  // into a float.
+  if(!right_hand_side->getType()->isFloatingPointTy()){
+      right_hand_side = holder->builder.CreateSIToFP(right_hand_side, left_hand_side->getType());
+  }else if(!left_hand_side->getType()->isFloatingPointTy()){
+      assert(left_hand_side->getType()->isIntegerTy());
+      left_hand_side = holder->builder.CreateSIToFP(left_hand_side, right_hand_side->getType());
+  }
+
+  assert(right_hand_side && left_hand_side && "cannot be null");
+  assert(left_hand_side->getType() == right_hand_side->getType());
+  switch (m_kind) {
+  case Add: {
+    llvm::Value *result =
+        holder->builder.CreateFAdd(left_hand_side, right_hand_side);
+    return result;
+  }
+  case Multiply: {
+    llvm::Value *reuslt =
+        holder->builder.CreateFMul(left_hand_side, right_hand_side);
+    return reuslt;
+  }
+  case Equal: {
+    left_hand_side->getType();
+    llvm::Value *equal_check =
+        holder->builder.CreateFCmpOEQ(left_hand_side, right_hand_side);
+    return equal_check;
+  }
+  case NEquals: {
+    llvm::Value *not_equal_check =
+        holder->builder.CreateFCmpONE(left_hand_side, right_hand_side);
+    return not_equal_check;
+  }
+  case GE: {
+    llvm::Value *check =
+        holder->builder.CreateFCmpOGE(left_hand_side, right_hand_side);
+    return check;
+  }
+  case GT: {
+    llvm::Value *check =
+        holder->builder.CreateFCmpOGT(left_hand_side, right_hand_side);
+    return check;
+  }
+  case Subtract: {
+    llvm::Value *subtract =
+        holder->builder.CreateFSub(left_hand_side, right_hand_side);
+    return subtract;
+  }
+  case LE: {
+    llvm::Value *check =
+        holder->builder.CreateFCmpOLE(left_hand_side, right_hand_side);
+    return check;
+  }
+  case LT: {
+    llvm::Value *check =
+        holder->builder.CreateFCmpOLT(left_hand_side, right_hand_side);
+    return check;
+  }
+  case Divide: {
+    assert(left_hand_side->getType()->isIntegerTy() &&
+           right_hand_side->getType()->isIntegerTy());
+    llvm::Value *check =
+        holder->builder.CreateFDiv(left_hand_side, right_hand_side);
+    return check;
+  }
+  default:
+    assert(false && "cannot get here");
+    return nullptr;
+  }
 
   assert(false && "how did we get here");
   return nullptr;
@@ -535,7 +619,7 @@ llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
     return loc_value;
 
   llvm::Value *value = holder->builder.CreateLoad(
-      llvm::Type::getInt32Ty(holder->context), loc_value);
+      getType(holder)->getType(holder), loc_value);
   return value;
 }
 

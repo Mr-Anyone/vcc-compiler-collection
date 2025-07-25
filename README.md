@@ -102,12 +102,8 @@ float b = 20;
 a + b; # a will be converted into float implicitly
 ```
 
-3. The only valid operation for pointer type is addition, and the result is always incremented by the size of the pointee. 
+3. Integer are always signed.
 
-```
-ptr int a; 
-a + 10; # a is added by sizeof(int)*10, in other words be lowered using getelementpr
-```
 
 ## Statements
 1. Inside a if statement, the condition is false if and only if the value is 0. In other words, it is true if and only if the value is non zero.

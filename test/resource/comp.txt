@@ -164,3 +164,17 @@ gives int[
 
     ret 100;
 }
+
+function test_float
+gives float[
+    float a, 
+    float b,
+    float c,
+]{
+    if 1 then
+        float c = (a eq b)  + (a gt b) + (a gt b) + (a le b) 
+            + (a lt b) + (a ne b);
+    end
+
+    ret a + b * b + c;
+}

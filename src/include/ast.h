@@ -207,6 +207,7 @@ public:
   ParenthesesExpression(ASTBase *child);
 
   virtual Type *getType(ContextHolder holder) override;
+
 private:
   ASTBase *m_child;
 };
@@ -237,6 +238,9 @@ public:
   void setRHS(ASTBase *rhs);
 
 private:
+  llvm::Value *handleInteger(ContextHolder holder, llvm::Value *lhs,
+                             llvm::Value *rhs);
+
   ASTBase *m_lhs;
   ASTBase *m_rhs;
   BinaryExpressionType m_kind;
