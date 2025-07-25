@@ -284,8 +284,12 @@ RefYieldExpression::RefYieldExpression(const std::vector<ASTBase *> &childrens)
 
 Type *ArrayAccessExpresion::getChildType(ContextHolder holder) {
   Type *current_type = getType(holder);
-  assert(current_type->isArray() &&
-         "array access expression must have array type!");
+  assert((current_type->isArray() || current_type->isPointer()) &&
+         "array access expression must have valid type!");
+
+  if (PointerType *type = dyncast<PointerType>(current_type)) {
+    return type->getPointee();
+  }
 
   return current_type->getAs<ArrayType>()->getBase();
 }
@@ -339,12 +343,23 @@ llvm::Value *ArrayAccessExpresion::getRef(ContextHolder holder) {
           ? holder->symbol_table.lookupLocalVariable(this, m_base_name).value
           : m_parent_expression->getRef(holder);
 
+  Type *type = getType(holder);
   llvm::Type *llvm_type = getType(holder)->getType(holder);
+  // we cannot just do type->isPointer because the last layer
+  // returns a builtin usually say i32**
+  if (!type->isArray())
+    start_of_pointer = holder->builder.CreateLoad(
+        llvm::PointerType::get(llvm_type, /*AddressSpace*/ 0),
+        start_of_pointer);
+
   llvm::ConstantInt *zero =
       llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), 0);
   llvm::Value *offset = m_index_expression->codegen(holder);
 
-  return holder->builder.CreateGEP(llvm_type, start_of_pointer, {zero, offset});
+  return holder->builder.CreateGEP(
+      llvm_type, start_of_pointer,
+      (type->isArray()) ? std::vector<llvm::Value *>{zero, offset}
+                        : std::vector<llvm::Value *>{offset});
 }
 
 Type *FunctionDecl::getReturnType() const { return m_return_type; }
@@ -386,9 +401,18 @@ Type *BinaryExpression::getType(ContextHolder holder) {
   assert(false && "not sure what to do this");
 }
 
+// FIXME: this really should be callled getGEP type and not getType
+// getType returns the result of the ast expression, but currently, this returns
+// the GEP type
 Type *ArrayAccessExpresion::getType(ContextHolder holder) {
-  if (!m_parent_expression)
-    return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
+  if (!m_parent_expression) {
+    Type *type =
+        holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
+    if (type->isArray())
+      return type->getAs<ArrayType>();
+
+    return type->getAs<PointerType>()->getPointee();
+  }
 
   // trying to get type from parent expression!
   if (ArrayAccessExpresion *parent =
@@ -701,6 +725,10 @@ llvm::Value *ArrayAccessExpresion::codegen(ContextHolder holder) {
   if (m_compute_ref)
     return start_of_pointer;
 
-  return holder->builder.CreateLoad(getChildType(holder)->getType(holder),
+  Type *current_type = getType(
+      holder); // it is possible that this is i32 already, so we just load it
+  Type *child_type =
+      current_type->isBuiltin() ? current_type : getChildType(holder);
+  return holder->builder.CreateLoad(child_type->getType(holder),
                                     start_of_pointer);
 }

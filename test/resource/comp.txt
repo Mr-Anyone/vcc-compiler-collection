@@ -128,3 +128,11 @@ gives float [#real test
 ] {
     ret a + b;
 }    #asfasd
+
+ function test_twod_array  # this is some sort of test
+ gives int[
+     ptr ptr int a, 
+ ]{
+     ret a[10][10];
+ }
+
