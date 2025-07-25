@@ -49,23 +49,31 @@ private:
   /// is_ref_type - True implies ast yields ref when codegen is called,
   /// otherwise codegen returns value
   RefYieldExpression *buildPosfixExpression(RefYieldExpression *lhs = nullptr,
-                                            bool is_ref_type=false);
+                                            bool is_ref_type = false);
   RefYieldExpression *
-  buildTailPosfixExpression(RefYieldExpression *lhs, bool is_ref_type); // helper for above
+  buildTailPosfixExpression(RefYieldExpression *lhs,
+                            bool is_ref_type); // helper for above
 
   inline ASTBase *logError(const char *message);
 
   // for binary expression
-  const static inline std::unordered_map<lex::TokenType, int> precedence_level =
-      {
+  // clang-format off
+  const static inline std::unordered_map<lex::TokenType, int> precedence_level={
           // eq, ne, gt, ge, lt, le
-          {lex::EqualKeyword, 1}, {lex::NEquals, 1},  {lex::GreaterThan, 1},
-          {lex::GreaterEqual, 1}, {lex::LessThan, 1}, {lex::LessEqual, 1},
+          {lex::EqualKeyword, 1},
+          {lex::NEquals, 1},
+          {lex::GreaterThan, 1},
+          {lex::GreaterEqual, 1},
+          {lex::LessThan, 1},
+          {lex::LessEqual, 1},
 
-          {lex::Add, 2},          {lex::Subtract, 2},
+          {lex::Add, 2},
+          {lex::Subtract, 2},
 
           {lex::Multiply, 3},
+          {lex::Divide, 3},
   };
+  // clang-format on
 
   ContextHolder m_context;
   lex::Tokenizer m_tokenizer;

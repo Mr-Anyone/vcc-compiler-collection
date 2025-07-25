@@ -50,6 +50,7 @@ enum TokenType {
   Add,                 // +
   Subtract,            // -
   Multiply,            // *
+  Divide,              // /
   EqualKeyword,        // eq
   NEquals,             // ne
   GreaterThan,         // gt
@@ -153,6 +154,7 @@ private:
       {".", Fullstop},
       {"ret", Ret},
       {"+", Add},
+      {"/", Divide},
       {"-", Subtract},
       {"*", Multiply}};
 

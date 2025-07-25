@@ -31,6 +31,7 @@ const Token Tokenizer::next(int n) {
   m_file.seekg(pos);
   return current;
 }
+
 static bool is_valid_stoi(const std::string &str) {
   for (char c : str) {
     if (!std::isdigit(c))

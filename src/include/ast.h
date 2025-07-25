@@ -223,6 +223,7 @@ public:
     GT,
     LE,
     LT,
+    Divide,
   };
   static BinaryExpressionType getFromLexType(lex::Token lex_type);
   virtual Type *getType(ContextHolder holder) override;

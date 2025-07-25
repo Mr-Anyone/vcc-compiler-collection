@@ -134,6 +134,8 @@ BinaryExpression::getFromLexType(lex::Token token) {
     return LE;
   case lex::LessThan:
     return LT;
+  case lex::Divide:
+    return Divide;
   default:
     assert(false && "invalid token type");
     return Add;
@@ -506,6 +508,13 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
   case LT: {
     llvm::Value *check =
         holder->builder.CreateICmpSLT(left_hand_side, right_hand_side);
+    return check;
+  }
+  case Divide: {
+    assert(left_hand_side->getType()->isIntegerTy() &&
+           right_hand_side->getType()->isIntegerTy());
+    llvm::Value *check =
+        holder->builder.CreateUDiv(left_hand_side, right_hand_side);
     return check;
   }
   default:

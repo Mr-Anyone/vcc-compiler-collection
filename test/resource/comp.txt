@@ -136,3 +136,31 @@ gives float [#real test
      ret a[10][10];
  }
 
+function binary_search 
+gives int[
+    ptr int start, 
+    int target,
+    int size,
+]{
+    int low = 0; 
+    int high = size;
+
+    # inside of the while true loop we need to do the following
+    while low le high then 
+        int mid = low + (high - low) / 2;
+
+        if start[mid] eq target then 
+            ret mid;
+        end
+
+        if start[mid] gt target then 
+            high = mid - 1; 
+        end 
+
+        if start[mid] lt target then 
+            low = mid + 1;
+        end
+    end
+
+    ret 100;
+}
