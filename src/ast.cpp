@@ -66,9 +66,9 @@ llvm::Function *FunctionDecl::getLLVMFunction() const { return m_function; }
 
 FunctionDecl::FunctionDecl(std::vector<ASTBase *> &statements,
                            FunctionArgLists *arg_list, std::string &&name,
-                           Type *ret)
+                           Type *ret, bool is_extern)
     : ASTBase({arg_list}), m_statements(statements), m_arg_list(arg_list),
-      m_name(name), m_return_type(ret) {
+      m_name(name), m_return_type(ret), m_is_extern(is_extern) {
   // making sure that arg_list is always the first in the syntax tree!
   for (ASTBase *statement : statements) {
     addChildren(statement);
@@ -91,7 +91,7 @@ AssignmentStatement::AssignmentStatement(ASTBase *ref_expr, ASTBase *expression)
       m_expression(expression) {}
 
 void FunctionDecl::dump() {
-  std::cout << "name: " << m_name << " args: ";
+  std::cout << "name: " << m_name << " args: extern: " << m_is_extern;
   for (auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it) {
     std::cout << it->name << ", ";
   }
@@ -667,8 +667,16 @@ llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
   return nullptr;
 }
 
-llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
-  // FIXME: make this more efficient
+llvm::Value *FunctionDecl::buildExternalDecl(ContextHolder holder) {
+  llvm::FunctionType *function_type = getFunctionType(holder);
+  holder->symbol_table.addFunction(this);
+  m_function = llvm::Function::Create(
+      function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
+
+  return nullptr;
+}
+
+llvm::FunctionType *FunctionDecl::getFunctionType(ContextHolder holder) const {
   std::vector<llvm::Type *> args;
   for (auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it) {
     args.push_back(it->type->getType(holder));
@@ -676,6 +684,13 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
 
   llvm::FunctionType *function_type = llvm::FunctionType::get(
       m_return_type->getType(holder), args, /*isVarArg=*/false);
+  return function_type;
+}
+
+llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
+  if (m_is_extern)
+    return buildExternalDecl(holder);
+  llvm::FunctionType *function_type = getFunctionType(holder);
 
   m_function = llvm::Function::Create(
       function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
@@ -699,18 +714,22 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
 }
 
 llvm::Value *CallExpr::codegen(ContextHolder holder) {
-  llvm::Function *function =
-      holder->symbol_table.lookupFunction(m_func_name)->getLLVMFunction();
-  assert(function && "this must exist for codegen!");
-  assert(function->arg_size() == m_expressions.size() &&
+  const FunctionDecl *function_decl =
+      holder->symbol_table.lookupFunction(m_func_name);
+
+  assert(function_decl && "this must exist for codegen!");
+  assert(function_decl->getFunctionType(holder)->getNumParams() ==
+             m_expressions.size() &&
          "expected the same number of argument");
+
   std::vector<llvm::Value *> args;
   for (ASTBase *expression : m_expressions) {
     args.push_back(expression->codegen(holder));
   }
 
   llvm::Value *result =
-      holder->builder.CreateCall(function->getFunctionType(), function, args);
+      holder->builder.CreateCall(function_decl->getFunctionType(holder),
+                                 function_decl->getLLVMFunction(), args);
 
   return result;
 }

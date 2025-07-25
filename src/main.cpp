@@ -4,19 +4,18 @@
 #include "util.h"
 
 #include <iostream>
-#include <llvm/MC/TargetRegistry.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/Host.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Target/TargetMachine.h>
-#include <llvm/Target/TargetOptions.h>
 #include <llvm/IR/PassManager.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/StandardInstrumentations.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Host.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
 
 llvm::cl::opt<bool> print_ast("print-ast",
                               llvm::cl::desc("Whether to print syntax tree"));
@@ -49,10 +48,11 @@ int main(int argc, char *argv[]) {
   llvm::CGSCCAnalysisManager CGAM;
   llvm::ModuleAnalysisManager MAM;
 
-   // Create the new pass manager builder.
+  // Create the new pass manager builder.
   // Take a look at the PassBuilder constructor parameters for more
   // customization, e.g. specifying a TargetMachine or various debugging
-  // options. std::string error; // TheModule->setDataLayout(TheTargetMachine->createDataLayout());
+  // options. std::string error; //
+  // TheModule->setDataLayout(TheTargetMachine->createDataLayout());
   llvm::PassBuilder PB;
 
   // Register all the basic analyses with the managers.

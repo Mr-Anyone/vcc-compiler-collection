@@ -178,3 +178,12 @@ gives float[
 
     ret a + b * b + c;
 }
+
+external function _c_malloc_bind  gives ptr int [int size,]
+
+function get_dynamic_vector 
+gives ptr int[
+    int size,
+]{
+    ret _c_malloc_bind(size,);
+}

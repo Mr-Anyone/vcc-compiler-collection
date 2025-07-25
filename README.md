@@ -33,7 +33,10 @@ function testing gives int
 # Grammar Specification
 
 ```
-top_level :== <function_decl> | <struct_definition>
+top_level :== <function_decl> | <struct_definition> | <external_decl>
+
+external_decl :== 'extern', 'function', <identifier>, 
+    'gives', <type_qualification>, '[', <functin_args_list>, ']';
 
 function_decl :== 'function', <identifier>, 'gives', <type_qualification>, 
                         <function_args_list>, '{', <statements>+, ''}'

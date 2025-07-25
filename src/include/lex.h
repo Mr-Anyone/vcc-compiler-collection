@@ -29,6 +29,7 @@ enum TokenType {
   FunctionDecl,     // 'function'
   Fullstop,         // .
   Gives,
+  External,         // external
   SemiColon, //;
   Equal,     // =
   Ret,       // ret
@@ -47,6 +48,7 @@ enum TokenType {
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start
+  Void,  // float
   Add,                 // +
   Subtract,            // -
   Multiply,            // *
@@ -129,6 +131,7 @@ private:
       {",", Comma},
       {"while", While},
       {"struct", Struct},
+      {"external", External},
 
       {"if", If},
       {"then", Then},
@@ -148,6 +151,7 @@ private:
       {"float", Float},
       {"array", Array},
       {"gives", Gives},
+      {"void", Void},
       {"ptr", Ptr},
       {";", SemiColon},
       {"=", Equal},

@@ -25,6 +25,7 @@ private:
   Type *buildTypeQualification();
   void addStructDefinition();
 
+
   // building the function decl
   ASTBase *buildFunctionDecl();
   FunctionArgLists *buildFunctionArgList();
@@ -36,6 +37,7 @@ private:
   ASTBase *buildIfStatement();
   ASTBase *buildWhileStatement();
   ASTBase *buildDeclarationStatement();
+  ASTBase *buildExternalDecl();
 
   // Expressions
   ASTBase *buildExpression();

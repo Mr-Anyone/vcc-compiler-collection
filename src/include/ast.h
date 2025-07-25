@@ -63,10 +63,13 @@ private:
   std::vector<TypeInfo> m_args;
 };
 
+// FIXME: we should separate FunctionBody with FunctionDecl
 class FunctionDecl : public ASTBase {
 public:
+  /// if `is_extern` is true, codegen only generate a declaration and assume to
+  /// have no body
   FunctionDecl(std::vector<ASTBase *> &expression, FunctionArgLists *arg_list,
-               std::string &&name, Type *return_type);
+               std::string &&name, Type *return_type, bool is_extern);
 
   virtual llvm::Value *codegen(ContextHolder holder) override;
   void dump() override;
@@ -74,8 +77,13 @@ public:
   const std::string &getName() const;
   llvm::Function *getLLVMFunction() const;
   Type *getReturnType() const;
+  llvm::FunctionType* getFunctionType(ContextHolder holder)const ;
 
 private:
+  llvm::Value* buildExternalDecl(ContextHolder holder);
+  
+  bool m_is_extern; // is external or not?
+
   Type *m_return_type;
   std::vector<ASTBase *> m_statements;
   FunctionArgLists *m_arg_list;
@@ -276,7 +284,7 @@ public:
   virtual llvm::Value *getRef(ContextHolder holder) override;
 
   // virtual Type *getType(ContextHolder holder) override;
-  Type* getGEPType(ContextHolder holder);
+  Type *getGEPType(ContextHolder holder);
   Type *getGEPChildType(ContextHolder holder);
 
   void setChildPosfixExpression(RefYieldExpression *child);
@@ -295,7 +303,7 @@ private:
 };
 
 // FIXME: maybe we should do type deduction here instead!
-class ArrayAccessExpresion : public RefYieldExpression{
+class ArrayAccessExpresion : public RefYieldExpression {
 public:
   ArrayAccessExpresion(const std::string &name, ASTBase *expression,
                        bool compute_ref);
