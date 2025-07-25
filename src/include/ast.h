@@ -263,7 +263,7 @@ protected:
 
 // FIXME: maybe we should do type deduction here instead!
 // The parser parse enough type so that this won't be a problem
-class MemberAccessExpression : public RefYieldExpression, Expression {
+class MemberAccessExpression : public RefYieldExpression {
 public:
   MemberAccessExpression(const std::string &name, const std::string &member,
                          bool compute_ref);
@@ -275,8 +275,9 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
 
-  virtual Type *getType(ContextHolder holder) override;
-  Type *getChildType(ContextHolder holder);
+  // virtual Type *getType(ContextHolder holder) override;
+  Type* getGEPType(ContextHolder holder);
+  Type *getGEPChildType(ContextHolder holder);
 
   void setChildPosfixExpression(RefYieldExpression *child);
 
@@ -294,7 +295,7 @@ private:
 };
 
 // FIXME: maybe we should do type deduction here instead!
-class ArrayAccessExpresion : public RefYieldExpression, Expression {
+class ArrayAccessExpresion : public RefYieldExpression{
 public:
   ArrayAccessExpresion(const std::string &name, ASTBase *expression,
                        bool compute_ref);
@@ -305,8 +306,9 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
 
-  virtual Type *getType(ContextHolder holder) override;
-  Type *getChildType(ContextHolder holder);
+  // virtual Type *getType(ContextHolder holder) override;
+  Type *getGEPType(ContextHolder holder);
+  Type *getGEPChildType(ContextHolder holder);
 
   void setChildPosfixExpression(RefYieldExpression *child);
 

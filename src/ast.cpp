@@ -284,8 +284,8 @@ void ArrayAccessExpresion::dump() {
 RefYieldExpression::RefYieldExpression(const std::vector<ASTBase *> &childrens)
     : ASTBase({childrens}) {}
 
-Type *ArrayAccessExpresion::getChildType(ContextHolder holder) {
-  Type *current_type = getType(holder);
+Type *ArrayAccessExpresion::getGEPChildType(ContextHolder holder) {
+  Type *current_type = getGEPType(holder);
   assert((current_type->isArray() || current_type->isPointer()) &&
          "array access expression must have valid type!");
 
@@ -296,8 +296,8 @@ Type *ArrayAccessExpresion::getChildType(ContextHolder holder) {
   return current_type->getAs<ArrayType>()->getBase();
 }
 
-Type *MemberAccessExpression::getChildType(ContextHolder holder) {
-  return getType(holder)
+Type *MemberAccessExpression::getGEPChildType(ContextHolder holder) {
+  return getGEPType(holder)
       ->getAs<StructType>()
       ->getElement(m_member)
       .value()
@@ -324,7 +324,7 @@ llvm::Value *MemberAccessExpression::getRef(ContextHolder holder) {
           : m_parent->getRef(holder);
 
   // getting the actual field number
-  Type *current_type = getType(holder);
+  Type *current_type = getGEPType(holder);
   int field_num =
       current_type->getAs<StructType>()->getElement(m_member)->field_num;
   llvm::Value *zero =
@@ -345,8 +345,8 @@ llvm::Value *ArrayAccessExpresion::getRef(ContextHolder holder) {
           ? holder->symbol_table.lookupLocalVariable(this, m_base_name).value
           : m_parent_expression->getRef(holder);
 
-  Type *type = getType(holder);
-  llvm::Type *llvm_type = getType(holder)->getType(holder);
+  Type *type = getGEPType(holder);
+  llvm::Type *llvm_type = getGEPType(holder)->getType(holder);
   // we cannot just do type->isPointer because the last layer
   // returns a builtin usually say i32**
   if (!type->isArray())
@@ -369,18 +369,18 @@ Type *FunctionDecl::getReturnType() const { return m_return_type; }
 // ================================================================================
 // ====================== Expression Implementation::getType
 // ======================
-Type *MemberAccessExpression::getType(ContextHolder holder) {
+Type *MemberAccessExpression::getGEPType(ContextHolder holder) {
   if (!m_parent)
     return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
 
   // FIXME: this shares a lot same code with ArrayAccessExpression::getType,
   // maybe we should have a standard interface that solves this entirely?
   if (ArrayAccessExpresion *parent = dyncast<ArrayAccessExpresion>(m_parent)) {
-    return parent->getChildType(holder);
+    return parent->getGEPChildType(holder);
   }
   assert(isa<MemberAccessExpression>(m_parent));
   MemberAccessExpression *parent = dyncast<MemberAccessExpression>(m_parent);
-  return parent->getChildType(holder);
+  return parent->getGEPChildType(holder);
 }
 
 Type *ConstantExpr::getType(ContextHolder holder) {
@@ -406,7 +406,7 @@ Type *BinaryExpression::getType(ContextHolder holder) {
 // FIXME: this really should be callled getGEP type and not getType
 // getType returns the result of the ast expression, but currently, this returns
 // the GEP type
-Type *ArrayAccessExpresion::getType(ContextHolder holder) {
+Type *ArrayAccessExpresion::getGEPType(ContextHolder holder) {
   if (!m_parent_expression) {
     Type *type =
         holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
@@ -419,14 +419,14 @@ Type *ArrayAccessExpresion::getType(ContextHolder holder) {
   // trying to get type from parent expression!
   if (ArrayAccessExpresion *parent =
           dyncast<ArrayAccessExpresion>(m_parent_expression)) {
-    return parent->getChildType(holder);
+    return parent->getGEPChildType(holder);
   }
 
   assert(isa<MemberAccessExpression>(m_parent_expression) &&
          "must be member expresion beacuse we have no options left!");
   MemberAccessExpression *parent =
       dyncast<MemberAccessExpression>(m_parent_expression);
-  return parent->getChildType(holder);
+  return parent->getGEPChildType(holder);
 }
 
 // ======================================================
@@ -538,11 +538,13 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
   // side of a binary expression if the two given type are float and int.  In
   // such case, the implicit conversion will take place in int and be converted
   // into a float.
-  if(!right_hand_side->getType()->isFloatingPointTy()){
-      right_hand_side = holder->builder.CreateSIToFP(right_hand_side, left_hand_side->getType());
-  }else if(!left_hand_side->getType()->isFloatingPointTy()){
-      assert(left_hand_side->getType()->isIntegerTy());
-      left_hand_side = holder->builder.CreateSIToFP(left_hand_side, right_hand_side->getType());
+  if (!right_hand_side->getType()->isFloatingPointTy()) {
+    right_hand_side = holder->builder.CreateSIToFP(right_hand_side,
+                                                   left_hand_side->getType());
+  } else if (!left_hand_side->getType()->isFloatingPointTy()) {
+    assert(left_hand_side->getType()->isIntegerTy());
+    left_hand_side = holder->builder.CreateSIToFP(left_hand_side,
+                                                  right_hand_side->getType());
   }
 
   assert(right_hand_side && left_hand_side && "cannot be null");
@@ -618,8 +620,8 @@ llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
   if (m_compute_ref)
     return loc_value;
 
-  llvm::Value *value = holder->builder.CreateLoad(
-      getType(holder)->getType(holder), loc_value);
+  llvm::Value *value =
+      holder->builder.CreateLoad(getType(holder)->getType(holder), loc_value);
   return value;
 }
 
@@ -802,9 +804,10 @@ llvm::Value *MemberAccessExpression::codegen(ContextHolder holder) {
   if (m_compute_ref)
     return ref_loc;
 
-  llvm::Type *child_type =
-      getType(holder)->getAs<StructType>()->getElement(m_member)->type->getType(
-          holder);
+  llvm::Type *child_type = getGEPType(holder)
+                               ->getAs<StructType>()
+                               ->getElement(m_member)
+                               ->type->getType(holder);
   return holder->builder.CreateLoad(child_type, ref_loc);
 }
 
@@ -818,10 +821,10 @@ llvm::Value *ArrayAccessExpresion::codegen(ContextHolder holder) {
   if (m_compute_ref)
     return start_of_pointer;
 
-  Type *current_type = getType(
+  Type *current_type = getGEPType(
       holder); // it is possible that this is i32 already, so we just load it
   Type *child_type =
-      current_type->isBuiltin() ? current_type : getChildType(holder);
+      current_type->isBuiltin() ? current_type : getGEPChildType(holder);
   return holder->builder.CreateLoad(child_type->getType(holder),
                                     start_of_pointer);
 }
