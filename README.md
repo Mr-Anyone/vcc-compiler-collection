@@ -74,8 +74,11 @@ expression :==  <binary_expression>
 binary_expression :== <trivial_expression> | 
                             <trivial_expression>, <bin_op>, <binary_expression>
 
+deref_expression :== 'deref', '(', <trivial_expression>, ')'
+
 trivial_expression :== <identifier> | <call_expression> |
-                            '(', <expression>, ')' | <integer_literal> | <posfix_expression>
+                            '(', <expression>, ')' | <integer_literal> | 
+                            <posfix_expression> | <deref_expression>
 
 posfix_expression :== <identifier> | 
     <posfix_expression>, '.', <identifier> | 
@@ -88,7 +91,13 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 
 # Semantics
 
+## Definition
+
+1. Locator value
+2.
+
 ## General Expression Semantics
+
 
 1. Implicit conversion always happen for type that has less bits. For example, when adding `i16` with `i32`, `i16` will be sign extended to `i32` to perform the addition. This applies to boolean expression.
 

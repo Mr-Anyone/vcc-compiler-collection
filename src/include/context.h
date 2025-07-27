@@ -4,6 +4,7 @@
 // the owner of everything
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 
 #include "symbol_table.h"
 #include <memory>

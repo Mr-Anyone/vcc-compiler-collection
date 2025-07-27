@@ -30,6 +30,7 @@ enum TokenType {
   Fullstop,         // .
   Gives,
   External,         // external
+  Deref,            // deref
   SemiColon, //;
   Equal,     // =
   Ret,       // ret
@@ -136,6 +137,7 @@ private:
       {"if", If},
       {"then", Then},
       {"end", End},
+      {"deref", Deref},
 
       // boolean stuff
       {"eq", EqualKeyword},

@@ -4,7 +4,7 @@
 
 TEST(CompTest, TestCompile){
     Parser parser = parseFile("resource/comp.txt");
-    for(ASTBase* base : parser.getSyntaxTree()){
+    for(Statement* base : parser.getSyntaxTree()){
         base->codegen(parser.getHolder());
     }
     

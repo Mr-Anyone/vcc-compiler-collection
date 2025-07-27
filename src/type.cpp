@@ -94,7 +94,7 @@ PointerType::PointerType(Type *pointee) : m_pointee(pointee) {}
 Type *PointerType::getPointee() { return m_pointee; }
 
 llvm::Type *PointerType::getType(ContextHolder holder) {
-  return llvm::PointerType::get(m_pointee->getType(holder), /*AddressSpace=*/0);
+    return llvm::PointerType::get(m_pointee->getType(holder)->getContext(), /*AddressSpace*/0);
 }
 
 ArrayType::ArrayType(Type *base, int count) : m_count(count), m_base(base) {}

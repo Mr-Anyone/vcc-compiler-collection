@@ -13,6 +13,13 @@ static void printSpaceBasedOnDepth(int depth) {
   }
 }
 
+Statement::Statement(const std::vector<ASTBase *> childrens)
+    : ASTBase(std::vector<Statement *>()) {
+  for (ASTBase *child : childrens) {
+    addChildren(child);
+  }
+}
+
 void ASTBase::debugDump(int depth) {
   printSpaceBasedOnDepth(depth - 1);
   std::cout << getASTClassName(this) << " ";
@@ -26,7 +33,16 @@ void ASTBase::debugDump(int depth) {
   }
 }
 
-ASTBase::ASTBase(const std::vector<ASTBase *> childrens)
+ASTBase::ASTBase(const std::vector<Expression *> childrens)
+    : m_parent(nullptr), m_childrens() {
+
+  for (ASTBase *children : childrens) {
+    addChildren(children);
+    children->setParent(this);
+  }
+}
+
+ASTBase::ASTBase(const std::vector<Statement *> childrens)
     : m_parent(nullptr), m_childrens() {
 
   for (ASTBase *children : childrens) {
@@ -64,10 +80,10 @@ const std::string &FunctionDecl::getName() const { return m_name; }
 
 llvm::Function *FunctionDecl::getLLVMFunction() const { return m_function; }
 
-FunctionDecl::FunctionDecl(std::vector<ASTBase *> &statements,
+FunctionDecl::FunctionDecl(std::vector<Statement *> &statements,
                            FunctionArgLists *arg_list, std::string &&name,
                            Type *ret, bool is_extern)
-    : ASTBase({arg_list}), m_statements(statements), m_arg_list(arg_list),
+    : Statement({arg_list}), m_statements(statements), m_arg_list(arg_list),
       m_name(name), m_return_type(ret), m_is_extern(is_extern) {
   // making sure that arg_list is always the first in the syntax tree!
   for (ASTBase *statement : statements) {
@@ -76,7 +92,7 @@ FunctionDecl::FunctionDecl(std::vector<ASTBase *> &statements,
 }
 
 FunctionArgLists::FunctionArgLists(std::vector<TypeInfo> &&args)
-    : ASTBase({}), m_args(args) {}
+    : Statement({}), m_args(args) {}
 
 FunctionArgLists::ArgsIter FunctionArgLists::begin() const {
   return m_args.cbegin();
@@ -87,7 +103,7 @@ FunctionArgLists::ArgsIter FunctionArgLists::end() const {
 }
 
 AssignmentStatement::AssignmentStatement(ASTBase *ref_expr, ASTBase *expression)
-    : ASTBase({ref_expr, expression}), m_ref_expr(ref_expr),
+    : Statement({ref_expr, expression}), m_ref_expr(ref_expr),
       m_expression(expression) {}
 
 void FunctionDecl::dump() {
@@ -97,20 +113,17 @@ void FunctionDecl::dump() {
   }
 }
 
-ReturnStatement::ReturnStatement(ASTBase *expression)
-    : ASTBase({expression}), m_expression(expression) {}
+ReturnStatement::ReturnStatement(Expression *expression)
+    : Statement({expression}), m_expression(expression) {}
 
-IdentifierExpr::IdentifierExpr(const std::string &name, bool compute_ref)
-    : Expression({}), m_name(name), m_compute_ref(compute_ref) {}
+IdentifierExpr::IdentifierExpr(const std::string &name)
+    : LocatorExpression({}), m_name(name) {}
 
 ConstantExpr::ConstantExpr(int value) : Expression({}), m_value(value) {}
 
 int ConstantExpr::getValue() { return m_value; }
 
-ParenthesesExpression::ParenthesesExpression(ASTBase *child)
-    : Expression({child}), m_child(child) {}
-
-BinaryExpression::BinaryExpression(ASTBase *lhs, BinaryExpressionType type)
+BinaryExpression::BinaryExpression(Expression *lhs, BinaryExpressionType type)
     : Expression({lhs}), m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
 
 BinaryExpression::BinaryExpressionType
@@ -142,7 +155,7 @@ BinaryExpression::getFromLexType(lex::Token token) {
   }
 }
 
-void BinaryExpression::setRHS(ASTBase *rhs) {
+void BinaryExpression::setRHS(Expression *rhs) {
   assert(!m_rhs && "expected it to be a null pointer");
   addChildren(rhs);
 
@@ -168,10 +181,7 @@ void BinaryExpression::dump() {
   return;
 }
 
-void IdentifierExpr::dump() {
-  std::cout << "identifier: " << m_name
-            << " compute-ref: " << (m_compute_ref ? "true" : "false");
-}
+void IdentifierExpr::dump() { std::cout << "identifier: " << m_name; }
 
 void ConstantExpr::dump() { std::cout << m_value; }
 
@@ -200,13 +210,14 @@ const FunctionDecl *ASTBase::getFirstFunctionDecl() const {
 }
 
 CallExpr::CallExpr(const std::string &name,
-                   const std::vector<ASTBase *> &expression)
+                   const std::vector<Expression *> &expression)
     : Expression(expression), m_func_name(name), m_expressions(expression) {}
 
 void CallExpr::dump() { std::cout << "name: " << m_func_name; }
 
-IfStatement::IfStatement(ASTBase *cond, std::vector<ASTBase *> &&expressions)
-    : ASTBase({cond}), m_cond(cond), m_expressions(expressions) {
+IfStatement::IfStatement(Expression *cond,
+                         std::vector<Statement *> &&expressions)
+    : Statement({cond}), m_cond(cond), m_statements(expressions) {
   for (ASTBase *expression : expressions) {
     addChildren(expression);
   }
@@ -215,8 +226,8 @@ IfStatement::IfStatement(ASTBase *cond, std::vector<ASTBase *> &&expressions)
 void IfStatement::dump() {}
 
 DeclarationStatement::DeclarationStatement(const std::string &name,
-                                           ASTBase *base, Type *type)
-    : ASTBase({}), m_expression(base), m_name(name), m_type(type) {
+                                           Expression *base, Type *type)
+    : Statement({}), m_expression(base), m_name(name), m_type(type) {
   // it is possible that the child is a nullptr, meaning we only have to
   // allocate space
   if (base)
@@ -225,10 +236,10 @@ DeclarationStatement::DeclarationStatement(const std::string &name,
 
 void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
 
-WhileStatement::WhileStatement(ASTBase *cond,
-                               std::vector<ASTBase *> &&expression)
-    : ASTBase({cond}), m_cond(cond), m_expressions(expression) {
-  for (ASTBase *base : m_expressions) {
+WhileStatement::WhileStatement(Expression *cond,
+                               std::vector<Statement *> &&expression)
+    : Statement({cond}), m_cond(cond), m_statements(expression) {
+  for (ASTBase *base : m_statements) {
     addChildren(base);
   }
 }
@@ -236,16 +247,12 @@ WhileStatement::WhileStatement(ASTBase *cond,
 void WhileStatement::dump() { return; }
 
 MemberAccessExpression::MemberAccessExpression(const std::string &name,
-                                               const std::string &member,
-                                               bool compute_ref)
-    : m_base_name(name), m_member(member), m_compute_ref(compute_ref),
-      RefYieldExpression({}) {}
+                                               const std::string &member)
+    : m_base_name(name), m_member(member), LocatorExpression({}) {}
 
-MemberAccessExpression::MemberAccessExpression(RefYieldExpression *parent,
-                                               const std::string &member,
-                                               bool compute_ref)
-    : m_member(member), RefYieldExpression({}), m_parent(parent),
-      m_compute_ref(compute_ref) {
+MemberAccessExpression::MemberAccessExpression(LocatorExpression *parent,
+                                               const std::string &member)
+    : m_member(member), LocatorExpression({}), m_parent(parent) {
   parent->addChildren(this);
 }
 
@@ -254,37 +261,31 @@ void MemberAccessExpression::dump() {
   if (!m_parent)
     std::cout << m_base_name;
 
-  std::cout << "." << m_member << " is_ref: " << m_compute_ref
-            << " child: " << m_child_posfix_expression << " this: " << this;
+  std::cout << "." << m_member << " child: " << m_child_posfix_expression
+            << " this: " << this;
 }
 
-ArrayAccessExpresion::ArrayAccessExpresion(const std::string &name,
-                                           ASTBase *expression,
-                                           bool compute_ref)
-    : RefYieldExpression({expression}), m_has_base_name(true),
-      m_index_expression(expression), m_base_name(name),
-      m_compute_ref(compute_ref) {}
+ArrayAccessExpression::ArrayAccessExpression(const std::string &name,
+                                           Expression *expression)
+    : LocatorExpression({expression}), m_index_expression(expression),
+      m_base_name(name) {}
 
-ArrayAccessExpresion::ArrayAccessExpresion(RefYieldExpression *parent,
-                                           ASTBase *index_expression,
-                                           bool compute_ref)
-    : RefYieldExpression({index_expression}),
-      m_index_expression(index_expression), m_parent_expression(parent),
-      m_compute_ref(compute_ref) {
+ArrayAccessExpression::ArrayAccessExpression(LocatorExpression *parent,
+                                           Expression *index_expression)
+    : LocatorExpression({index_expression}),
+      m_index_expression(index_expression), m_parent_expression(parent) {
   parent->addChildren(this);
 }
 
-void ArrayAccessExpresion::dump() {
-
+void ArrayAccessExpression::dump() {
   std::cout << "[]"
-            << " is_ref: " << (m_compute_ref)
             << " child*: " << m_child_posfix_expression << " this: " << this;
 }
 
-RefYieldExpression::RefYieldExpression(const std::vector<ASTBase *> &childrens)
+LocatorExpression::LocatorExpression(const std::vector<Expression *> &childrens)
     : Expression(childrens) {}
 
-Type *ArrayAccessExpresion::getGEPChildType(ContextHolder holder) {
+Type *ArrayAccessExpression::getGEPChildType(ContextHolder holder) {
   Type *current_type = getGEPType(holder);
   assert((current_type->isArray() || current_type->isPointer()) &&
          "array access expression must have valid type!");
@@ -304,24 +305,34 @@ Type *MemberAccessExpression::getGEPChildType(ContextHolder holder) {
       .type;
 }
 
-void ArrayAccessExpresion::setChildPosfixExpression(RefYieldExpression *child) {
+void ArrayAccessExpression::setChildPosfixExpression(LocatorExpression *child) {
   m_child_posfix_expression = child;
 }
 
 void MemberAccessExpression::setChildPosfixExpression(
-    RefYieldExpression *child) {
+    LocatorExpression *child) {
   m_child_posfix_expression = child;
 }
 
-llvm::Value *RefYieldExpression::getRef(ContextHolder holder) {
+llvm::Value *LocatorExpression::getRef(ContextHolder holder) {
   assert(false && "please implement this!'");
 }
+llvm::Value *IdentifierExpr::getRef(ContextHolder holder) {
+  return holder->symbol_table.lookupLocalVariable(this, m_name).value;
+}
 
-llvm::Value *MemberAccessExpression::getRef(ContextHolder holder) {
+static llvm::Value* getStartOfPointerFromParent(Expression* expression, ContextHolder holder){
+    if(MemberAccessExpression* member = dyncast<MemberAccessExpression>(expression))
+        return member->getCurrentRef(holder);
+
+    return static_cast<ArrayAccessExpression*>(expression)->getCurrentRef(holder);
+}
+
+llvm::Value *MemberAccessExpression::getCurrentRef(ContextHolder holder) {
   llvm::Value *start_of_pointer =
       (m_parent == nullptr)
           ? holder->symbol_table.lookupLocalVariable(this, m_base_name).value
-          : m_parent->getRef(holder);
+          : getStartOfPointerFromParent(m_parent, holder);
 
   // getting the actual field number
   Type *current_type = getGEPType(holder);
@@ -336,14 +347,14 @@ llvm::Value *MemberAccessExpression::getRef(ContextHolder holder) {
                                    start_of_pointer, {zero, offset});
 }
 
-llvm::Value *ArrayAccessExpresion::getRef(ContextHolder holder) {
+llvm::Value *ArrayAccessExpression::getCurrentRef(ContextHolder holder) {
   // if we don't have a parent, then we can get the
   // location from a symbol table lookup! It means we
   // are at the most top level! Or else we get the location from parent's getRef
   llvm::Value *start_of_pointer =
       (m_parent_expression == nullptr)
           ? holder->symbol_table.lookupLocalVariable(this, m_base_name).value
-          : m_parent_expression->getRef(holder);
+          : getStartOfPointerFromParent(m_parent_expression, holder);
 
   Type *type = getGEPType(holder);
   llvm::Type *llvm_type = getGEPType(holder)->getType(holder);
@@ -351,12 +362,12 @@ llvm::Value *ArrayAccessExpresion::getRef(ContextHolder holder) {
   // returns a builtin usually say i32**
   if (!type->isArray())
     start_of_pointer = holder->builder.CreateLoad(
-        llvm::PointerType::get(llvm_type, /*AddressSpace*/ 0),
+        llvm::PointerType::get(holder->context, /*AddressSpace*/ 0),
         start_of_pointer);
 
   llvm::ConstantInt *zero =
       llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), 0);
-  llvm::Value *offset = m_index_expression->codegen(holder);
+  llvm::Value *offset = m_index_expression->getVal(holder);
 
   return holder->builder.CreateGEP(
       llvm_type, start_of_pointer,
@@ -366,8 +377,14 @@ llvm::Value *ArrayAccessExpresion::getRef(ContextHolder holder) {
 
 Type *FunctionDecl::getReturnType() const { return m_return_type; }
 
-Expression::Expression(const std::vector<ASTBase*> children):
-    ASTBase(children){}
+Expression::Expression(const std::vector<Expression *> children)
+    : ASTBase(children) {}
+
+DeRefExpression::DeRefExpression(Expression *ref_get)
+    : LocatorExpression({ref_get}), m_ref(ref_get) {}
+
+void DeRefExpression::dump() {}
+
 // ================================================================================
 // ====================== Expression Implementation::getType
 // ======================
@@ -377,7 +394,7 @@ Type *MemberAccessExpression::getGEPType(ContextHolder holder) {
 
   // FIXME: this shares a lot same code with ArrayAccessExpression::getType,
   // maybe we should have a standard interface that solves this entirely?
-  if (ArrayAccessExpresion *parent = dyncast<ArrayAccessExpresion>(m_parent)) {
+  if (ArrayAccessExpression *parent = dyncast<ArrayAccessExpression>(m_parent)) {
     return parent->getGEPChildType(holder);
   }
   assert(isa<MemberAccessExpression>(m_parent));
@@ -393,7 +410,14 @@ Type *MemberAccessExpression::getType(ContextHolder holder) {
   return getGEPType(holder)->getAs<StructType>()->getElement(m_member)->type;
 }
 
-Type *ArrayAccessExpresion::getType(ContextHolder holder) {
+Type *DeRefExpression::getType(ContextHolder holder) {
+  return dyncast<Expression>(m_ref)
+      ->getType(holder)
+      ->getAs<PointerType>()
+      ->getPointee();
+}
+
+Type *ArrayAccessExpression::getType(ContextHolder holder) {
   if (m_child_posfix_expression)
     return m_child_posfix_expression->getType(holder);
 
@@ -412,10 +436,6 @@ Type *CallExpr::getType(ContextHolder holder) {
   return holder->symbol_table.lookupFunction(m_func_name)->getReturnType();
 }
 
-Type *ParenthesesExpression::getType(ContextHolder holder) {
-  return dynamic_cast<Expression *>(m_child)->getType(holder);
-}
-
 Type *BinaryExpression::getType(ContextHolder holder) {
   assert(false && "not sure what to do this");
 }
@@ -423,7 +443,7 @@ Type *BinaryExpression::getType(ContextHolder holder) {
 // FIXME: this really should be callled getGEP type and not getType
 // getType returns the result of the ast expression, but currently, this returns
 // the GEP type
-Type *ArrayAccessExpresion::getGEPType(ContextHolder holder) {
+Type *ArrayAccessExpression::getGEPType(ContextHolder holder) {
   if (!m_parent_expression) {
     Type *type =
         holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
@@ -434,8 +454,8 @@ Type *ArrayAccessExpresion::getGEPType(ContextHolder holder) {
   }
 
   // trying to get type from parent expression!
-  if (ArrayAccessExpresion *parent =
-          dyncast<ArrayAccessExpresion>(m_parent_expression)) {
+  if (ArrayAccessExpression *parent =
+          dyncast<ArrayAccessExpression>(m_parent_expression)) {
     return parent->getGEPChildType(holder);
   }
 
@@ -448,12 +468,7 @@ Type *ArrayAccessExpresion::getGEPType(ContextHolder holder) {
 
 // ======================================================
 // ====================== CODE GEN ======================
-llvm::Value *ASTBase::codegen(ContextHolder holder) {
-  assert(false && "please implement codegen");
-  return nullptr;
-}
-
-llvm::Value *ConstantExpr::codegen(ContextHolder holder) {
+llvm::Value *ConstantExpr::getVal(ContextHolder holder) {
   llvm::Value *value =
       llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), m_value);
   return value;
@@ -539,9 +554,9 @@ llvm::Value *BinaryExpression::handleInteger(ContextHolder holder,
   }
 }
 
-llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
-  llvm::Value *right_hand_side = m_rhs->codegen(holder);
-  llvm::Value *left_hand_side = m_lhs->codegen(holder);
+llvm::Value *BinaryExpression::getVal(ContextHolder holder) {
+  llvm::Value *right_hand_side = m_rhs->getVal(holder);
+  llvm::Value *left_hand_side = m_lhs->getVal(holder);
 
   if (right_hand_side->getType()->isIntegerTy() &&
       left_hand_side->getType()->isIntegerTy())
@@ -629,20 +644,16 @@ llvm::Value *BinaryExpression::codegen(ContextHolder holder) {
   return nullptr;
 }
 
-llvm::Value *IdentifierExpr::codegen(ContextHolder holder) {
-  // FIXME: it seems that we need to encode more type
-  // information
+llvm::Value *IdentifierExpr::getVal(ContextHolder holder) {
   llvm::Value *loc_value =
       holder->symbol_table.lookupLocalVariable(this, m_name).value;
-  if (m_compute_ref)
-    return loc_value;
 
   llvm::Value *value =
       holder->builder.CreateLoad(getType(holder)->getType(holder), loc_value);
   return value;
 }
 
-llvm::Value *FunctionArgLists::codegen(ContextHolder holder) {
+void FunctionArgLists::codegen(ContextHolder holder) {
   const FunctionDecl *func = getFirstFunctionDecl();
 
   // appending to symbol table
@@ -660,39 +671,31 @@ llvm::Value *FunctionArgLists::codegen(ContextHolder holder) {
                                           alloc_loc);
     ++count;
   }
-
-  return nullptr;
 }
 
-llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
-  llvm::Value *expression_val = m_expression->codegen(holder);
-  dyncast<Expression>(m_expression)->getType(holder)->dump();
-  dyncast<Expression>(m_ref_expr)->getType(holder)->dump();
+void AssignmentStatement::codegen(ContextHolder holder) {
+  assert(false && "this is not yet done");
+  // llvm::Value *expression_val = m_expression->codegen(holder);
+  // llvm::Value *alloc_loc = m_ref_expr->codegen(holder);
 
-  llvm::Value *alloc_loc = m_ref_expr->codegen(holder);
-  assert(expression_val && alloc_loc);
-
-  holder->builder.CreateStore(expression_val, alloc_loc);
-  return nullptr;
+  // assert(expression_val && alloc_loc);
+  // holder->builder.CreateStore(expression_val, alloc_loc);
 }
 
 void AssignmentStatement::dump() {}
 
-llvm::Value *ReturnStatement::codegen(ContextHolder holder) {
+void ReturnStatement::codegen(ContextHolder holder) {
   // FIXME: must add semantics analysis
-  llvm::Value *return_value = m_expression->codegen(holder);
+  llvm::Value *return_value = m_expression->getVal(holder);
 
   holder->builder.CreateRet(return_value);
-  return nullptr;
 }
 
-llvm::Value *FunctionDecl::buildExternalDecl(ContextHolder holder) {
+void FunctionDecl::buildExternalDecl(ContextHolder holder) {
   llvm::FunctionType *function_type = getFunctionType(holder);
   holder->symbol_table.addFunction(this);
   m_function = llvm::Function::Create(
       function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
-
-  return nullptr;
 }
 
 llvm::FunctionType *FunctionDecl::getFunctionType(ContextHolder holder) const {
@@ -706,7 +709,7 @@ llvm::FunctionType *FunctionDecl::getFunctionType(ContextHolder holder) const {
   return function_type;
 }
 
-llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
+void FunctionDecl::codegen(ContextHolder holder) {
   if (m_is_extern)
     return buildExternalDecl(holder);
   llvm::FunctionType *function_type = getFunctionType(holder);
@@ -725,14 +728,12 @@ llvm::Value *FunctionDecl::codegen(ContextHolder holder) {
 
   // code generation for statement
   m_arg_list->codegen(holder);
-  for (ASTBase *statement : m_statements) {
+  for (Statement *statement : m_statements) {
     statement->codegen(holder);
   }
-
-  return m_function;
 }
 
-llvm::Value *CallExpr::codegen(ContextHolder holder) {
+llvm::Value *CallExpr::getVal(ContextHolder holder) {
   const FunctionDecl *function_decl =
       holder->symbol_table.lookupFunction(m_func_name);
 
@@ -742,8 +743,8 @@ llvm::Value *CallExpr::codegen(ContextHolder holder) {
          "expected the same number of argument");
 
   std::vector<llvm::Value *> args;
-  for (ASTBase *expression : m_expressions) {
-    args.push_back(expression->codegen(holder));
+  for (Expression *expression : m_expressions) {
+    args.push_back(expression->getVal(holder));
   }
 
   llvm::Value *result =
@@ -753,14 +754,14 @@ llvm::Value *CallExpr::codegen(ContextHolder holder) {
   return result;
 }
 
-llvm::Value *IfStatement::codegen(ContextHolder holder) {
+void IfStatement::codegen(ContextHolder holder) {
   llvm::Function *function = getFirstFunctionDecl()->getLLVMFunction();
   llvm::BasicBlock *true_if_block =
       llvm::BasicBlock::Create(holder->context, "", function);
   llvm::BasicBlock *fallthrough_block =
       llvm::BasicBlock::Create(holder->context, "", function);
 
-  llvm::Value *cond = m_cond->codegen(holder);
+  llvm::Value *cond = m_cond->getVal(holder);
   assert(cond->getType()->isIntegerTy() && "must be integer type");
   cond = holder->builder.CreateICmpNE(
       cond, llvm::ConstantInt::get(cond->getType(), 0));
@@ -769,21 +770,19 @@ llvm::Value *IfStatement::codegen(ContextHolder holder) {
       holder->builder.CreateCondBr(cond, true_if_block, fallthrough_block);
 
   holder->builder.SetInsertPoint(true_if_block);
-  for (ASTBase *expression : m_expressions) {
+  for (Statement *expression : m_statements) {
     expression->codegen(holder);
   }
 
-  assert(m_expressions.size() >= 1 && "must be true for now");
-  ASTBase *last_expression = m_expressions[m_expressions.size() - 1];
+  assert(m_statements.size() >= 1 && "must be true for now");
+  ASTBase *last_expression = m_statements[m_statements.size() - 1];
   if (dynamic_cast<ReturnStatement *>(last_expression) == nullptr)
     holder->builder.CreateBr(fallthrough_block);
 
   holder->builder.SetInsertPoint(fallthrough_block);
-
-  return nullptr;
 }
 
-llvm::Value *DeclarationStatement::codegen(ContextHolder holder) {
+void DeclarationStatement::codegen(ContextHolder holder) {
   // initialize the first variable
   const FunctionDecl *func = getFirstFunctionDecl();
   llvm::Value *alloc_loc =
@@ -792,15 +791,12 @@ llvm::Value *DeclarationStatement::codegen(ContextHolder holder) {
 
   // if we don't have an initializer, we don't allocate space
   if (m_expression) {
-    llvm::Value *exp = m_expression->codegen(holder);
+    llvm::Value *exp = m_expression->getVal(holder);
     llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
-    return return_val;
   }
-
-  return nullptr;
 }
 
-llvm::Value *WhileStatement::codegen(ContextHolder holder) {
+void WhileStatement::codegen(ContextHolder holder) {
   llvm::BasicBlock *cond_block = llvm::BasicBlock::Create(
       holder->context, "", getFirstFunctionDecl()->getLLVMFunction());
   llvm::BasicBlock *while_true_block = llvm::BasicBlock::Create(
@@ -812,7 +808,7 @@ llvm::Value *WhileStatement::codegen(ContextHolder holder) {
 
   // set up the cond block
   holder->builder.SetInsertPoint(cond_block);
-  llvm::Value *cond = m_cond->codegen(holder);
+  llvm::Value *cond = m_cond->getVal(holder);
   assert(cond->getType()->isIntegerTy() && "must be integer");
   cond = holder->builder.CreateICmpNE(
       cond, llvm::ConstantInt::get(cond->getType(), 0));
@@ -820,28 +816,24 @@ llvm::Value *WhileStatement::codegen(ContextHolder holder) {
 
   // set up while body block
   holder->builder.SetInsertPoint(while_true_block);
-  for (ASTBase *statement : m_expressions) {
+  for (Statement *statement : m_statements) {
     statement->codegen(holder);
   }
-  assert(m_expressions.size() >= 1 && "must be true for now");
-  ASTBase *last_statement = m_expressions[m_expressions.size() - 1];
-  if (dynamic_cast<ReturnStatement *>(last_statement) == nullptr)
+  assert(m_statements.size() >= 1 && "must be true for now");
+  Statement *last_statement = m_statements[m_statements.size() - 1];
+  if (!isa<ReturnStatement>(last_statement))
     holder->builder.CreateBr(cond_block);
 
   holder->builder.SetInsertPoint(fallthrough);
-
-  return nullptr;
 }
 
-llvm::Value *MemberAccessExpression::codegen(ContextHolder holder) {
+llvm::Value *MemberAccessExpression::getVal(ContextHolder holder) {
+  assert(false && "this is currently wrong");
   if (m_child_posfix_expression)
-    return m_child_posfix_expression->codegen(holder);
+    return m_child_posfix_expression->getVal(holder);
 
   // we are at the base case
   llvm::Value *ref_loc = getRef(holder);
-  if (m_compute_ref)
-    return ref_loc;
-
   llvm::Type *child_type = getGEPType(holder)
                                ->getAs<StructType>()
                                ->getElement(m_member)
@@ -849,20 +841,33 @@ llvm::Value *MemberAccessExpression::codegen(ContextHolder holder) {
   return holder->builder.CreateLoad(child_type, ref_loc);
 }
 
-llvm::Value *ArrayAccessExpresion::codegen(ContextHolder holder) {
+llvm::Value *ArrayAccessExpression::getVal(ContextHolder holder) {
+  assert(false && "fix me later");
   // the leaf would return the result
   if (m_child_posfix_expression)
-    return m_child_posfix_expression->codegen(holder);
+    return m_child_posfix_expression->getVal(holder);
 
   // we are at the leaf
   llvm::Value *start_of_pointer = getRef(holder);
-  if (m_compute_ref)
-    return start_of_pointer;
-
   Type *current_type = getGEPType(
       holder); // it is possible that this is i32 already, so we just load it
   Type *child_type =
       current_type->isBuiltin() ? current_type : getGEPChildType(holder);
   return holder->builder.CreateLoad(child_type->getType(holder),
                                     start_of_pointer);
+}
+
+llvm::Value *DeRefExpression::getVal(ContextHolder holder) {
+  assert(m_ref->getType(holder)->isPointer());
+  llvm::Value *current_value = m_ref->getVal(holder);
+  llvm::Type *base_type =
+      m_ref->getType(holder)->getAs<PointerType>()->getPointee()->getType(
+          holder);
+
+  return holder->builder.CreateLoad(base_type, current_value);
+}
+
+llvm::Value *DeRefExpression::getRef(ContextHolder holder) { 
+    assert(m_ref->getType(holder)->isPointer());
+    return m_ref->getVal(holder);
 }

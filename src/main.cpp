@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     if (print_ast)
       tree->debugDump();
 
-    tree->codegen(holder);
+    dyncast<Statement>(tree)->codegen(holder);
   }
 
   // Create the analysis managers.
@@ -74,3 +74,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+

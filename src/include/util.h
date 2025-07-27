@@ -19,8 +19,6 @@ inline std::string getASTClassName(ASTBase *node) {
     return "IdentifierExpr";
   if (dynamic_cast<CallExpr *>(node))
     return "CallExpr";
-  if (dynamic_cast<ParenthesesExpression *>(node))
-    return "ParenthesesExpression";
   if (dynamic_cast<BinaryExpression *>(node))
     return "BinaryExpression";
   if (dynamic_cast<ReturnStatement *>(node))

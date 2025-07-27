@@ -13,12 +13,12 @@ public:
   Parser(const char *filename, ContextHolder context);
 
   void start();
-  const std::vector<ASTBase *> &getSyntaxTree();
+  const std::vector<Statement *> &getSyntaxTree();
   ContextHolder getHolder();
   bool haveError() const;
 
 private:
-  const std::vector<ASTBase *> &buildSyntaxTree();
+  const std::vector<Statement *> &buildSyntaxTree();
 
   // Types, kind of like statements but not necessary
   // return a pointer when success, nullptr otherwise
@@ -27,36 +27,37 @@ private:
 
 
   // building the function decl
-  ASTBase *buildFunctionDecl();
+  Statement *buildFunctionDecl();
   FunctionArgLists *buildFunctionArgList();
 
   // Statements
-  ASTBase *buildAssignmentStatement();
-  ASTBase *buildReturnStatement();
-  ASTBase *buildStatement();
-  ASTBase *buildIfStatement();
-  ASTBase *buildWhileStatement();
-  ASTBase *buildDeclarationStatement();
-  ASTBase *buildExternalDecl();
+  Statement *buildAssignmentStatement();
+  Statement *buildReturnStatement();
+  Statement *buildStatement();
+  Statement *buildIfStatement();
+  Statement *buildWhileStatement();
+  Statement *buildDeclarationStatement();
+  Statement *buildExternalDecl();
 
   // Expressions
-  ASTBase *buildExpression();
-  ASTBase *buildBinaryExpression(int min_precedence);
-  ASTBase *buildTrivialExpression();
-  ASTBase *buildCallExpr();
+  Expression *buildExpression();
+  Expression *buildBinaryExpression(int min_precedence);
+  Expression *buildTrivialExpression();
+  Expression *buildDerefExpression();
+  Expression *buildCallExpr();
 
   // FIXME: there can be a lot of cleanup.
   // In fact this entire thing could be parsed without recursion
   /// lhs - the left hand side of the expression
   /// is_ref_type - True implies ast yields ref when codegen is called,
   /// otherwise codegen returns value
-  RefYieldExpression *buildPosfixExpression(RefYieldExpression *lhs = nullptr,
-                                            bool is_ref_type = false);
-  RefYieldExpression *
-  buildTailPosfixExpression(RefYieldExpression *lhs,
-                            bool is_ref_type); // helper for above
+  LocatorExpression *buildPosfixExpression(LocatorExpression *lhs = nullptr);
 
-  inline ASTBase *logError(const char *message);
+  LocatorExpression *
+  buildTailPosfixExpression(LocatorExpression *lhs
+                            ); // helper for above
+
+  inline Statement *logError(const char *message);
 
   // for binary expression
   // clang-format off
@@ -84,7 +85,7 @@ private:
   bool m_error = false;
 
   // Store the computation results
-  std::vector<ASTBase *> m_function_decls;
+  std::vector<Statement *> m_top_level_statements;
   std::unordered_map<std::string, StructType *> m_struct_defs;
 };
 

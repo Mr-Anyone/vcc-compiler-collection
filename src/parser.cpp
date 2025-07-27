@@ -24,8 +24,8 @@ inline static bool isFullstopOrLeftBracket(const Token &next) {
   return false;
 }
 
-const std::vector<ASTBase *> &Parser::getSyntaxTree() {
-  return m_function_decls;
+const std::vector<Statement *> &Parser::getSyntaxTree() {
+  return m_top_level_statements;
 }
 
 // type_qualification :== 'int' | 'struct', <identifier> |
@@ -154,7 +154,7 @@ void Parser::addStructDefinition() {
 
 // external_decl :== 'extern', 'function', <identifier>,
 //     'gives', <type_qualification>, '[', <functin_args_list>, ']';
-ASTBase *Parser::buildExternalDecl() {
+Statement *Parser::buildExternalDecl() {
   if (m_tokenizer.getCurrentType() != lex::External)
     return logError("expected extern");
   m_tokenizer.consume();
@@ -175,20 +175,20 @@ ASTBase *Parser::buildExternalDecl() {
   Type *return_type = buildTypeQualification();
   ASTBase *function_arg_list = buildFunctionArgList();
 
-  std::vector<ASTBase *> statements{};
+  std::vector<Statement *> statements{};
 
   return new FunctionDecl(statements,
                           dyncast<FunctionArgLists>(function_arg_list),
-                          std::move(name), return_type, /*is_extern*/true);
+                          std::move(name), return_type, /*is_extern*/ true);
 }
 
 // top_level :== <function_decl> | <struct_definition> | <external_decl>
-const std::vector<ASTBase *> &Parser::buildSyntaxTree() {
-  assert(m_function_decls.size() == 0 && "can only be called once");
+const std::vector<Statement *> &Parser::buildSyntaxTree() {
+  assert(m_top_level_statements.size() == 0 && "can only be called once");
   while (m_tokenizer.getCurrentType() != lex::EndOfFile) {
     if (m_tokenizer.getCurrentType() == lex::FunctionDecl) {
-      ASTBase *base = buildFunctionDecl();
-      m_function_decls.push_back(base);
+      Statement *base = buildFunctionDecl();
+      m_top_level_statements.push_back(base);
       continue;
     }
 
@@ -198,8 +198,8 @@ const std::vector<ASTBase *> &Parser::buildSyntaxTree() {
     }
 
     if (m_tokenizer.getCurrentType() == lex::External) {
-      ASTBase *exteran_decl = buildExternalDecl();
-      m_function_decls.push_back(exteran_decl);
+      Statement *exteran_decl = buildExternalDecl();
+      m_top_level_statements.push_back(exteran_decl);
       continue;
     }
 
@@ -210,10 +210,10 @@ const std::vector<ASTBase *> &Parser::buildSyntaxTree() {
     logError("cannot parse things starting here");
   }
 
-  return m_function_decls;
+  return m_top_level_statements;
 }
 
-ASTBase *Parser::logError(const char *message) {
+Statement *Parser::logError(const char *message) {
   m_error = true;
 
   Token current_token = m_tokenizer.current();
@@ -230,19 +230,19 @@ ASTBase *Parser::logError(const char *message) {
 }
 
 // if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
-ASTBase *Parser::buildIfStatement() {
+Statement *Parser::buildIfStatement() {
   if (m_tokenizer.getCurrentType() != lex::If)
     return logError("expected if");
   m_tokenizer.consume();
 
-  ASTBase *cond = buildExpression();
+  Expression *cond = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::Then)
     return logError("expected then");
   m_tokenizer.consume();
 
-  std::vector<ASTBase *> expressions;
-  while (ASTBase *expression = buildStatement()) {
+  std::vector<Statement *> expressions;
+  while (Statement *expression = buildStatement()) {
     expressions.push_back(expression);
   }
 
@@ -254,19 +254,19 @@ ASTBase *Parser::buildIfStatement() {
 }
 
 // while_statement :== 'while', <expression> 'then', <statements>+,'end'
-ASTBase *Parser::buildWhileStatement() {
+Statement *Parser::buildWhileStatement() {
   if (m_tokenizer.getCurrentType() != lex::While)
     return logError("expected while");
   m_tokenizer.consume();
 
-  ASTBase *cond = buildExpression();
+Expression *cond = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::Then)
     return logError("expected then");
   m_tokenizer.consume();
 
-  std::vector<ASTBase *> expressions{};
-  while (ASTBase *statement = buildStatement())
+  std::vector<Statement *> expressions{};
+  while (Statement *statement = buildStatement())
     expressions.push_back(statement);
 
   if (m_tokenizer.getCurrentType() != lex::End)
@@ -278,7 +278,7 @@ ASTBase *Parser::buildWhileStatement() {
 
 // statements :== <assignment_statement> | <return_statement> | <if_statement> |
 // <while_statement>
-ASTBase *Parser::buildStatement() {
+Statement *Parser::buildStatement() {
   if (m_tokenizer.getCurrentType() == lex::If)
     return buildIfStatement();
 
@@ -296,7 +296,7 @@ ASTBase *Parser::buildStatement() {
 
 // function_decl :== 'function', <identifier>, 'gives', <type_qualification>,
 //                     <function_args_list>, '{', <expression>+, ''}'
-ASTBase *Parser::buildFunctionDecl() {
+Statement *Parser::buildFunctionDecl() {
   if (m_tokenizer.current().getType() != lex::FunctionDecl)
     return logError("function declaration must begin with keyword function");
 
@@ -320,8 +320,8 @@ ASTBase *Parser::buildFunctionDecl() {
   m_tokenizer.consume();
 
   // currently only assignment expression is supported
-  ASTBase *exp;
-  std::vector<ASTBase *> expressions;
+  Statement *exp;
+  std::vector<Statement *> expressions;
   while ((exp = buildStatement())) {
     assert(exp && "expression must be non nullptr");
     expressions.push_back(exp);
@@ -338,7 +338,7 @@ ASTBase *Parser::buildFunctionDecl() {
 
 // assignment_statement :== <identifier>, '=', <expression>, ';'
 //      | <posfix_expression> ,'=' <expression>, ';'
-ASTBase *Parser::buildAssignmentStatement() {
+Statement *Parser::buildAssignmentStatement() {
   if (m_tokenizer.getCurrentType() != lex::Identifier)
     return nullptr;
 
@@ -347,11 +347,10 @@ ASTBase *Parser::buildAssignmentStatement() {
   if (isFullstopOrLeftBracket(m_tokenizer.peek())) {
     // we have the following case
     //       <posfix_expression> ,'=' <expression>, ';'
-    lhs = buildPosfixExpression(/*lhs*/ nullptr, /*is_ref_type*/ true);
+    lhs = buildPosfixExpression(/*lhs*/ nullptr);
   } else {
     // assignment_statement :== <identifier>, '=', <expression>, ';'
-    lhs = new IdentifierExpr(m_tokenizer.current().getStringLiteral(),
-                             /*compute_ref*/ true);
+    lhs = new IdentifierExpr(m_tokenizer.current().getStringLiteral());
     m_tokenizer.consume();
   }
 
@@ -412,13 +411,13 @@ FunctionArgLists *Parser::buildFunctionArgList() {
 }
 
 // return_statement :== 'ret', <expression> ';'
-ASTBase *Parser::buildReturnStatement() {
+Statement *Parser::buildReturnStatement() {
   if (m_tokenizer.getCurrentType() != lex::Ret) {
     return logError("expected error");
   }
   m_tokenizer.consume();
 
-  ASTBase *expression = buildExpression();
+  Expression *expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::SemiColon) {
     return logError("expected ;");
@@ -429,14 +428,14 @@ ASTBase *Parser::buildReturnStatement() {
 }
 
 // expression :==  <binary_expression>
-ASTBase *Parser::buildExpression() {
+Expression *Parser::buildExpression() {
   return buildBinaryExpression(/*min_precedence=*/1);
 }
 
 // binary_expression :== <trivial_expression> |
 //                             <trivial_expression>, <bin_op>,
 //                             <binary_expression>
-ASTBase *Parser::buildBinaryExpression(int min_precendence) {
+Expression *Parser::buildBinaryExpression(int min_precendence) {
   // precedence climbing based parsing:
   // https://eli.thegreenplace.net/2010/01/02/top-down-operator-precedence-parsing
   // result = compute_atom()
@@ -452,7 +451,7 @@ ASTBase *Parser::buildBinaryExpression(int min_precendence) {
   //
   // return result
 
-  ASTBase *result = buildTrivialExpression();
+  Expression *result = buildTrivialExpression();
   assert(result && "not sure how can this be false?");
 
   // this is just a trivial expression case
@@ -481,16 +480,16 @@ ASTBase *Parser::buildBinaryExpression(int min_precendence) {
 
     int next_precedence_level = current_precedence_level + 1;
 
-    ASTBase *rhs = buildBinaryExpression(next_precedence_level);
+    Expression *rhs = buildBinaryExpression(next_precedence_level);
     dynamic_cast<BinaryExpression *>(result)->setRHS(rhs);
   }
 
   return result;
 }
 
-static void appendChild(RefYieldExpression *expression,
-                        RefYieldExpression *child) {
-  if (ArrayAccessExpresion *cool = dyncast<ArrayAccessExpresion>(expression)) {
+static void appendChild(LocatorExpression *expression,
+                        LocatorExpression *child) {
+  if (ArrayAccessExpression *cool = dyncast<ArrayAccessExpression>(expression)) {
     cool->setChildPosfixExpression(child);
     return;
   }
@@ -503,8 +502,7 @@ static void appendChild(RefYieldExpression *expression,
 
 //     <postfix_expression>, '.', <identifier> |
 //     <postfix_expression>, '[', <expression>, ']'
-RefYieldExpression *Parser::buildTailPosfixExpression(RefYieldExpression *lhs,
-                                                      bool is_ref_type) {
+LocatorExpression *Parser::buildTailPosfixExpression(LocatorExpression *lhs) {
   assert(lhs && "we must have a parent if we made it here");
   assert(isFullstopOrLeftBracket(m_tokenizer.current()));
   if (m_tokenizer.getCurrentType() == lex::Fullstop) {
@@ -517,15 +515,12 @@ RefYieldExpression *Parser::buildTailPosfixExpression(RefYieldExpression *lhs,
     std::string member = m_tokenizer.current().getStringLiteral();
     m_tokenizer.consume();
 
-    bool compute_ref =
-        (isFullstopOrLeftBracket(m_tokenizer.current()) || is_ref_type) ? true
-                                                                        : false;
     MemberAccessExpression *expression =
-        new MemberAccessExpression(lhs, member, compute_ref);
+        new MemberAccessExpression(lhs, member);
     appendChild(lhs, expression); // building the syntax tree
 
     if (isFullstopOrLeftBracket(m_tokenizer.current()))
-      buildPosfixExpression(expression, is_ref_type);
+      buildPosfixExpression(expression);
 
     return expression;
   }
@@ -539,33 +534,30 @@ RefYieldExpression *Parser::buildTailPosfixExpression(RefYieldExpression *lhs,
     return nullptr;
   }
   m_tokenizer.consume();
-  ASTBase *expression = buildExpression();
+  Expression *expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::RightBracket) {
     logError("expected identifier");
     return nullptr;
   }
   m_tokenizer.consume();
-  bool compute_ref =
-      isFullstopOrLeftBracket(m_tokenizer.current()) || is_ref_type;
-  ArrayAccessExpresion *new_expression =
-      new ArrayAccessExpresion(lhs, expression, compute_ref);
+  ArrayAccessExpression *new_expression =
+      new ArrayAccessExpression(lhs, expression);
   appendChild(lhs, new_expression); // building the syntax tree
   if (isFullstopOrLeftBracket(m_tokenizer.current()))
-    buildPosfixExpression(new_expression, is_ref_type);
+    buildPosfixExpression(new_expression);
   return new_expression;
 }
 
 // postfix_expression :== <identifier> |
 //     <postfix_expression>, '.', <identifier> |
 //     <postfix_expression>, '[', <expression>, ']'
-RefYieldExpression *Parser::buildPosfixExpression(RefYieldExpression *lhs,
-                                                  bool is_ref_type) {
+LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
   // the tail case for the following:
   //     <postfix_expression>, '.', <identifier> |
   //     <postfix_expression>, '[', <expression>, ']'
   if (isFullstopOrLeftBracket(m_tokenizer.current())) {
-    return buildTailPosfixExpression(lhs, is_ref_type);
+    return buildTailPosfixExpression(lhs);
   }
 
   //
@@ -585,7 +577,7 @@ RefYieldExpression *Parser::buildPosfixExpression(RefYieldExpression *lhs,
   // we must have either [, or ., parse depending on situation
   if (m_tokenizer.getCurrentType() == lex::LeftBracket) {
     m_tokenizer.consume();
-    ASTBase *expresion = buildExpression();
+    Expression *expresion = buildExpression();
 
     if (m_tokenizer.getCurrentType() != lex::RightBracket) {
       logError("expected either . or [");
@@ -593,14 +585,10 @@ RefYieldExpression *Parser::buildPosfixExpression(RefYieldExpression *lhs,
     }
     m_tokenizer.consume();
 
-    bool compute_ref =
-        (isFullstopOrLeftBracket(m_tokenizer.current()) || is_ref_type) ? true
-                                                                        : false;
-
-    ArrayAccessExpresion *array_access =
-        new ArrayAccessExpresion(name, expresion, compute_ref);
+    ArrayAccessExpression *array_access =
+        new ArrayAccessExpression(name, expresion);
     if (isFullstopOrLeftBracket(m_tokenizer.current()))
-      buildPosfixExpression(array_access, is_ref_type);
+      buildPosfixExpression(array_access);
     return array_access;
   }
 
@@ -616,24 +604,19 @@ RefYieldExpression *Parser::buildPosfixExpression(RefYieldExpression *lhs,
   std::string literal = m_tokenizer.current().getStringLiteral();
   m_tokenizer.consume();
 
-  bool compute_ref =
-      (isFullstopOrLeftBracket(m_tokenizer.current()) || is_ref_type) ? true
-                                                                      : false;
-  MemberAccessExpression *access =
-      new MemberAccessExpression(name, literal, compute_ref);
+  MemberAccessExpression *access = new MemberAccessExpression(name, literal);
   if (isFullstopOrLeftBracket(m_tokenizer.current()))
-    buildPosfixExpression(access, is_ref_type);
+    buildPosfixExpression(access);
   return access;
 }
 
 // trivial_expression :== <identifier> | <call_expression> |
-//                             '(', <expression>, ')' | <integer_literal>  |
-//                             <member_access_expression>
-ASTBase *Parser::buildTrivialExpression() {
-  // FIXME: add call expression
+//                             '(', <expression>, ')' | <integer_literal> |
+//                             <posfix_expression> | <deref_expression>
+Expression *Parser::buildTrivialExpression() {
   // <integer_literal>
   if (m_tokenizer.getCurrentType() == lex::IntegerLiteral) {
-    ASTBase *value =
+    Expression *value =
         new ConstantExpr(m_tokenizer.current().getIntegerLiteral());
     m_tokenizer.consume();
     return value;
@@ -649,7 +632,7 @@ ASTBase *Parser::buildTrivialExpression() {
       return buildPosfixExpression();
     }
 
-    ASTBase *value =
+    Expression *value =
         new IdentifierExpr(m_tokenizer.current().getStringLiteral());
     m_tokenizer.consume();
 
@@ -659,45 +642,59 @@ ASTBase *Parser::buildTrivialExpression() {
   // '(', <expression> , ')'
   if (m_tokenizer.getCurrentType() == lex::LeftParentheses) {
     m_tokenizer.consume(); // consume ; )
-    ASTBase *value = buildExpression();
+    Expression *value = buildExpression();
 
     if (m_tokenizer.getCurrentType() != lex::RightParentheses) {
-      return logError("expected )");
+      logError("expected )");
+      return nullptr;
     }
 
     m_tokenizer.consume();
     return value;
   }
 
-  return logError("cannot build trivial expression!");
+  if (m_tokenizer.getCurrentType() == lex::Deref)
+    return buildDerefExpression();
+
+  logError("cannot build trivial expression!");
+  return nullptr;
 }
 
 // call_expressions :== <identifier>, '(', { <expression> ',' }+,  ')'
-ASTBase *Parser::buildCallExpr() {
-  if (m_tokenizer.getCurrentType() != lex::Identifier)
-    return logError("expected identfier");
+Expression *Parser::buildCallExpr() {
+  if (m_tokenizer.getCurrentType() != lex::Identifier) {
+    logError("expected identfier");
+    return nullptr;
+  }
 
   std::string function_name = m_tokenizer.current().getStringLiteral();
 
-  if (m_tokenizer.getNextType() != lex::LeftParentheses)
-    return logError("expected (");
+  if (m_tokenizer.getNextType() != lex::LeftParentheses) {
+    logError("expected (");
+    return nullptr;
+  }
   m_tokenizer.consume();
 
-  std::vector<ASTBase *> expressions;
+  std::vector<Expression *> expressions;
 
   // {<expression>, ','} +
   while (m_tokenizer.getCurrentType() != lex::RightParentheses) {
-    ASTBase *expression = buildExpression();
+    Expression *expression = buildExpression();
     expressions.push_back(expression);
 
     // consume the comma
-    if (m_tokenizer.getCurrentType() != lex::Comma)
-      return logError("expected ,");
+    if (m_tokenizer.getCurrentType() != lex::Comma) {
+      logError("expected ,");
+      return nullptr;
+    }
+
     m_tokenizer.consume();
   }
 
-  if (m_tokenizer.getCurrentType() != lex::RightParentheses)
-    return logError("expected )");
+  if (m_tokenizer.getCurrentType() != lex::RightParentheses) {
+    logError("expected )");
+    return nullptr;
+  }
   m_tokenizer.consume();
 
   return new CallExpr(function_name, expressions);
@@ -709,7 +706,7 @@ bool Parser::haveError() const { return m_error; }
 
 // declaration_statement :== <type_qualification>, <identifier>, {'=',
 // <expression>} , ';'
-ASTBase *Parser::buildDeclarationStatement() {
+Statement *Parser::buildDeclarationStatement() {
   Type *parsed_type = buildTypeQualification();
 
   if (m_tokenizer.getCurrentType() != lex::Identifier)
@@ -728,11 +725,37 @@ ASTBase *Parser::buildDeclarationStatement() {
     return logError("expected =");
   m_tokenizer.consume();
 
-  ASTBase *expression = buildExpression();
+  Expression *expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::SemiColon)
     return logError("expected ;");
   m_tokenizer.consume();
 
   return new DeclarationStatement(name, expression, parsed_type);
+}
+
+// deref_expression :== 'deref', '(', <trivial_expression>, ')'
+Expression *Parser::buildDerefExpression() {
+  if (m_tokenizer.getCurrentType() != lex::Deref) {
+    logError("expected deref");
+    return nullptr;
+  }
+  m_tokenizer.consume();
+
+  if (m_tokenizer.getCurrentType() != lex::LeftParentheses) {
+    logError("expected deref");
+    return nullptr;
+  }
+
+  m_tokenizer.consume();
+
+  Expression *ref_get = buildTrivialExpression();
+
+  if (m_tokenizer.getCurrentType() != lex::RightParentheses) {
+    logError("expected deref");
+    return nullptr;
+  }
+  m_tokenizer.consume();
+
+  return new DeRefExpression(ref_get);
 }
