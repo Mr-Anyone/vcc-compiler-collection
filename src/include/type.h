@@ -15,6 +15,7 @@
 class Type {
 public:
   virtual llvm::Type *getType(ContextHolder holder);
+  virtual void dump(); 
 
   template <typename T> T *getAs() { return dyncast<T>(this); }
 
@@ -35,6 +36,7 @@ public:
   int getCount();
 
   virtual llvm::Type *getType(ContextHolder holder) override;
+  virtual void dump() override; 
 
 private:
   llvm::Type *m_llvm_type = nullptr;
@@ -48,7 +50,7 @@ public:
 
   Type *getPointee();
   virtual llvm::Type *getType(ContextHolder holder) override;
-
+  virtual void dump() override; 
 private:
   Type *m_pointee;
 };
@@ -61,6 +63,7 @@ public:
   Builtin getKind() const;
   virtual llvm::Type *getType(ContextHolder holder) override;
 
+  virtual void dump() override; 
 private:
   Builtin m_builtin;
   int m_bits_size;
@@ -77,6 +80,7 @@ public:
   };
   StructType(const std::vector<Element> &elements, const std::string &name);
   virtual llvm::Type *getType(ContextHolder holder) override;
+  virtual void dump() override;
 
   std::optional<Element> getElement(const std::string &name);
 

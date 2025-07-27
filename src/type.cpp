@@ -110,3 +110,37 @@ llvm::Type *ArrayType::getType(ContextHolder holder) {
   return llvm::ArrayType::get(m_base->getType(holder), m_count);
 }
 
+void Type::dump() { std::cout << "unknown type"; }
+
+void ArrayType::dump() {
+  std::cout << "array (" << m_count << ") ";
+  getBase()->dump();
+}
+
+void PointerType::dump() {
+  std::cout << "ptr ";
+  getPointee()->dump();
+}
+
+void BuiltinType::dump() {
+  switch (m_builtin) {
+  case Int:
+    std::cout << "int";
+    break;
+  case Float:
+    std::cout << "float";
+    break;
+  default:
+    assert(false && "don't know how to print type");
+  }
+}
+
+void StructType::dump(){
+    std::cout << "struct { ";
+    for(Element& ele : m_elements){
+        ele.type->dump();
+    }
+
+    std::cout << " }";
+}
+
