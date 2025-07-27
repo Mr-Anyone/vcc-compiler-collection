@@ -1,5 +1,4 @@
 # TODO
-
 - [X] Name lookup problem
 - [X] Trie like Symbol Table
 - [X] Implicit casting for integer

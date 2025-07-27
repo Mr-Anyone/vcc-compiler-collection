@@ -77,11 +77,11 @@ public:
   const std::string &getName() const;
   llvm::Function *getLLVMFunction() const;
   Type *getReturnType() const;
-  llvm::FunctionType* getFunctionType(ContextHolder holder)const ;
+  llvm::FunctionType *getFunctionType(ContextHolder holder) const;
 
 private:
-  llvm::Value* buildExternalDecl(ContextHolder holder);
-  
+  llvm::Value *buildExternalDecl(ContextHolder holder);
+
   bool m_is_extern; // is external or not?
 
   Type *m_return_type;
@@ -159,12 +159,13 @@ private:
 };
 //============================== Expressions ==============================
 // These are expressions that yields some sort of value
-class Expression {
+class Expression : public ASTBase {
 public:
+  Expression(const std::vector<ASTBase *> childrens);
   virtual Type *getType(ContextHolder holder) = 0;
 };
 
-class ConstantExpr : public ASTBase, Expression {
+class ConstantExpr : public Expression {
 public:
   explicit ConstantExpr(int value);
   virtual void dump() override;
@@ -178,7 +179,7 @@ private:
   int m_value;
 };
 
-class IdentifierExpr : public ASTBase, Expression {
+class IdentifierExpr : public Expression {
 public:
   /// Create an identifier expression
   ///
@@ -197,7 +198,7 @@ private:
   std::string m_name;
 };
 
-class CallExpr : public ASTBase, Expression {
+class CallExpr : public Expression {
 public:
   CallExpr(const std::string &name, const std::vector<ASTBase *> &expressions);
   llvm::Value *codegen(ContextHolder holder) override;
@@ -210,7 +211,7 @@ private:
   std::vector<ASTBase *> m_expressions;
 };
 
-class ParenthesesExpression : public ASTBase, Expression {
+class ParenthesesExpression : public Expression {
 public:
   ParenthesesExpression(ASTBase *child);
 
@@ -220,7 +221,7 @@ private:
   ASTBase *m_child;
 };
 
-class BinaryExpression : public ASTBase, Expression {
+class BinaryExpression : public Expression {
 public:
   enum BinaryExpressionType {
     Add,
@@ -257,7 +258,7 @@ private:
 // This is a virtual base class to be inherited from
 // so that Derived::codegen can use getRef from parent
 // to generate code!
-class RefYieldExpression : public ASTBase {
+class RefYieldExpression : public Expression {
 public:
   RefYieldExpression(const std::vector<ASTBase *> &childrens);
 
@@ -282,8 +283,8 @@ public:
   virtual void dump() override;
   virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
+  virtual Type *getType(ContextHolder holder) override;
 
-  // virtual Type *getType(ContextHolder holder) override;
   Type *getGEPType(ContextHolder holder);
   Type *getGEPChildType(ContextHolder holder);
 
@@ -314,9 +315,9 @@ public:
   virtual llvm::Value *codegen(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
 
-  // virtual Type *getType(ContextHolder holder) override;
   Type *getGEPType(ContextHolder holder);
   Type *getGEPChildType(ContextHolder holder);
+  virtual Type *getType(ContextHolder holder) override;
 
   void setChildPosfixExpression(RefYieldExpression *child);
 

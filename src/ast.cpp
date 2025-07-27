@@ -101,17 +101,17 @@ ReturnStatement::ReturnStatement(ASTBase *expression)
     : ASTBase({expression}), m_expression(expression) {}
 
 IdentifierExpr::IdentifierExpr(const std::string &name, bool compute_ref)
-    : ASTBase({}), m_name(name), m_compute_ref(compute_ref) {}
+    : Expression({}), m_name(name), m_compute_ref(compute_ref) {}
 
-ConstantExpr::ConstantExpr(int value) : ASTBase({}), m_value(value) {}
+ConstantExpr::ConstantExpr(int value) : Expression({}), m_value(value) {}
 
 int ConstantExpr::getValue() { return m_value; }
 
 ParenthesesExpression::ParenthesesExpression(ASTBase *child)
-    : ASTBase({child}), m_child(child) {}
+    : Expression({child}), m_child(child) {}
 
 BinaryExpression::BinaryExpression(ASTBase *lhs, BinaryExpressionType type)
-    : ASTBase({lhs}), m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
+    : Expression({lhs}), m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
 
 BinaryExpression::BinaryExpressionType
 BinaryExpression::getFromLexType(lex::Token token) {
@@ -201,7 +201,7 @@ const FunctionDecl *ASTBase::getFirstFunctionDecl() const {
 
 CallExpr::CallExpr(const std::string &name,
                    const std::vector<ASTBase *> &expression)
-    : ASTBase(expression), m_func_name(name), m_expressions(expression) {}
+    : Expression(expression), m_func_name(name), m_expressions(expression) {}
 
 void CallExpr::dump() { std::cout << "name: " << m_func_name; }
 
@@ -282,7 +282,7 @@ void ArrayAccessExpresion::dump() {
 }
 
 RefYieldExpression::RefYieldExpression(const std::vector<ASTBase *> &childrens)
-    : ASTBase({childrens}) {}
+    : Expression(childrens) {}
 
 Type *ArrayAccessExpresion::getGEPChildType(ContextHolder holder) {
   Type *current_type = getGEPType(holder);
@@ -366,6 +366,8 @@ llvm::Value *ArrayAccessExpresion::getRef(ContextHolder holder) {
 
 Type *FunctionDecl::getReturnType() const { return m_return_type; }
 
+Expression::Expression(const std::vector<ASTBase*> children):
+    ASTBase(children){}
 // ================================================================================
 // ====================== Expression Implementation::getType
 // ======================
@@ -381,6 +383,21 @@ Type *MemberAccessExpression::getGEPType(ContextHolder holder) {
   assert(isa<MemberAccessExpression>(m_parent));
   MemberAccessExpression *parent = dyncast<MemberAccessExpression>(m_parent);
   return parent->getGEPChildType(holder);
+}
+
+Type *MemberAccessExpression::getType(ContextHolder holder) {
+  if (m_child_posfix_expression)
+    return m_child_posfix_expression->getType(holder);
+
+  // we don't have a child
+  return getGEPType(holder)->getAs<StructType>()->getElement(m_member)->type;
+}
+
+Type *ArrayAccessExpresion::getType(ContextHolder holder) {
+  if (m_child_posfix_expression)
+    return m_child_posfix_expression->getType(holder);
+
+  return getGEPType(holder);
 }
 
 Type *ConstantExpr::getType(ContextHolder holder) {
@@ -649,11 +666,13 @@ llvm::Value *FunctionArgLists::codegen(ContextHolder holder) {
 
 llvm::Value *AssignmentStatement::codegen(ContextHolder holder) {
   llvm::Value *expression_val = m_expression->codegen(holder);
-  assert(expression_val && "must yield a non negative result");
+  dyncast<Expression>(m_expression)->getType(holder)->dump();
+  dyncast<Expression>(m_ref_expr)->getType(holder)->dump();
+
   llvm::Value *alloc_loc = m_ref_expr->codegen(holder);
+  assert(expression_val && alloc_loc);
 
   holder->builder.CreateStore(expression_val, alloc_loc);
-
   return nullptr;
 }
 
