@@ -306,6 +306,10 @@ Type *MemberAccessExpression::getGEPChildType(ContextHolder holder) {
       .type;
 }
 
+void DeRefExpression::setPosfixChildExpression(LocatorExpression *expression) {
+  m_posfix_child = expression;
+}
+
 void ArrayAccessExpression::setChildPosfixExpression(LocatorExpression *child) {
   m_child_posfix_expression = child;
 }
@@ -346,8 +350,11 @@ static llvm::Value *getStartOfPointerFromParent(Expression *expression,
           dyncast<MemberAccessExpression>(expression))
     return member->getCurrentRef(holder);
 
-  return static_cast<ArrayAccessExpression *>(expression)
-      ->getCurrentRef(holder);
+  if (DeRefExpression *ref = dyncast<DeRefExpression>(expression)) {
+    return ref->getCurrentRef(holder);
+  }
+
+  return dyncast<ArrayAccessExpression>(expression)->getCurrentRef(holder);
 }
 
 llvm::Value *MemberAccessExpression::getCurrentRef(ContextHolder holder) {
@@ -420,6 +427,11 @@ Type *MemberAccessExpression::getGEPType(ContextHolder holder) {
           dyncast<ArrayAccessExpression>(m_parent)) {
     return parent->getGEPChildType(holder);
   }
+
+  if (DeRefExpression *expression = dyncast<DeRefExpression>(m_parent)) {
+    return expression->getInnerType(holder);
+  }
+
   assert(isa<MemberAccessExpression>(m_parent));
   MemberAccessExpression *parent = dyncast<MemberAccessExpression>(m_parent);
   return parent->getGEPChildType(holder);
@@ -434,6 +446,16 @@ Type *MemberAccessExpression::getType(ContextHolder holder) {
 }
 
 Type *DeRefExpression::getType(ContextHolder holder) {
+  if (m_posfix_child)
+    return m_posfix_child->getType(holder);
+
+  return dyncast<Expression>(m_ref)
+      ->getType(holder)
+      ->getAs<PointerType>()
+      ->getPointee();
+}
+
+Type *DeRefExpression::getInnerType(ContextHolder holder) {
   return dyncast<Expression>(m_ref)
       ->getType(holder)
       ->getAs<PointerType>()
@@ -728,9 +750,9 @@ void AssignmentStatement::codegen(ContextHolder holder) {
 
   if (!Type::isSame(m_expression->getType(holder),
                     m_ref_expr->getType(holder))) {
-      // FIXME: add a way to diagnose stuff
-      std::cerr << "invalid type";
-      std::exit(-1);
+    // FIXME: add a way to diagnose stuff
+    std::cerr << "invalid type";
+    std::exit(-1);
     return;
   }
 
@@ -847,11 +869,11 @@ void DeclarationStatement::codegen(ContextHolder holder) {
 
   // if we don't have an initializer, we don't allocate space
   if (m_expression) {
-      if(!Type::isSame(m_type, m_expression->getType(holder))){
-          std::cerr << "invalid type";
-          std::exit(-1);
-          return;
-      }
+    if (!Type::isSame(m_type, m_expression->getType(holder))) {
+      std::cerr << "invalid type";
+      std::exit(-1);
+      return;
+    }
     llvm::Value *exp = m_expression->getVal(holder);
     llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
   }
@@ -917,6 +939,10 @@ llvm::Value *ArrayAccessExpression::getVal(ContextHolder holder) {
 }
 
 llvm::Value *DeRefExpression::getVal(ContextHolder holder) {
+  // if we have a  posfix child, we recurse based on posfix child
+  if (m_posfix_child)
+    return m_posfix_child->getVal(holder);
+
   assert(m_ref->getType(holder)->isPointer());
   llvm::Value *current_value = m_ref->getVal(holder);
   llvm::Type *base_type =
@@ -926,7 +952,15 @@ llvm::Value *DeRefExpression::getVal(ContextHolder holder) {
   return holder->builder.CreateLoad(base_type, current_value);
 }
 
+llvm::Value *DeRefExpression::getCurrentRef(ContextHolder holder) {
+  assert(m_ref->getType(holder)->isPointer());
+  return m_ref->getVal(holder);
+}
+
 llvm::Value *DeRefExpression::getRef(ContextHolder holder) {
+  if (m_posfix_child)
+    return m_posfix_child->getRef(holder);
+
   assert(m_ref->getType(holder)->isPointer());
   return m_ref->getVal(holder);
 }

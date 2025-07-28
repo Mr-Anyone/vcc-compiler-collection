@@ -259,7 +259,7 @@ Statement *Parser::buildWhileStatement() {
     return logError("expected while");
   m_tokenizer.consume();
 
-Expression *cond = buildExpression();
+  Expression *cond = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::Then)
     return logError("expected then");
@@ -279,6 +279,9 @@ Expression *cond = buildExpression();
 // statements :== <assignment_statement> | <return_statement> | <if_statement> |
 // <while_statement>
 Statement *Parser::buildStatement() {
+  if (m_tokenizer.getCurrentType() == lex::RightBrace)
+    return nullptr;
+
   if (m_tokenizer.getCurrentType() == lex::If)
     return buildIfStatement();
 
@@ -336,23 +339,11 @@ Statement *Parser::buildFunctionDecl() {
                           std::move(name), return_type, /*is_extern*/ false);
 }
 
-// assignment_statement :== <identifier>, '=', <expression>, ';'
-//      | <posfix_expression> ,'=' <expression>, ';'
+// assignment_statement :== <trivial_expression> ,'=' <expression>, ';'
 Statement *Parser::buildAssignmentStatement() {
-  if (m_tokenizer.getCurrentType() != lex::Identifier)
-    return nullptr;
-
-  assert(m_tokenizer.getCurrentType() == lex::Identifier);
-  Expression *lhs = nullptr;
-  if (isFullstopOrLeftBracket(m_tokenizer.peek())) {
-    // we have the following case
-    //       <posfix_expression> ,'=' <expression>, ';'
-    lhs = buildPosfixExpression(/*lhs*/ nullptr);
-  } else {
-    // assignment_statement :== <identifier>, '=', <expression>, ';'
-    lhs = new IdentifierExpr(m_tokenizer.current().getStringLiteral());
-    m_tokenizer.consume();
-  }
+  LocatorExpression *lhs = dyncast<LocatorExpression>(buildTrivialExpression());
+  if(!lhs)
+      return nullptr;
 
   if (m_tokenizer.getCurrentType() != lex::Equal)
     return logError("expected =");
@@ -489,8 +480,14 @@ Expression *Parser::buildBinaryExpression(int min_precendence) {
 
 static void appendChild(LocatorExpression *expression,
                         LocatorExpression *child) {
-  if (ArrayAccessExpression *cool = dyncast<ArrayAccessExpression>(expression)) {
+  if (ArrayAccessExpression *cool =
+          dyncast<ArrayAccessExpression>(expression)) {
     cool->setChildPosfixExpression(child);
+    return;
+  }
+
+  if (DeRefExpression *parent = dyncast<DeRefExpression>(expression)) {
+    parent->setPosfixChildExpression(child);
     return;
   }
 
@@ -549,7 +546,7 @@ LocatorExpression *Parser::buildTailPosfixExpression(LocatorExpression *lhs) {
   return new_expression;
 }
 
-// postfix_expression :== <identifier> |
+// postfix_expression :== <identifier> | <deref_expression>
 //     <postfix_expression>, '.', <identifier> |
 //     <postfix_expression>, '[', <expression>, ']'
 LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
@@ -560,7 +557,14 @@ LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
     return buildTailPosfixExpression(lhs);
   }
 
-  //
+  // the <deref_expression> case
+  if (m_tokenizer.getCurrentType() == lex::Deref) {
+    LocatorExpression *deref_expression =
+        dyncast<LocatorExpression>(buildDerefExpression());
+    return buildTailPosfixExpression(deref_expression);
+  }
+
+  // building the base case i.e.
   if (m_tokenizer.getCurrentType() != lex::Identifier) {
     logError("expected identifier");
     return nullptr;
@@ -656,7 +660,6 @@ Expression *Parser::buildTrivialExpression() {
   if (m_tokenizer.getCurrentType() == lex::Deref)
     return buildDerefExpression();
 
-  logError("cannot build trivial expression!");
   return nullptr;
 }
 
@@ -734,7 +737,7 @@ Statement *Parser::buildDeclarationStatement() {
   return new DeclarationStatement(name, expression, parsed_type);
 }
 
-// deref_expression :== 'deref', '(', <trivial_expression>, ')'
+// deref_expression :== 'deref', '<', <trivial_expression>, '>'
 Expression *Parser::buildDerefExpression() {
   if (m_tokenizer.getCurrentType() != lex::Deref) {
     logError("expected deref");
@@ -742,8 +745,8 @@ Expression *Parser::buildDerefExpression() {
   }
   m_tokenizer.consume();
 
-  if (m_tokenizer.getCurrentType() != lex::LeftParentheses) {
-    logError("expected deref");
+  if (m_tokenizer.getCurrentType() != lex::LessSign) {
+    logError("expected <");
     return nullptr;
   }
 
@@ -751,11 +754,19 @@ Expression *Parser::buildDerefExpression() {
 
   Expression *ref_get = buildTrivialExpression();
 
-  if (m_tokenizer.getCurrentType() != lex::RightParentheses) {
-    logError("expected deref");
+  if (m_tokenizer.getCurrentType() != lex::GreaterSign) {
+    logError("expected >");
     return nullptr;
   }
   m_tokenizer.consume();
 
-  return new DeRefExpression(ref_get);
+  LocatorExpression *deref_expression = new DeRefExpression(ref_get);
+  // FIXME: this is kind of a jank hack to get posfix expression to work
+  // with deref expression
+  if (isFullstopOrLeftBracket(m_tokenizer.current())) {
+    buildTailPosfixExpression(deref_expression);
+    return deref_expression;
+  }
+
+  return deref_expression;
 }

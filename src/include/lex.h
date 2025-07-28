@@ -2,8 +2,6 @@
 #define LEX_H
 
 #include "stream.h"
-#include <fstream>
-#include <istream>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
@@ -28,6 +26,8 @@ enum TokenType {
   Comma,            // ,
   FunctionDecl,     // 'function'
   Fullstop,         // .
+  LessSign,         // <
+  GreaterSign,         // >
   Gives,
   External,         // external
   Deref,            // deref
@@ -125,6 +125,8 @@ private:
       {"function", FunctionDecl},
       {"(", LeftParentheses},
       {")", RightParentheses},
+      {"<", LessSign},
+      {">", GreaterSign},
       {"[", LeftBracket},
       {"]", RightBracket},
       {"{", LeftBrace},

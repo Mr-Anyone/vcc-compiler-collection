@@ -185,8 +185,8 @@ public:
   /// recursively traverse the tree to get the reference to
   /// the current type
   virtual llvm::Value *getRef(ContextHolder holder);
-protected:
 
+protected:
   friend class MemberAccessExpression;
   friend class ArrayAccessExpression;
 };
@@ -296,7 +296,7 @@ private:
   // either we have a m_base_name for symbol lookup or we must have a parent
   // expression
   LocatorExpression *m_parent = nullptr, *m_child_posfix_expression = nullptr;
-  std::string m_base_name;  // only used when m_parent == nullptr
+  std::string m_base_name; // only used when m_parent == nullptr
   std::string m_member;    // the member we are accessing
 };
 
@@ -328,11 +328,11 @@ private:
                     *m_child_posfix_expression; // the member we are accessing
 };
 
-// This is a weird expression 
-// because this both define a reference and a value 
+// This is a weird expression
+// because this both define a reference and a value
 //
-// int a = deref(b); # `getVal` returns the value of the pointer
-// deref(a) = 10 #  `` return the address of the pointee 
+// int a = deref<b>; # `getVal` returns the value of the pointer
+// deref<a> = 10 #  `` return the address of the pointee
 class DeRefExpression : public LocatorExpression {
 public:
   DeRefExpression(Expression *ref_get);
@@ -341,8 +341,17 @@ public:
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
+
+  llvm::Value *getCurrentRef(ContextHolder holder);
+  Type *getInnerType(ContextHolder holder);
+
+  void setPosfixChildExpression(LocatorExpression *expression);
+
 private:
   Expression *m_ref;
+  LocatorExpression *m_posfix_child =
+      nullptr; // it is possible for this to be the parent
+               // of a posfix expression. deref<a>.a.c[10] = 10; # for example
 };
 
 #endif

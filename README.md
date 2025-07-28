@@ -58,7 +58,7 @@ declaration_statement :== <type_qualification>, <identifier>, {'=', <expression>
 
 if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 
-assignment_statement :== <identifier>, '=', <expression>, ';'
+assignment_statement :== <trivial_expression>, '=', <expression>, ';'
     | <posfix_expression> ,'=' <expression>, ';'
 
 return_statement :== 'ret', <expression> ';'
@@ -75,13 +75,13 @@ expression :==  <binary_expression>
 binary_expression :== <trivial_expression> | 
                             <trivial_expression>, <bin_op>, <binary_expression>
 
-deref_expression :== 'deref', '(', <trivial_expression>, ')'
+deref_expression :== 'deref', '<', <trivial_expression>, '>'
 
 trivial_expression :== <identifier> | <call_expression> |
                             '(', <expression>, ')' | <integer_literal> | 
                             <posfix_expression> | <deref_expression>
 
-posfix_expression :== <identifier> | 
+posfix_expression :== <identifier> | <deref_expression>
     <posfix_expression>, '.', <identifier> | 
     <posfix_expression>, '[', <expression>, ']'
 
@@ -94,8 +94,11 @@ bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 
 ## Definition
 
-1. Locator value
-2.
+1. Locator value are values that defines both a type, location (memory reference), and a value.
+
+```
+int a = 30; # a is a locator value, it is somewhere in the stack and has a type i32 with 30 as its value
+```
 
 ## General Expression Semantics
 
@@ -115,6 +118,13 @@ a + b; # a will be converted into float implicitly
 ```
 
 3. Integer are always signed.
+
+4. Binary Expression with pointer is ill form.
+
+```
+ptr int a; 
+ptr int b = a + 10; # this is ill form
+```
 
 
 ## Statements
