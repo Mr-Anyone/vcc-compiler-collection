@@ -279,8 +279,8 @@ ArrayAccessExpression::ArrayAccessExpression(LocatorExpression *parent,
 }
 
 void ArrayAccessExpression::dump() {
-  std::cout << "[]" << " child*: " << m_child_posfix_expression
-            << " this: " << this;
+  std::cout << "[]"
+            << " child*: " << m_child_posfix_expression << " this: " << this;
 }
 
 LocatorExpression::LocatorExpression(const std::vector<Expression *> &childrens)
@@ -414,9 +414,19 @@ DeRefExpression::DeRefExpression(Expression *ref_get)
 
 void DeRefExpression::dump() {}
 
+RefExpression::RefExpression(Expression *inner)
+    : LocatorExpression({inner}), m_inner_expression(inner) {}
+
+void RefExpression::dump() {}
+
 // ================================================================================
 // ====================== Expression Implementation::getType
 // ======================
+Type *RefExpression::getType(ContextHolder holder) {
+  // FIXME: we can probably prevent a heap allocation every time
+  return new PointerType(m_inner_expression->getType(holder));
+}
+
 Type *MemberAccessExpression::getGEPType(ContextHolder holder) {
   if (!m_parent)
     return holder->symbol_table.lookupLocalVariable(this, m_base_name).type;
@@ -537,6 +547,15 @@ Type *ArrayAccessExpression::getGEPType(ContextHolder holder) {
 
 // ======================================================
 // ====================== CODE GEN ======================
+llvm::Value *RefExpression::getVal(ContextHolder holder) {
+  return dyncast<LocatorExpression>(m_inner_expression)->getRef(holder);
+}
+
+llvm::Value *RefExpression::getRef(ContextHolder holder) {
+  assert(false && "this is ill form");
+  return dyncast<LocatorExpression>(m_inner_expression)->getRef(holder);
+}
+
 llvm::Value *ConstantExpr::getVal(ContextHolder holder) {
   llvm::Value *value =
       llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), m_value);

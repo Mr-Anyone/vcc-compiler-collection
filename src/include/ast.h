@@ -354,4 +354,21 @@ private:
                // of a posfix expression. deref<a>.a.c[10] = 10; # for example
 };
 
+// This is similar to DeRefExpression, but does the opposite thing
+// 
+// int c = 10;
+// ptr int a = ref<c>; # this makes well form
+class RefExpression : public LocatorExpression {
+public:
+  RefExpression(Expression *inner);
+
+  virtual void dump() override;
+  virtual llvm::Value *getVal(ContextHolder holder) override;
+  virtual llvm::Value *getRef(ContextHolder holder) override;
+  virtual Type *getType(ContextHolder holder) override;
+
+private:
+  Expression *m_inner_expression;
+};
+
 #endif

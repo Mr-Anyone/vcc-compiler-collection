@@ -1,0 +1,15 @@
+function set_pointer
+gives int[
+    ptr int a,
+]{
+    ret deref<a>;
+}
+
+function pass_pointer
+gives int[
+    int a,
+]{
+    int placeholder = set_pointer(ref<a>, );
+    ret a;
+}
+

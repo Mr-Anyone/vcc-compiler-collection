@@ -614,9 +614,33 @@ LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
   return access;
 }
 
+// ref_expression :== 'ref', '<', <trivial_expression>, '>'
+Expression* Parser::buildRefExpression(){
+    if(m_tokenizer.getCurrentType() != lex::Ref){
+        logError("expected ref");
+        return nullptr;
+    }
+
+    if(m_tokenizer.getNextType() != lex::LessSign){
+        logError("expected <");
+        return nullptr;
+    }
+    m_tokenizer.consume();
+
+    Expression* expression = buildTrivialExpression();
+
+    if(m_tokenizer.getCurrentType() != lex::GreaterSign){
+        logError("expected >");
+        return nullptr;
+    }
+    m_tokenizer.consume();
+
+    return new RefExpression(expression) ;
+}
+
 // trivial_expression :== <identifier> | <call_expression> |
 //                             '(', <expression>, ')' | <integer_literal> |
-//                             <posfix_expression> | <deref_expression>
+//                             <posfix_expression> | <deref_expression> | <ref_expression>
 Expression *Parser::buildTrivialExpression() {
   // <integer_literal>
   if (m_tokenizer.getCurrentType() == lex::IntegerLiteral) {
@@ -656,6 +680,9 @@ Expression *Parser::buildTrivialExpression() {
     m_tokenizer.consume();
     return value;
   }
+
+  if(m_tokenizer.getCurrentType() == lex::Ref)
+      return buildRefExpression();
 
   if (m_tokenizer.getCurrentType() == lex::Deref)
     return buildDerefExpression();

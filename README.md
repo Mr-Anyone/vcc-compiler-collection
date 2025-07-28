@@ -77,9 +77,11 @@ binary_expression :== <trivial_expression> |
 
 deref_expression :== 'deref', '<', <trivial_expression>, '>'
 
+ref_expression :== 'ref', '<', <trivial_expression>, '>'
+
 trivial_expression :== <identifier> | <call_expression> |
                             '(', <expression>, ')' | <integer_literal> | 
-                            <posfix_expression> | <deref_expression>
+                            <posfix_expression> | <deref_expression> | <ref_expression>
 
 posfix_expression :== <identifier> | <deref_expression>
     <posfix_expression>, '.', <identifier> | 
@@ -134,6 +136,15 @@ ptr int b = a + 10; # this is ill form
 int a = 0;
 if a + 1 then # yields true, but if a = 0, yields false
 end
+```
+
+2. The type of AssignmentStatement of left and right hand side must be same
+
+3. It is ill form for RefExpression to be on the left hande side of assignment statement.
+
+```
+int a = 30;
+ref<a> = 20; # this is ill-form
 ```
 
 

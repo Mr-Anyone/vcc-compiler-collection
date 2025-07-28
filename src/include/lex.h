@@ -31,6 +31,7 @@ enum TokenType {
   Gives,
   External,         // external
   Deref,            // deref
+  Ref,            // deref
   SemiColon, //;
   Equal,     // =
   Ret,       // ret
@@ -140,6 +141,7 @@ private:
       {"then", Then},
       {"end", End},
       {"deref", Deref},
+      {"ref", Ref},
 
       // boolean stuff
       {"eq", EqualKeyword},
