@@ -17,6 +17,10 @@ bool Type::isArray() const {
   return dynamic_cast<const ArrayType *>(this) != nullptr;
 }
 
+bool Type::isVoid() const {
+  return dynamic_cast<const VoidType *>(this) != nullptr;
+}
+
 llvm::Type *Type::getType(ContextHolder holder) {
   assert(false && "please implement getType");
   return nullptr;
@@ -203,4 +207,12 @@ bool Type::isSame(Type *lhs, Type *rhs) {
   }
 
   return false;
+}
+
+llvm::Type *VoidType::getType(ContextHolder holder) {
+  return llvm::Type::getVoidTy(holder->context);
+}
+
+void  VoidType::dump(){
+    std::cout << "void";
 }

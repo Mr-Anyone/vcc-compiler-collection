@@ -31,8 +31,14 @@ const std::vector<Statement *> &Parser::getSyntaxTree() {
 // type_qualification :== 'int' | 'struct', <identifier> |
 //                     'array', '(', <integer_literal>, ')',
 //                     <type_qualification> | 'ptr', <type_qualification> |
-//                     'float'
+//                     'float' | 'void'
 Type *Parser::buildTypeQualification() {
+  // we have void type 'void'
+  if (m_tokenizer.getCurrentType() == lex::Void) {
+    m_tokenizer.consume();
+    return new VoidType();
+  }
+
   // we have an array type
   // 'array', '(', <integer_literal>, ')', <type_qualification>
   if (m_tokenizer.getCurrentType() == lex::Array) {
@@ -342,8 +348,8 @@ Statement *Parser::buildFunctionDecl() {
 // assignment_statement :== <trivial_expression> ,'=' <expression>, ';'
 Statement *Parser::buildAssignmentStatement() {
   LocatorExpression *lhs = dyncast<LocatorExpression>(buildTrivialExpression());
-  if(!lhs)
-      return nullptr;
+  if (!lhs)
+    return nullptr;
 
   if (m_tokenizer.getCurrentType() != lex::Equal)
     return logError("expected =");
@@ -401,14 +407,18 @@ FunctionArgLists *Parser::buildFunctionArgList() {
   return new FunctionArgLists(std::move(args));
 }
 
-// return_statement :== 'ret', <expression> ';'
+// return_statement :== 'ret', {<expression>} ';'
 Statement *Parser::buildReturnStatement() {
   if (m_tokenizer.getCurrentType() != lex::Ret) {
     return logError("expected error");
   }
   m_tokenizer.consume();
 
-  Expression *expression = buildExpression();
+  Expression *expression = nullptr;
+  // Parser an expression if and only if we don't have an ';'
+  //  if we have an ';', it is likely that we have a void function type
+  if (m_tokenizer.getCurrentType() != lex::SemiColon)
+    expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::SemiColon) {
     return logError("expected ;");
@@ -615,32 +625,33 @@ LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
 }
 
 // ref_expression :== 'ref', '<', <trivial_expression>, '>'
-Expression* Parser::buildRefExpression(){
-    if(m_tokenizer.getCurrentType() != lex::Ref){
-        logError("expected ref");
-        return nullptr;
-    }
+Expression *Parser::buildRefExpression() {
+  if (m_tokenizer.getCurrentType() != lex::Ref) {
+    logError("expected ref");
+    return nullptr;
+  }
 
-    if(m_tokenizer.getNextType() != lex::LessSign){
-        logError("expected <");
-        return nullptr;
-    }
-    m_tokenizer.consume();
+  if (m_tokenizer.getNextType() != lex::LessSign) {
+    logError("expected <");
+    return nullptr;
+  }
+  m_tokenizer.consume();
 
-    Expression* expression = buildTrivialExpression();
+  Expression *expression = buildTrivialExpression();
 
-    if(m_tokenizer.getCurrentType() != lex::GreaterSign){
-        logError("expected >");
-        return nullptr;
-    }
-    m_tokenizer.consume();
+  if (m_tokenizer.getCurrentType() != lex::GreaterSign) {
+    logError("expected >");
+    return nullptr;
+  }
+  m_tokenizer.consume();
 
-    return new RefExpression(expression) ;
+  return new RefExpression(expression);
 }
 
 // trivial_expression :== <identifier> | <call_expression> |
 //                             '(', <expression>, ')' | <integer_literal> |
-//                             <posfix_expression> | <deref_expression> | <ref_expression>
+//                             <posfix_expression> | <deref_expression> |
+//                             <ref_expression>
 Expression *Parser::buildTrivialExpression() {
   // <integer_literal>
   if (m_tokenizer.getCurrentType() == lex::IntegerLiteral) {
@@ -681,8 +692,8 @@ Expression *Parser::buildTrivialExpression() {
     return value;
   }
 
-  if(m_tokenizer.getCurrentType() == lex::Ref)
-      return buildRefExpression();
+  if (m_tokenizer.getCurrentType() == lex::Ref)
+    return buildRefExpression();
 
   if (m_tokenizer.getCurrentType() == lex::Deref)
     return buildDerefExpression();

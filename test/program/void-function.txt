@@ -1,0 +1,7 @@
+function test_void
+gives void[
+    int a,
+]{
+
+    ret;
+}

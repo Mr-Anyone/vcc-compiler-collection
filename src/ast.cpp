@@ -115,7 +115,11 @@ void FunctionDecl::dump() {
 }
 
 ReturnStatement::ReturnStatement(Expression *expression)
-    : Statement({expression}), m_expression(expression) {}
+    : Statement({}), m_expression(expression) {
+  // it is possible that expression is null
+  if (expression)
+    addChildren(expression);
+}
 
 IdentifierExpr::IdentifierExpr(const std::string &name)
     : LocatorExpression({}), m_name(name) {}
@@ -783,9 +787,15 @@ void AssignmentStatement::dump() {}
 
 void ReturnStatement::codegen(ContextHolder holder) {
   // FIXME: must add semantics analysis
-  llvm::Value *return_value = m_expression->getVal(holder);
+  if (m_expression) {
+    llvm::Value *return_value = m_expression->getVal(holder);
+    holder->builder.CreateRet(return_value);
 
-  holder->builder.CreateRet(return_value);
+  } else {
+    assert(getFirstFunctionDecl()->getReturnType()->isVoid() &&
+           "must be void for this to make sense");
+    holder->builder.CreateRetVoid();
+  }
 }
 
 void FunctionDecl::buildExternalDecl(ContextHolder holder) {

@@ -61,11 +61,11 @@ if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 assignment_statement :== <trivial_expression>, '=', <expression>, ';'
     | <posfix_expression> ,'=' <expression>, ';'
 
-return_statement :== 'ret', <expression> ';'
+return_statement :== 'ret', {<expression>} ';'
 
 type_qualification :== 'int' | 'struct', <identifier> |
                     'array', '(', <integer_literal>, ')', <type_qualification> |
-                    'ptr', <type_qualification> | 'float'
+                    'ptr', <type_qualification> | 'float' | 'void'
 
 struct_definition :== 'struct', <identifier> ,'{'
                         , {<type_qualification> <identifier>}+, '}'
@@ -130,6 +130,7 @@ ptr int b = a + 10; # this is ill form
 
 
 ## Statements
+
 1. Inside a if statement, the condition is false if and only if the value is 0. In other words, it is true if and only if the value is non zero.
 
 ```
@@ -138,7 +139,7 @@ if a + 1 then # yields true, but if a = 0, yields false
 end
 ```
 
-2. The type of AssignmentStatement of left and right hand side must be same
+2. The type of AssignmentStatement of left and right hand side must be the same.
 
 3. It is ill form for RefExpression to be on the left hande side of assignment statement.
 
@@ -146,7 +147,9 @@ end
 int a = 30;
 ref<a> = 20; # this is ill-form
 ```
+4. The left hand side of assignment statement must a Locator.
 
+5. Void type is only used for function declaration return type
 
 ## Name Lookup
 
@@ -180,7 +183,9 @@ gives struct vec2[
     ret a;
 }
 ```
-gives: 
+
+Gives: 
+
 ```
 FunctionDecl name: some_test_here args:
   FunctionArgLists

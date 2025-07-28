@@ -15,7 +15,7 @@
 class Type {
 public:
   virtual llvm::Type *getType(ContextHolder holder);
-  virtual void dump(); 
+  virtual void dump();
 
   template <typename T> T *getAs() { return dyncast<T>(this); }
 
@@ -23,8 +23,9 @@ public:
   bool isBuiltin() const;
   bool isPointer() const;
   bool isArray() const;
+  bool isVoid() const;
 
-  static bool isSame(Type* lhs, Type*rhs);
+  static bool isSame(Type *lhs, Type *rhs);
 
 private:
 };
@@ -38,7 +39,7 @@ public:
   int getCount();
 
   virtual llvm::Type *getType(ContextHolder holder) override;
-  virtual void dump() override; 
+  virtual void dump() override;
 
 private:
   llvm::Type *m_llvm_type = nullptr;
@@ -52,7 +53,8 @@ public:
 
   Type *getPointee();
   virtual llvm::Type *getType(ContextHolder holder) override;
-  virtual void dump() override; 
+  virtual void dump() override;
+
 private:
   Type *m_pointee;
 };
@@ -63,12 +65,13 @@ public:
 
   BuiltinType(Builtin builtin);
   Builtin getKind() const;
-  bool isInt()const;
-  bool isFloat()const;
+  bool isInt() const;
+  bool isFloat() const;
 
   virtual llvm::Type *getType(ContextHolder holder) override;
 
-  virtual void dump() override; 
+  virtual void dump() override;
+
 private:
   Builtin m_builtin;
   int m_bits_size;
@@ -88,13 +91,21 @@ public:
   virtual void dump() override;
 
   std::optional<Element> getElement(const std::string &name);
-  const std::vector<Element>& getElements() const;
-  const std::string& getName() const;
+  const std::vector<Element> &getElements() const;
+  const std::string &getName() const;
 
 private:
   std::vector<Element> m_elements;
   std::string m_name;
   llvm::StructType *m_llvm_type = nullptr;
+};
+
+class VoidType : public Type {
+public:
+  virtual llvm::Type *getType(ContextHolder holder);
+  virtual void dump();
+
+private:
 };
 
 /// FIXME: it seems that we need to better organize

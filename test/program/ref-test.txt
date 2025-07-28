@@ -9,6 +9,7 @@ function pass_pointer
 gives int[
     int a,
 ]{
+    ptr int pointer_to_a = ref<a>;
     int placeholder = set_pointer(ref<a>, );
     ret a;
 }

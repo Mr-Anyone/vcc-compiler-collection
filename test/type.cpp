@@ -52,4 +52,10 @@ TEST(Type, BasicTest) {
       llvm::ArrayType::get(
           llvm::ArrayType::get(llvm::Type::getInt32Ty(holder->context), 20),
           10));
+  VoidType some_void_type;
+  EXPECT_TRUE(some_void_type.isVoid());
+  EXPECT_FALSE(some_void_type.isArray());
+  EXPECT_FALSE(some_void_type.isBuiltin());
+  EXPECT_FALSE(some_void_type.isStruct());
+  EXPECT_EQ(llvm::Type::getVoidTy(holder->context), some_void_type.getType(holder));
 }
