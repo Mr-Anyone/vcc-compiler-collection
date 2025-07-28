@@ -859,6 +859,7 @@ llvm::Value *CallExpr::getVal(ContextHolder holder) {
 
   std::vector<llvm::Value *> args;
   for (Expression *expression : m_expressions) {
+      // FIXME: add type check for function call
     args.push_back(expression->getVal(holder));
   }
 

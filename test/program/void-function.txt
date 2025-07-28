@@ -2,7 +2,6 @@ function test_void
 gives void[
     int a,
 ]{
-
     ret;
 }
 
@@ -11,4 +10,3 @@ gives void[]{
     test_void(1,);
     ret;
 }
-
