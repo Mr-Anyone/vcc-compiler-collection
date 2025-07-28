@@ -72,6 +72,8 @@ void ASTBase::setParent(ASTBase *parent) {
   m_parent->m_childrens.insert(this);
 }
 
+void AssignmentStatement::dump() {}
+
 const ASTBase *ASTBase::getParent() const { return m_parent; }
 
 void ASTBase::dump() { return; }
@@ -422,6 +424,20 @@ RefExpression::RefExpression(Expression *inner)
     : LocatorExpression({inner}), m_inner_expression(inner) {}
 
 void RefExpression::dump() {}
+
+llvm::FunctionType *FunctionDecl::getFunctionType(ContextHolder holder) const {
+  std::vector<llvm::Type *> args;
+  for (auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it) {
+    args.push_back(it->type->getType(holder));
+  }
+
+  llvm::FunctionType *function_type = llvm::FunctionType::get(
+      m_return_type->getType(holder), args, /*isVarArg=*/false);
+  return function_type;
+}
+
+CallStatement::CallStatement(Expression *call_expression)
+    : Statement({call_expression}), m_call_expr(call_expression) {}
 
 // ================================================================================
 // ====================== Expression Implementation::getType
@@ -783,8 +799,6 @@ void AssignmentStatement::codegen(ContextHolder holder) {
   holder->builder.CreateStore(expression_val, alloc_loc);
 }
 
-void AssignmentStatement::dump() {}
-
 void ReturnStatement::codegen(ContextHolder holder) {
   // FIXME: must add semantics analysis
   if (m_expression) {
@@ -805,15 +819,9 @@ void FunctionDecl::buildExternalDecl(ContextHolder holder) {
       function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
 }
 
-llvm::FunctionType *FunctionDecl::getFunctionType(ContextHolder holder) const {
-  std::vector<llvm::Type *> args;
-  for (auto it = m_arg_list->begin(), ie = m_arg_list->end(); it != ie; ++it) {
-    args.push_back(it->type->getType(holder));
-  }
 
-  llvm::FunctionType *function_type = llvm::FunctionType::get(
-      m_return_type->getType(holder), args, /*isVarArg=*/false);
-  return function_type;
+void CallStatement::codegen(ContextHolder holder) {
+  m_call_expr->getVal(holder);
 }
 
 void FunctionDecl::codegen(ContextHolder holder) {

@@ -50,7 +50,9 @@ identifier :== [a-zA-Z]+
 integer_literal :== [0-9]+
 
 statements :== <assignment_statement> | <return_statement> | <if_statement> | <while_statement> 
-        | <declaration_statement>
+        | <declaration_statement> | <call_statement>
+
+call_statement :== <call_expression>, ';'
 
 while_statement :== 'while', <expression>, 'then', <statements>+,'end'
 

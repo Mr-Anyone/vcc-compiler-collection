@@ -5,3 +5,10 @@ gives void[
 
     ret;
 }
+
+function caller
+gives void[]{
+    test_void(1,);
+    ret;
+}
+

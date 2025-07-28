@@ -2,13 +2,11 @@
 #define AST_H
 
 #include <llvm/IR/Attributes.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 #include <string>
 #include <vector>
-
-// llvm includes
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Value.h"
 
 #include "context.h"
 #include "lex.h"
@@ -55,6 +53,15 @@ public:
   virtual void codegen(ContextHolder holder) = 0;
 
 private:
+};
+
+class CallStatement : public Statement {
+public:
+  CallStatement(Expression *call_expression);
+
+  virtual void codegen(ContextHolder holder) override;
+private:
+  Expression *m_call_expr;
 };
 
 class FunctionArgLists : public Statement {
@@ -355,7 +362,7 @@ private:
 };
 
 // This is similar to DeRefExpression, but does the opposite thing
-// 
+//
 // int c = 10;
 // ptr int a = ref<c>; # this makes well form
 class RefExpression : public LocatorExpression {

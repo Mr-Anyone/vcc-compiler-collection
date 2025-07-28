@@ -282,8 +282,19 @@ Statement *Parser::buildWhileStatement() {
   return new WhileStatement(cond, std::move(expressions));
 }
 
-// statements :== <assignment_statement> | <return_statement> | <if_statement> |
-// <while_statement>
+// call_statement :== <call_expression>, ';'
+Statement* Parser::buildCallStatement(){
+    Expression* call_expresion = buildCallExpr();
+    if(m_tokenizer.getCurrentType() != lex::SemiColon){
+        return logError("expected semi colon");
+    }
+    m_tokenizer.consume();
+
+    return new CallStatement(call_expresion);
+}
+
+// statements :== <assignment_statement> | <return_statement> | <if_statement> | <while_statement> 
+//         | <declaration_statement> | <call_statement>
 Statement *Parser::buildStatement() {
   if (m_tokenizer.getCurrentType() == lex::RightBrace)
     return nullptr;
@@ -296,6 +307,11 @@ Statement *Parser::buildStatement() {
 
   if (m_tokenizer.current().isTypeQualification())
     return buildDeclarationStatement();
+
+  if (m_tokenizer.getCurrentType() == lex::Identifier &&
+      m_tokenizer.peek().getType() == lex::LeftParentheses) {
+      return buildCallStatement();
+  }
 
   if (m_tokenizer.getCurrentType() == lex::While)
     return buildWhileStatement();

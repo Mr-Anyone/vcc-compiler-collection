@@ -57,5 +57,6 @@ TEST(Type, BasicTest) {
   EXPECT_FALSE(some_void_type.isArray());
   EXPECT_FALSE(some_void_type.isBuiltin());
   EXPECT_FALSE(some_void_type.isStruct());
-  EXPECT_EQ(llvm::Type::getVoidTy(holder->context), some_void_type.getType(holder));
+  EXPECT_EQ(llvm::Type::getVoidTy(holder->context),
+            some_void_type.getType(holder));
 }

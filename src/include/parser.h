@@ -38,6 +38,7 @@ private:
   Statement *buildWhileStatement();
   Statement *buildDeclarationStatement();
   Statement *buildExternalDecl();
+  Statement *buildCallStatement();
 
   // Expressions
   Expression *buildExpression();
