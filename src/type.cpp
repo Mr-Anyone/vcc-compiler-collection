@@ -94,7 +94,8 @@ PointerType::PointerType(Type *pointee) : m_pointee(pointee) {}
 Type *PointerType::getPointee() { return m_pointee; }
 
 llvm::Type *PointerType::getType(ContextHolder holder) {
-    return llvm::PointerType::get(m_pointee->getType(holder)->getContext(), /*AddressSpace*/0);
+  return llvm::PointerType::get(m_pointee->getType(holder)->getContext(),
+                                /*AddressSpace*/ 0);
 }
 
 ArrayType::ArrayType(Type *base, int count) : m_count(count), m_base(base) {}
@@ -135,12 +136,71 @@ void BuiltinType::dump() {
   }
 }
 
-void StructType::dump(){
-    std::cout << "struct { ";
-    for(Element& ele : m_elements){
-        ele.type->dump();
-    }
+void StructType::dump() {
+  std::cout << "struct { ";
+  for (Element &ele : m_elements) {
+    ele.type->dump();
+    std::cout << "|";
+  }
 
-    std::cout << " }";
+  std::cout << " }";
 }
 
+bool BuiltinType::isInt() const { return m_builtin == Int; }
+
+bool BuiltinType::isFloat() const { return m_builtin == Float; }
+
+const std::vector<StructType::Element> &StructType::getElements() const {
+  return m_elements;
+}
+
+const std::string &StructType::getName() const { return m_name; }
+
+bool Type::isSame(Type *lhs, Type *rhs) {
+  if (lhs->isStruct() && rhs->isStruct()) {
+    StructType *the_lhs = lhs->getAs<StructType>();
+    StructType *the_rhs = rhs->getAs<StructType>();
+    if (the_lhs->getName() != the_rhs->getName())
+      return false;
+
+    auto rhs_elements = the_rhs->getElements();
+    auto lhs_elements = the_lhs->getElements();
+
+    if (lhs_elements.size() != rhs_elements.size())
+      return false;
+
+    for (int i = 0; i < lhs_elements.size(); ++i) {
+      assert(lhs_elements[i].field_num == rhs_elements[i].field_num &&
+             "invariant check");
+      if (lhs_elements[i].name != rhs_elements[i].name)
+        return false;
+
+      if (!isSame(lhs_elements[i].type, rhs_elements[i].type)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  if (lhs->isBuiltin() && rhs->isBuiltin()) {
+    return lhs->getAs<BuiltinType>()->getKind() ==
+           rhs->getAs<BuiltinType>()->getKind();
+  }
+
+  if (lhs->isPointer() && rhs->isPointer()) {
+    return isSame(lhs->getAs<PointerType>()->getPointee(),
+                  rhs->getAs<PointerType>()->getPointee());
+  }
+
+  if (lhs->isArray() && rhs->isArray()) {
+    if (lhs->getAs<ArrayType>()->getCount() !=
+        rhs->getAs<ArrayType>()->getCount())
+      return false;
+
+    return isSame(lhs->getAs<ArrayType>()->getBase(),
+                  rhs->getAs<ArrayType>()->getBase());
+  }
+
+  return false;
+}

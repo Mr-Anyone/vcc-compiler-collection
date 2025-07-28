@@ -105,15 +105,15 @@ private:
 
 class AssignmentStatement : public Statement {
 public:
-  AssignmentStatement(ASTBase *ref_expression, ASTBase *expression);
+  AssignmentStatement(Expression *ref_expression, Expression *expression);
 
   virtual void codegen(ContextHolder holder) override;
   virtual void dump() override;
   const std::string &getName();
 
 private:
-  ASTBase *m_ref_expr; // The right hand side of the equation
-  ASTBase *m_expression;
+  Expression *m_ref_expr; // The right hand side of the equation
+  Expression *m_expression;
 };
 
 class ReturnStatement : public Statement {
@@ -182,10 +182,10 @@ class LocatorExpression : public Expression {
 public:
   LocatorExpression(const std::vector<Expression *> &childrens);
 
-protected:
   /// recursively traverse the tree to get the reference to
   /// the current type
   virtual llvm::Value *getRef(ContextHolder holder);
+protected:
 
   friend class MemberAccessExpression;
   friend class ArrayAccessExpression;
@@ -283,6 +283,7 @@ public:
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
+  virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
   llvm::Value *getCurrentRef(ContextHolder holder);
 
@@ -307,6 +308,8 @@ public:
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
+  virtual llvm::Value *getRef(ContextHolder holder) override;
+
   llvm::Value *getCurrentRef(ContextHolder holder);
 
   Type *getGEPType(ContextHolder holder);

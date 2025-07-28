@@ -12,7 +12,8 @@
 - [ ] Add source location 
 - [ ] The C FFI problem with SDL
 - [ ] String Type  
-- [ ] The heap allocation problem with ASTBase and Type
+- [ ] THE HEAP ALLOCATION PROBLEM WITH AstBase AND TYPE
+- [ ] Bool type with problem BinaryExpression::getType() 
 
 # Example Code 
 ```

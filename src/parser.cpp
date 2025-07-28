@@ -343,7 +343,7 @@ Statement *Parser::buildAssignmentStatement() {
     return nullptr;
 
   assert(m_tokenizer.getCurrentType() == lex::Identifier);
-  ASTBase *lhs = nullptr;
+  Expression *lhs = nullptr;
   if (isFullstopOrLeftBracket(m_tokenizer.peek())) {
     // we have the following case
     //       <posfix_expression> ,'=' <expression>, ';'
@@ -358,7 +358,7 @@ Statement *Parser::buildAssignmentStatement() {
     return logError("expected =");
   m_tokenizer.consume();
 
-  ASTBase *expression = buildExpression();
+  Expression *expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::SemiColon)
     return logError("expected semi colon");

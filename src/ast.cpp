@@ -102,7 +102,8 @@ FunctionArgLists::ArgsIter FunctionArgLists::end() const {
   return m_args.cend();
 }
 
-AssignmentStatement::AssignmentStatement(ASTBase *ref_expr, ASTBase *expression)
+AssignmentStatement::AssignmentStatement(Expression *ref_expr,
+                                         Expression *expression)
     : Statement({ref_expr, expression}), m_ref_expr(ref_expr),
       m_expression(expression) {}
 
@@ -266,20 +267,20 @@ void MemberAccessExpression::dump() {
 }
 
 ArrayAccessExpression::ArrayAccessExpression(const std::string &name,
-                                           Expression *expression)
+                                             Expression *expression)
     : LocatorExpression({expression}), m_index_expression(expression),
       m_base_name(name) {}
 
 ArrayAccessExpression::ArrayAccessExpression(LocatorExpression *parent,
-                                           Expression *index_expression)
+                                             Expression *index_expression)
     : LocatorExpression({index_expression}),
       m_index_expression(index_expression), m_parent_expression(parent) {
   parent->addChildren(this);
 }
 
 void ArrayAccessExpression::dump() {
-  std::cout << "[]"
-            << " child*: " << m_child_posfix_expression << " this: " << this;
+  std::cout << "[]" << " child*: " << m_child_posfix_expression
+            << " this: " << this;
 }
 
 LocatorExpression::LocatorExpression(const std::vector<Expression *> &childrens)
@@ -314,6 +315,24 @@ void MemberAccessExpression::setChildPosfixExpression(
   m_child_posfix_expression = child;
 }
 
+llvm::Value *ArrayAccessExpression::getRef(ContextHolder holder) {
+  // We will be call getCurrentRef on the base to get the reference on the
+  // entire class
+  if (m_child_posfix_expression)
+    return m_child_posfix_expression->getRef(holder);
+
+  return getCurrentRef(holder);
+}
+
+llvm::Value *MemberAccessExpression::getRef(ContextHolder holder) {
+  // We will be call getCurrentRef on the base to get the reference on the
+  // entire class
+  if (m_child_posfix_expression)
+    return m_child_posfix_expression->getRef(holder);
+
+  return getCurrentRef(holder);
+}
+
 llvm::Value *LocatorExpression::getRef(ContextHolder holder) {
   assert(false && "please implement this!'");
 }
@@ -321,11 +340,14 @@ llvm::Value *IdentifierExpr::getRef(ContextHolder holder) {
   return holder->symbol_table.lookupLocalVariable(this, m_name).value;
 }
 
-static llvm::Value* getStartOfPointerFromParent(Expression* expression, ContextHolder holder){
-    if(MemberAccessExpression* member = dyncast<MemberAccessExpression>(expression))
-        return member->getCurrentRef(holder);
+static llvm::Value *getStartOfPointerFromParent(Expression *expression,
+                                                ContextHolder holder) {
+  if (MemberAccessExpression *member =
+          dyncast<MemberAccessExpression>(expression))
+    return member->getCurrentRef(holder);
 
-    return static_cast<ArrayAccessExpression*>(expression)->getCurrentRef(holder);
+  return static_cast<ArrayAccessExpression *>(expression)
+      ->getCurrentRef(holder);
 }
 
 llvm::Value *MemberAccessExpression::getCurrentRef(ContextHolder holder) {
@@ -394,7 +416,8 @@ Type *MemberAccessExpression::getGEPType(ContextHolder holder) {
 
   // FIXME: this shares a lot same code with ArrayAccessExpression::getType,
   // maybe we should have a standard interface that solves this entirely?
-  if (ArrayAccessExpression *parent = dyncast<ArrayAccessExpression>(m_parent)) {
+  if (ArrayAccessExpression *parent =
+          dyncast<ArrayAccessExpression>(m_parent)) {
     return parent->getGEPChildType(holder);
   }
   assert(isa<MemberAccessExpression>(m_parent));
@@ -421,7 +444,10 @@ Type *ArrayAccessExpression::getType(ContextHolder holder) {
   if (m_child_posfix_expression)
     return m_child_posfix_expression->getType(holder);
 
-  return getGEPType(holder);
+  if (getGEPType(holder)->isBuiltin()) {
+    return getGEPType(holder);
+  }
+  return getGEPChildType(holder);
 }
 
 Type *ConstantExpr::getType(ContextHolder holder) {
@@ -437,7 +463,28 @@ Type *CallExpr::getType(ContextHolder holder) {
 }
 
 Type *BinaryExpression::getType(ContextHolder holder) {
-  assert(false && "not sure what to do this");
+  if (m_lhs->getType(holder)->isPointer() ||
+      m_rhs->getType(holder)->isPointer()) {
+    assert(false && "please emit error here. pointer type in binary expression "
+                    "is illform for now!");
+    return nullptr;
+  }
+
+  if (m_lhs->getType(holder)->isBuiltin() &&
+      m_rhs->getType(holder)->isBuiltin()) {
+    if (m_lhs->getType(holder)->getAs<BuiltinType>()->isFloat())
+      return m_lhs->getType(holder);
+
+    if (m_rhs->getType(holder)->getAs<BuiltinType>()->isFloat())
+      return m_rhs->getType(holder);
+
+    assert(m_lhs->getType(holder)->getAs<BuiltinType>()->isInt() &&
+           m_rhs->getType(holder)->getAs<BuiltinType>()->isInt());
+
+    return m_lhs->getType(holder);
+  }
+
+  assert(false && "don't know what to do here!");
 }
 
 // FIXME: this really should be callled getGEP type and not getType
@@ -674,12 +721,21 @@ void FunctionArgLists::codegen(ContextHolder holder) {
 }
 
 void AssignmentStatement::codegen(ContextHolder holder) {
-  assert(false && "this is not yet done");
-  // llvm::Value *expression_val = m_expression->codegen(holder);
-  // llvm::Value *alloc_loc = m_ref_expr->codegen(holder);
+  assert(isa<LocatorExpression>(m_ref_expr) && "must be an locator value");
+  llvm::Value *expression_val = m_expression->getVal(holder);
+  llvm::Value *alloc_loc =
+      dyncast<LocatorExpression>(m_ref_expr)->getRef(holder);
 
-  // assert(expression_val && alloc_loc);
-  // holder->builder.CreateStore(expression_val, alloc_loc);
+  if (!Type::isSame(m_expression->getType(holder),
+                    m_ref_expr->getType(holder))) {
+      // FIXME: add a way to diagnose stuff
+      std::cerr << "invalid type";
+      std::exit(-1);
+    return;
+  }
+
+  assert(expression_val && alloc_loc);
+  holder->builder.CreateStore(expression_val, alloc_loc);
 }
 
 void AssignmentStatement::dump() {}
@@ -791,6 +847,11 @@ void DeclarationStatement::codegen(ContextHolder holder) {
 
   // if we don't have an initializer, we don't allocate space
   if (m_expression) {
+      if(!Type::isSame(m_type, m_expression->getType(holder))){
+          std::cerr << "invalid type";
+          std::exit(-1);
+          return;
+      }
     llvm::Value *exp = m_expression->getVal(holder);
     llvm::Value *return_val = holder->builder.CreateStore(exp, alloc_loc);
   }
@@ -828,12 +889,11 @@ void WhileStatement::codegen(ContextHolder holder) {
 }
 
 llvm::Value *MemberAccessExpression::getVal(ContextHolder holder) {
-  assert(false && "this is currently wrong");
   if (m_child_posfix_expression)
     return m_child_posfix_expression->getVal(holder);
 
   // we are at the base case
-  llvm::Value *ref_loc = getRef(holder);
+  llvm::Value *ref_loc = getCurrentRef(holder);
   llvm::Type *child_type = getGEPType(holder)
                                ->getAs<StructType>()
                                ->getElement(m_member)
@@ -842,15 +902,14 @@ llvm::Value *MemberAccessExpression::getVal(ContextHolder holder) {
 }
 
 llvm::Value *ArrayAccessExpression::getVal(ContextHolder holder) {
-  assert(false && "fix me later");
   // the leaf would return the result
   if (m_child_posfix_expression)
     return m_child_posfix_expression->getVal(holder);
 
   // we are at the leaf
-  llvm::Value *start_of_pointer = getRef(holder);
-  Type *current_type = getGEPType(
-      holder); // it is possible that this is i32 already, so we just load it
+  // FIXME: is this even correct?
+  llvm::Value *start_of_pointer = getCurrentRef(holder);
+  Type *current_type = getGEPType(holder);
   Type *child_type =
       current_type->isBuiltin() ? current_type : getGEPChildType(holder);
   return holder->builder.CreateLoad(child_type->getType(holder),
@@ -867,7 +926,7 @@ llvm::Value *DeRefExpression::getVal(ContextHolder holder) {
   return holder->builder.CreateLoad(base_type, current_value);
 }
 
-llvm::Value *DeRefExpression::getRef(ContextHolder holder) { 
-    assert(m_ref->getType(holder)->isPointer());
-    return m_ref->getVal(holder);
+llvm::Value *DeRefExpression::getRef(ContextHolder holder) {
+  assert(m_ref->getType(holder)->isPointer());
+  return m_ref->getVal(holder);
 }

@@ -24,6 +24,8 @@ public:
   bool isPointer() const;
   bool isArray() const;
 
+  static bool isSame(Type* lhs, Type*rhs);
+
 private:
 };
 
@@ -61,6 +63,9 @@ public:
 
   BuiltinType(Builtin builtin);
   Builtin getKind() const;
+  bool isInt()const;
+  bool isFloat()const;
+
   virtual llvm::Type *getType(ContextHolder holder) override;
 
   virtual void dump() override; 
@@ -83,6 +88,8 @@ public:
   virtual void dump() override;
 
   std::optional<Element> getElement(const std::string &name);
+  const std::vector<Element>& getElements() const;
+  const std::string& getName() const;
 
 private:
   std::vector<Element> m_elements;
