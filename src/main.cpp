@@ -23,7 +23,8 @@ llvm::cl::opt<bool> print_ast("print-ast",
 llvm::cl::opt<bool> print_llvm("print-llvm",
                                llvm::cl::desc("Whether to print llvm"));
 llvm::cl::opt<bool> O3("O3", llvm::cl::desc("Optimization Level"));
-llvm::cl::opt<bool> S("S", llvm::cl::desc("Emit Assembly"), llvm::cl::init(false));
+llvm::cl::opt<bool> S("S", llvm::cl::desc("Emit Assembly"),
+                      llvm::cl::init(false));
 llvm::cl::opt<std::string> output_filename("o",
                                            llvm::cl::desc("Output filename"),
                                            llvm::cl::init("output.o"));

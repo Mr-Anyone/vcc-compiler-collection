@@ -27,11 +27,11 @@ enum TokenType {
   FunctionDecl,     // 'function'
   Fullstop,         // .
   LessSign,         // <
-  GreaterSign,         // >
+  GreaterSign,      // >
   Gives,
-  External,         // external
-  Deref,            // deref
-  Ref,            // deref
+  External,  // external
+  Deref,     // deref
+  Ref,       // deref
   SemiColon, //;
   Equal,     // =
   Ret,       // ret
@@ -39,7 +39,7 @@ enum TokenType {
   Then,      // Then
   End,       // End
   While,     // while
-  String,   //  for "+.+", so like "some text here"
+  String,    //  for "+.+", so like "some text here"
 
   // Type qualifications
   TypeQualificationStart,
@@ -47,12 +47,12 @@ enum TokenType {
   Struct, // struct
   Array,  // array
   Ptr,    // ptr
-  Char,    // char
+  Char,   // char
   Float,  // float
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start
-  Void,  // float
+  Void,                // float
   Add,                 // +
   Subtract,            // -
   Multiply,            // *
@@ -85,7 +85,7 @@ public:
   // for type like Parentheses, Invalid, EndOfFile, and keywords
   Token(TokenType type, FilePos pos);
 
-  Token(TokenType type, std::string& string_literal, FilePos pos);
+  Token(TokenType type, std::string &string_literal, FilePos pos);
 
   void dump() const;
   TokenType getType() const;

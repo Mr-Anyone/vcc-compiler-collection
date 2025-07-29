@@ -55,7 +55,8 @@ TrieTree::TrieTree(const FunctionDecl *decl)
 
 TrieTree::TrieTree() : head(nullptr) {}
 
-void TrieTree::insert(const ASTBase *pos, std::string name, Type* type, llvm::Value *value) {
+void TrieTree::insert(const ASTBase *pos, std::string name, Type *type,
+                      llvm::Value *value) {
   std::vector<const ASTBase *> trie_insert_order;
   getTrieOrder(pos, trie_insert_order);
 
@@ -73,8 +74,8 @@ void TrieTree::insert(const ASTBase *pos, std::string name, Type* type, llvm::Va
   }
 
   // finally adding the element into here
-  assert(traverse_trie->scope_def == pos->getScopeDeclLoc() 
-          && "we must be at the location of scope def when we are inserting");
+  assert(traverse_trie->scope_def == pos->getScopeDeclLoc() &&
+         "we must be at the location of scope def when we are inserting");
   assert(!traverse_trie->decls.contains(name) && "duplicate definition?");
   traverse_trie->decls[name] = {value, type};
 }
@@ -91,10 +92,11 @@ void TrieTree::getTrieOrder(const ASTBase *start,
   std::reverse(trie_order.begin(), trie_order.end());
 }
 
-void SymbolTable::addLocalVariable(ASTBase *loc, std::string name,
-                                   Type *type, llvm::Value* value) {
+void SymbolTable::addLocalVariable(ASTBase *loc, std::string name, Type *type,
+                                   llvm::Value *value) {
   // Create a trie it does not exist
-  if (!m_local_variable_table.contains(loc->getFirstFunctionDecl()->getName())) {
+  if (!m_local_variable_table.contains(
+          loc->getFirstFunctionDecl()->getName())) {
     TrieTree lookup_table(loc->getFirstFunctionDecl());
     m_local_variable_table[loc->getFirstFunctionDecl()->getName()] =
         lookup_table;
@@ -110,10 +112,9 @@ CGTypeInfo SymbolTable::lookupLocalVariable(ASTBase *at, std::string name) {
   return trie.lookup(at, name);
 }
 
-void TrieTree::TrieNode::dump(){
-    for(auto it = decls.begin(), ie=decls.end(); it!=ie; ++it){
-        std::cout << it->first << ",";
-    }
-    std::cout << "\n";
-
+void TrieTree::TrieNode::dump() {
+  for (auto it = decls.begin(), ie = decls.end(); it != ie; ++it) {
+    std::cout << it->first << ",";
+  }
+  std::cout << "\n";
 }

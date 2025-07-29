@@ -10,6 +10,7 @@
 - [X] Floating point support
 - [X] Add comments
 - [X] String Type  
+- [ ] Diagnostics Driver
 - [ ] Add source location 
 - [ ] The C FFI problem with SDL
 - [ ] THE HEAP ALLOCATION PROBLEM WITH AstBase AND TYPE
@@ -67,7 +68,7 @@ return_statement :== 'ret', {<expression>} ';'
 
 type_qualification :== 'int' | 'struct', <identifier> |
                     'array', '(', <integer_literal>, ')', <type_qualification> |
-                    'ptr', <type_qualification> | 'float' | 'void' | 'char'
+                    'ptr', <type_qualification> | 'float' | 'void' | 'char' | 'bool'
 
 struct_definition :== 'struct', <identifier> ,'{'
                         , {<type_qualification> <identifier>}+, '}'

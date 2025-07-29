@@ -6,24 +6,24 @@
 #include <iostream>
 #include <vector>
 
-/// 0 means we are at \n character 
+/// 0 means we are at \n character
 /// therefore it is impossible to have row=1, and col=0
 struct FilePos {
-    FilePos(int row, int col, long loc): row(row), col(col), loc(loc){}
+  FilePos(int row, int col, long loc) : row(row), col(col), loc(loc) {}
   int row, col;
   long loc;
-  
-  friend std::ostream& operator<<(std::ostream& os, const FilePos& filepos);
+
+  friend std::ostream &operator<<(std::ostream &os, const FilePos &filepos);
 };
 
-std::ostream& operator<<(std::ostream& os, const FilePos& filepos);
+std::ostream &operator<<(std::ostream &os, const FilePos &filepos);
 
 bool operator==(const FilePos &lhs, const FilePos &rhs);
 
 /// abstractions above std::ifstream
 class FileStream {
 public:
-  FileStream(const char* filename);
+  FileStream(const char *filename);
 
   /// consumes the character
   char get();
@@ -47,17 +47,18 @@ public:
   /// is the file open?
   bool is_open();
 
-  std::string getLine(long pos);  
+  std::string getLine(long pos);
+
 private:
   /// check if we are at the end of file
   bool m_is_end_of_file = false;
-  
+
   /// check for if a file is open or not
   bool m_open;
 
   // save and restore state
-  long m_restore_loc; 
-  FilePos m_restore_pos {1, 1, 0};
+  long m_restore_loc;
+  FilePos m_restore_pos{1, 1, 0};
   bool m_is_in_save_state = false;
   void saveState();
   void restoreState();

@@ -25,7 +25,6 @@ private:
   Type *buildTypeQualification();
   void addStructDefinition();
 
-
   // building the function decl
   Statement *buildFunctionDecl();
   FunctionArgLists *buildFunctionArgList();
@@ -56,8 +55,7 @@ private:
   LocatorExpression *buildPosfixExpression(LocatorExpression *lhs = nullptr);
 
   LocatorExpression *
-  buildTailPosfixExpression(LocatorExpression *lhs
-                            ); // helper for above
+  buildTailPosfixExpression(LocatorExpression *lhs); // helper for above
 
   inline Statement *logError(const char *message);
 
