@@ -39,6 +39,7 @@ enum TokenType {
   Then,      // Then
   End,       // End
   While,     // while
+  String,   //  for "+.+", so like "some text here"
 
   // Type qualifications
   TypeQualificationStart,
@@ -46,6 +47,7 @@ enum TokenType {
   Struct, // struct
   Array,  // array
   Ptr,    // ptr
+  Char,    // char
   Float,  // float
   TypeQualificationEnd,
 
@@ -80,10 +82,10 @@ public:
   // for IntegerLiteral
   Token(long long integer_litearl, FilePos pos);
 
-  // set binary operation
-
   // for type like Parentheses, Invalid, EndOfFile, and keywords
   Token(TokenType type, FilePos pos);
+
+  Token(TokenType type, std::string& string_literal, FilePos pos);
 
   void dump() const;
   TokenType getType() const;
@@ -157,6 +159,7 @@ private:
       {"float", Float},
       {"array", Array},
       {"gives", Gives},
+      {"char", Char},
       {"void", Void},
       {"ptr", Ptr},
       {";", SemiColon},

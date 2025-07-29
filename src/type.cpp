@@ -32,6 +32,8 @@ BuiltinType::BuiltinType(Builtin builtin) : m_builtin(builtin) {
   case Int:
     m_bits_size = 32;
     break;
+  case Char:
+    m_bits_size = 8;
   default:
     assert(false && "how did we get here?");
   }
@@ -44,6 +46,7 @@ llvm::Type *BuiltinType::getType(ContextHolder holder) {
     return m_llvm_type;
 
   switch (m_builtin) {
+  case Char:
   case Int:
     m_llvm_type = llvm::Type::getIntNTy(holder->context, m_bits_size);
     return m_llvm_type;
@@ -59,7 +62,7 @@ llvm::Type *BuiltinType::getType(ContextHolder holder) {
 StructType::StructType(const std::vector<Element> &element,
                        const std::string &name)
     : m_elements(element), m_name(name) {
-#ifndef NDEBUG
+#ifdef NDEBUG
   for (int i = 0; i < m_elements.size(); ++i) {
     assert(m_elements[i].field_num == i &&
            "The array makes no sense otherwise");
@@ -213,6 +216,4 @@ llvm::Type *VoidType::getType(ContextHolder holder) {
   return llvm::Type::getVoidTy(holder->context);
 }
 
-void  VoidType::dump(){
-    std::cout << "void";
-}
+void VoidType::dump() { std::cout << "void"; }

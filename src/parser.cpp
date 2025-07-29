@@ -31,12 +31,18 @@ const std::vector<Statement *> &Parser::getSyntaxTree() {
 // type_qualification :== 'int' | 'struct', <identifier> |
 //                     'array', '(', <integer_literal>, ')',
 //                     <type_qualification> | 'ptr', <type_qualification> |
-//                     'float' | 'void'
+//                     'float' | 'void' | 'char'
 Type *Parser::buildTypeQualification() {
   // we have void type 'void'
   if (m_tokenizer.getCurrentType() == lex::Void) {
     m_tokenizer.consume();
     return new VoidType();
+  }
+
+  // 'char'
+  if (m_tokenizer.getCurrentType() == lex::Char) {
+    m_tokenizer.consume();
+    return new BuiltinType(BuiltinType::Char);
   }
 
   // we have an array type
@@ -283,17 +289,18 @@ Statement *Parser::buildWhileStatement() {
 }
 
 // call_statement :== <call_expression>, ';'
-Statement* Parser::buildCallStatement(){
-    Expression* call_expresion = buildCallExpr();
-    if(m_tokenizer.getCurrentType() != lex::SemiColon){
-        return logError("expected semi colon");
-    }
-    m_tokenizer.consume();
+Statement *Parser::buildCallStatement() {
+  Expression *call_expresion = buildCallExpr();
+  if (m_tokenizer.getCurrentType() != lex::SemiColon) {
+    return logError("expected semi colon");
+  }
+  m_tokenizer.consume();
 
-    return new CallStatement(call_expresion);
+  return new CallStatement(call_expresion);
 }
 
-// statements :== <assignment_statement> | <return_statement> | <if_statement> | <while_statement> 
+// statements :== <assignment_statement> | <return_statement> | <if_statement> |
+// <while_statement>
 //         | <declaration_statement> | <call_statement>
 Statement *Parser::buildStatement() {
   if (m_tokenizer.getCurrentType() == lex::RightBrace)
@@ -310,7 +317,7 @@ Statement *Parser::buildStatement() {
 
   if (m_tokenizer.getCurrentType() == lex::Identifier &&
       m_tokenizer.peek().getType() == lex::LeftParentheses) {
-      return buildCallStatement();
+    return buildCallStatement();
   }
 
   if (m_tokenizer.getCurrentType() == lex::While)
@@ -667,7 +674,7 @@ Expression *Parser::buildRefExpression() {
 // trivial_expression :== <identifier> | <call_expression> |
 //                             '(', <expression>, ')' | <integer_literal> |
 //                             <posfix_expression> | <deref_expression> |
-//                             <ref_expression>
+//                             <ref_expression> | <string_literal>
 Expression *Parser::buildTrivialExpression() {
   // <integer_literal>
   if (m_tokenizer.getCurrentType() == lex::IntegerLiteral) {
@@ -675,6 +682,15 @@ Expression *Parser::buildTrivialExpression() {
         new ConstantExpr(m_tokenizer.current().getIntegerLiteral());
     m_tokenizer.consume();
     return value;
+  }
+
+  // FIXME: maybe we should move this into it's own function?
+  if (m_tokenizer.getCurrentType() == lex::String) {
+    m_tokenizer.consume();
+    StringLiteral *string_node =
+        new StringLiteral(m_tokenizer.current().getStringLiteral());
+
+    return string_node;
   }
 
   // <identifier>

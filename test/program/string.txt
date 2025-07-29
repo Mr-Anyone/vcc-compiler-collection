@@ -1,0 +1,5 @@
+function testing
+gives void[]{
+    ptr char some_string = "testing";
+    ret;
+}

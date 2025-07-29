@@ -35,7 +35,7 @@ TEST(LexTest, NewToken){
     std::ofstream stream("/tmp/testing2.txt");
     const char* file_input = "some_identifier function + eq ne gt ge le lt "
         "if then end - while struct . array ptr float void external"
-        "< > ref";
+        "< > ref  char \"This is Literally A Test\"";
     stream << file_input;
     stream.close();
 
@@ -64,6 +64,9 @@ TEST(LexTest, NewToken){
     EXPECT_EQ(tokenizer.getNextType(), lex::LessSign);
     EXPECT_EQ(tokenizer.getNextType(), lex::GreaterSign);
     EXPECT_EQ(tokenizer.getNextType(), lex::Ref);
+    EXPECT_EQ(tokenizer.getNextType(), lex::Char);
+    EXPECT_EQ(tokenizer.getNextType(), lex::String);
+    EXPECT_EQ(tokenizer.current().getStringLiteral(), "This is Literally A Test");
 
     std::remove("/tmp/testing2.txt");
 }

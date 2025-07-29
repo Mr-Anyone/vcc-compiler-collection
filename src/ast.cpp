@@ -449,9 +449,18 @@ llvm::FunctionType *FunctionDecl::getFunctionType(ContextHolder holder) const {
 CallStatement::CallStatement(Expression *call_expression)
     : Statement({call_expression}), m_call_expr(call_expression) {}
 
+StringLiteral::StringLiteral(std::string string)
+    : Expression({}), m_string_literal(string) {}
+
+void StringLiteral::dump() {}
+
 // ================================================================================
 // ====================== Expression Implementation::getType
 // ======================
+Type *StringLiteral::getType(ContextHolder holder) {
+  return new PointerType(new BuiltinType(BuiltinType::Char));
+}
+
 Type *RefExpression::getType(ContextHolder holder) {
   // FIXME: we can probably prevent a heap allocation every time
   return new PointerType(m_inner_expression->getType(holder));
@@ -872,8 +881,8 @@ llvm::Value *CallExpr::getVal(ContextHolder holder) {
   for (auto it = function_decl->getArgBegin(), ie = function_decl->getArgsEnd();
        it != ie; ++it) {
     if (!Type::isSame(it->type, m_expressions[count]->getType(holder))) {
-        std::cerr << "Invalid type";
-        std::exit(-1);
+      std::cerr << "Invalid type";
+      std::exit(-1);
     }
 
     args.push_back(m_expressions[count]->getVal(holder));
@@ -1022,4 +1031,11 @@ llvm::Value *DeRefExpression::getRef(ContextHolder holder) {
 
   assert(m_ref->getType(holder)->isPointer());
   return m_ref->getVal(holder);
+}
+
+llvm::Value *StringLiteral::getVal(ContextHolder holder) {
+  llvm::Value *global_string =
+      holder->builder.CreateGlobalString(m_string_literal);
+
+  return global_string;
 }

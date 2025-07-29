@@ -61,7 +61,7 @@ private:
 
 class BuiltinType : public Type {
 public:
-  enum Builtin { Int, Float };
+  enum Builtin { Int, Float, Char };
 
   BuiltinType(Builtin builtin);
   Builtin getKind() const;

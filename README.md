@@ -9,9 +9,9 @@
 - [X] Pointer Type
 - [X] Floating point support
 - [X] Add comments
+- [X] String Type  
 - [ ] Add source location 
 - [ ] The C FFI problem with SDL
-- [ ] String Type  
 - [ ] THE HEAP ALLOCATION PROBLEM WITH AstBase AND TYPE
 - [ ] Bool type with problem BinaryExpression::getType() 
 
@@ -67,7 +67,7 @@ return_statement :== 'ret', {<expression>} ';'
 
 type_qualification :== 'int' | 'struct', <identifier> |
                     'array', '(', <integer_literal>, ')', <type_qualification> |
-                    'ptr', <type_qualification> | 'float' | 'void'
+                    'ptr', <type_qualification> | 'float' | 'void' | 'char'
 
 struct_definition :== 'struct', <identifier> ,'{'
                         , {<type_qualification> <identifier>}+, '}'
@@ -81,9 +81,12 @@ deref_expression :== 'deref', '<', <trivial_expression>, '>'
 
 ref_expression :== 'ref', '<', <trivial_expression>, '>'
 
+string_literal :== '"', [.]+, '"'
+
 trivial_expression :== <identifier> | <call_expression> |
                             '(', <expression>, ')' | <integer_literal> | 
-                            <posfix_expression> | <deref_expression> | <ref_expression>
+                            <posfix_expression> | <deref_expression> | <ref_expression> 
+                            | <string_literal>
 
 posfix_expression :== <identifier> | <deref_expression>
     <posfix_expression>, '.', <identifier> | 
@@ -130,6 +133,11 @@ ptr int a;
 ptr int b = a + 10; # this is ill form
 ```
 
+5. String is a pointer to the first character
+
+```
+ptr char some_str = "testing"; # Here some_str points to the 't' character
+```
 
 ## Statements
 

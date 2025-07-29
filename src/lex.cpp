@@ -85,16 +85,38 @@ Token Tokenizer::readOneToken() {
     return Token(EndOfFile, pos);
   }
 
+  // Important Invariant:
+  // at the end of every iteartion  of the while loop
+  // we must be at the end of the current keyword
+  //  so something like this:  keyword\n
+  //                                  ^ returns '\n' m_file.get() on the next
+  //                                  loop
   std::string buf;
   bool is_first_time = true;
   while (!m_file.eof()) {
     char c;
     m_file.get(c);
 
+    // if we see either of these, it means that we should stop reading token
+    // because it doesn't make sense for the same token to be joined by ' ' or
+    // \n
     if (c == ' ' || c == '\n' || c == 0) {
       break;
     }
 
+    // we might be parsing a string, so we must check this "
+    if (is_first_time && c == '"') {
+      char current;
+      do {
+        current = m_file.get();
+        if (current != '"') {
+          buf += current;
+        }
+      } while (current != '"');
+      return Token(String, buf, pos);
+    }
+
+    // we are parsing the general one character tokens like *, -, etc
     if (one_character_token.contains(c)) {
       if (is_first_time) {
         // creating the lookup term
@@ -218,8 +240,13 @@ Token::Token(TokenType type, FilePos pos) : type(type), pos(pos) {
 Token::Token(std::string &&string, FilePos pos)
     : type(Identifier), string_literal(string), pos(pos) {}
 
+Token::Token(TokenType type, std::string &string, FilePos pos)
+    : type(type), string_literal(string), pos(pos) {
+  assert(type == Identifier || type == String);
+}
+
 const std::string &Token::getStringLiteral() const {
-  assert(type == Identifier);
+  assert(type == Identifier || type == String);
   return string_literal;
 }
 

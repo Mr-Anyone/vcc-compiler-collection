@@ -60,6 +60,7 @@ public:
   CallStatement(Expression *call_expression);
 
   virtual void codegen(ContextHolder holder) override;
+
 private:
   Expression *m_call_expr;
 };
@@ -381,4 +382,18 @@ private:
   Expression *m_inner_expression;
 };
 
+// For the following:
+//
+// ptr char some_string = "this is my first string";
+class StringLiteral : public Expression {
+public:
+  StringLiteral(std::string string);
+
+  virtual void dump() override;
+  virtual llvm::Value *getVal(ContextHolder holder) override;
+  virtual Type *getType(ContextHolder holder) override;
+
+private:
+  std::string m_string_literal;
+};
 #endif
