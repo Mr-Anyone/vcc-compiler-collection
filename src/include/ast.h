@@ -96,6 +96,9 @@ public:
   Type *getReturnType() const;
   llvm::FunctionType *getFunctionType(ContextHolder holder) const;
 
+  const FunctionArgLists::ArgsIter getArgBegin() const;
+  const FunctionArgLists::ArgsIter getArgsEnd() const;
+
 private:
   void buildExternalDecl(ContextHolder holder);
 

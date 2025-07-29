@@ -93,6 +93,14 @@ FunctionDecl::FunctionDecl(std::vector<Statement *> &statements,
   }
 }
 
+const FunctionArgLists::ArgsIter FunctionDecl::getArgBegin() const {
+  return m_arg_list->begin();
+}
+
+const FunctionArgLists::ArgsIter FunctionDecl::getArgsEnd() const {
+  return m_arg_list->end();
+}
+
 FunctionArgLists::FunctionArgLists(std::vector<TypeInfo> &&args)
     : Statement({}), m_args(args) {}
 
@@ -345,7 +353,9 @@ llvm::Value *MemberAccessExpression::getRef(ContextHolder holder) {
 
 llvm::Value *LocatorExpression::getRef(ContextHolder holder) {
   assert(false && "please implement this!'");
+  return nullptr;
 }
+
 llvm::Value *IdentifierExpr::getRef(ContextHolder holder) {
   return holder->symbol_table.lookupLocalVariable(this, m_name).value;
 }
@@ -537,6 +547,7 @@ Type *BinaryExpression::getType(ContextHolder holder) {
   }
 
   assert(false && "don't know what to do here!");
+  return nullptr;
 }
 
 // FIXME: this really should be callled getGEP type and not getType
@@ -819,7 +830,6 @@ void FunctionDecl::buildExternalDecl(ContextHolder holder) {
       function_type, llvm::Function::ExternalLinkage, m_name, holder->module);
 }
 
-
 void CallStatement::codegen(ContextHolder holder) {
   m_call_expr->getVal(holder);
 }
@@ -858,15 +868,26 @@ llvm::Value *CallExpr::getVal(ContextHolder holder) {
          "expected the same number of argument");
 
   std::vector<llvm::Value *> args;
-  for (Expression *expression : m_expressions) {
-      // FIXME: add type check for function call
-    args.push_back(expression->getVal(holder));
+  int count = 0;
+  for (auto it = function_decl->getArgBegin(), ie = function_decl->getArgsEnd();
+       it != ie; ++it) {
+    if (!Type::isSame(it->type, m_expressions[count]->getType(holder))) {
+        std::cerr << "Invalid type";
+        std::exit(-1);
+    }
+
+    args.push_back(m_expressions[count]->getVal(holder));
+    ++count;
+  }
+
+  if (count != m_expressions.size()) {
+    std::cerr << "number of argument mismatch";
+    std::exit(-1);
   }
 
   llvm::Value *result =
       holder->builder.CreateCall(function_decl->getFunctionType(holder),
                                  function_decl->getLLVMFunction(), args);
-
   return result;
 }
 
