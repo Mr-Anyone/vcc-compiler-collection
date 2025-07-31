@@ -25,6 +25,10 @@ class FileStream {
 public:
   FileStream(const char *filename);
 
+  // Remove copy constructor, because this is unsafe
+  FileStream(const FileStream& other) = delete;
+  FileStream& operator= (const FileStream& other) = delete;
+
   /// consumes the character
   char get();
   char get(char &c);

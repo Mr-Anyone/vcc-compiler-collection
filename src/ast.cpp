@@ -13,8 +13,12 @@ static void printSpaceBasedOnDepth(int depth) {
   }
 }
 
-Statement::Statement(const std::vector<ASTBase *> childrens)
-    : ASTBase(std::vector<Statement *>()) {
+const FilePos& ASTBase::getPos()const{
+    return m_locus;
+}
+
+Statement::Statement(const std::vector<ASTBase *> childrens, FilePos locus)
+    : ASTBase(std::vector<Statement *>(), locus) {
   for (ASTBase *child : childrens) {
     addChildren(child);
   }
@@ -33,8 +37,8 @@ void ASTBase::debugDump(int depth) {
   }
 }
 
-ASTBase::ASTBase(const std::vector<Expression *> childrens)
-    : m_parent(nullptr), m_childrens() {
+ASTBase::ASTBase(const std::vector<Expression *> childrens, FilePos locus)
+    : m_parent(nullptr), m_childrens(), m_locus(locus) {
 
   for (ASTBase *children : childrens) {
     addChildren(children);
@@ -42,8 +46,8 @@ ASTBase::ASTBase(const std::vector<Expression *> childrens)
   }
 }
 
-ASTBase::ASTBase(const std::vector<Statement *> childrens)
-    : m_parent(nullptr), m_childrens() {
+ASTBase::ASTBase(const std::vector<Statement *> childrens, FilePos locus)
+    : m_parent(nullptr), m_childrens(), m_locus(locus) {
 
   for (ASTBase *children : childrens) {
     addChildren(children);
@@ -84,9 +88,10 @@ llvm::Function *FunctionDecl::getLLVMFunction() const { return m_function; }
 
 FunctionDecl::FunctionDecl(std::vector<Statement *> &statements,
                            FunctionArgLists *arg_list, std::string &&name,
-                           Type *ret, bool is_extern)
-    : Statement({arg_list}), m_statements(statements), m_arg_list(arg_list),
-      m_name(name), m_return_type(ret), m_is_extern(is_extern) {
+                           Type *ret, bool is_extern, FilePos locus)
+    : Statement({arg_list}, locus), m_statements(statements),
+      m_arg_list(arg_list), m_name(name), m_return_type(ret),
+      m_is_extern(is_extern) {
   // making sure that arg_list is always the first in the syntax tree!
   for (ASTBase *statement : statements) {
     addChildren(statement);
@@ -101,8 +106,8 @@ const FunctionArgLists::ArgsIter FunctionDecl::getArgsEnd() const {
   return m_arg_list->end();
 }
 
-FunctionArgLists::FunctionArgLists(std::vector<TypeInfo> &&args)
-    : Statement({}), m_args(args) {}
+FunctionArgLists::FunctionArgLists(std::vector<TypeInfo> &&args, FilePos locus)
+    : Statement({}, locus), m_args(args) {}
 
 FunctionArgLists::ArgsIter FunctionArgLists::begin() const {
   return m_args.cbegin();
@@ -113,8 +118,8 @@ FunctionArgLists::ArgsIter FunctionArgLists::end() const {
 }
 
 AssignmentStatement::AssignmentStatement(Expression *ref_expr,
-                                         Expression *expression)
-    : Statement({ref_expr, expression}), m_ref_expr(ref_expr),
+                                         Expression *expression, FilePos locus)
+    : Statement({ref_expr, expression}, locus), m_ref_expr(ref_expr),
       m_expression(expression) {}
 
 void FunctionDecl::dump() {
@@ -124,22 +129,24 @@ void FunctionDecl::dump() {
   }
 }
 
-ReturnStatement::ReturnStatement(Expression *expression)
-    : Statement({}), m_expression(expression) {
+ReturnStatement::ReturnStatement(Expression *expression, FilePos locus)
+    : Statement({}, locus), m_expression(expression) {
   // it is possible that expression is null
   if (expression)
     addChildren(expression);
 }
 
-IdentifierExpr::IdentifierExpr(const std::string &name)
-    : LocatorExpression({}), m_name(name) {}
+IdentifierExpr::IdentifierExpr(const std::string &name, FilePos locus)
+    : LocatorExpression({}, locus), m_name(name) {}
 
-ConstantExpr::ConstantExpr(int value) : Expression({}), m_value(value) {}
+ConstantExpr::ConstantExpr(int value, FilePos locus)
+    : Expression({}, locus), m_value(value) {}
 
 int ConstantExpr::getValue() { return m_value; }
 
-BinaryExpression::BinaryExpression(Expression *lhs, BinaryExpressionType type)
-    : Expression({lhs}), m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
+BinaryExpression::BinaryExpression(Expression *lhs, BinaryExpressionType type,
+                                   FilePos locus)
+    : Expression({lhs}, locus), m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
 
 BinaryExpression::BinaryExpressionType
 BinaryExpression::getFromLexType(lex::Token token) {
@@ -225,14 +232,15 @@ const FunctionDecl *ASTBase::getFirstFunctionDecl() const {
 }
 
 CallExpr::CallExpr(const std::string &name,
-                   const std::vector<Expression *> &expression)
-    : Expression(expression), m_func_name(name), m_expressions(expression) {}
+                   const std::vector<Expression *> &expression, FilePos locus)
+    : Expression(expression, locus), m_func_name(name),
+      m_expressions(expression) {}
 
 void CallExpr::dump() { std::cout << "name: " << m_func_name; }
 
 IfStatement::IfStatement(Expression *cond,
-                         std::vector<Statement *> &&expressions)
-    : Statement({cond}), m_cond(cond), m_statements(expressions) {
+                         std::vector<Statement *> &&expressions, FilePos locus)
+    : Statement({cond}, locus), m_cond(cond), m_statements(expressions) {
   for (ASTBase *expression : expressions) {
     addChildren(expression);
   }
@@ -241,8 +249,9 @@ IfStatement::IfStatement(Expression *cond,
 void IfStatement::dump() {}
 
 DeclarationStatement::DeclarationStatement(const std::string &name,
-                                           Expression *base, Type *type)
-    : Statement({}), m_expression(base), m_name(name), m_type(type) {
+                                           Expression *base, Type *type,
+                                           FilePos locus)
+    : Statement({}, locus), m_expression(base), m_name(name), m_type(type) {
   // it is possible that the child is a nullptr, meaning we only have to
   // allocate space
   if (base)
@@ -252,8 +261,9 @@ DeclarationStatement::DeclarationStatement(const std::string &name,
 void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
 
 WhileStatement::WhileStatement(Expression *cond,
-                               std::vector<Statement *> &&expression)
-    : Statement({cond}), m_cond(cond), m_statements(expression) {
+                               std::vector<Statement *> &&expression,
+                               FilePos locus)
+    : Statement({cond}, locus), m_cond(cond), m_statements(expression) {
   for (ASTBase *base : m_statements) {
     addChildren(base);
   }
@@ -262,12 +272,14 @@ WhileStatement::WhileStatement(Expression *cond,
 void WhileStatement::dump() { return; }
 
 MemberAccessExpression::MemberAccessExpression(const std::string &name,
-                                               const std::string &member)
-    : m_base_name(name), m_member(member), LocatorExpression({}) {}
+                                               const std::string &member,
+                                               FilePos locus)
+    : m_base_name(name), m_member(member), LocatorExpression({}, locus) {}
 
 MemberAccessExpression::MemberAccessExpression(LocatorExpression *parent,
-                                               const std::string &member)
-    : m_member(member), LocatorExpression({}), m_parent(parent) {
+                                               const std::string &member,
+                                               FilePos locus)
+    : m_member(member), LocatorExpression({}, locus), m_parent(parent) {
   parent->addChildren(this);
 }
 
@@ -281,13 +293,15 @@ void MemberAccessExpression::dump() {
 }
 
 ArrayAccessExpression::ArrayAccessExpression(const std::string &name,
-                                             Expression *expression)
-    : LocatorExpression({expression}), m_index_expression(expression),
+                                             Expression *expression,
+                                             FilePos locus)
+    : LocatorExpression({expression}, locus), m_index_expression(expression),
       m_base_name(name) {}
 
 ArrayAccessExpression::ArrayAccessExpression(LocatorExpression *parent,
-                                             Expression *index_expression)
-    : LocatorExpression({index_expression}),
+                                             Expression *index_expression,
+                                             FilePos locus)
+    : LocatorExpression({index_expression}, locus),
       m_index_expression(index_expression), m_parent_expression(parent) {
   parent->addChildren(this);
 }
@@ -297,8 +311,9 @@ void ArrayAccessExpression::dump() {
             << " child*: " << m_child_posfix_expression << " this: " << this;
 }
 
-LocatorExpression::LocatorExpression(const std::vector<Expression *> &childrens)
-    : Expression(childrens) {}
+LocatorExpression::LocatorExpression(const std::vector<Expression *> &childrens,
+                                     FilePos locus)
+    : Expression(childrens, locus) {}
 
 Type *ArrayAccessExpression::getGEPChildType(ContextHolder holder) {
   Type *current_type = getGEPType(holder);
@@ -422,16 +437,16 @@ llvm::Value *ArrayAccessExpression::getCurrentRef(ContextHolder holder) {
 
 Type *FunctionDecl::getReturnType() const { return m_return_type; }
 
-Expression::Expression(const std::vector<Expression *> children)
-    : ASTBase(children) {}
+Expression::Expression(const std::vector<Expression *> children, FilePos locus)
+    : ASTBase(children, locus) {}
 
-DeRefExpression::DeRefExpression(Expression *ref_get)
-    : LocatorExpression({ref_get}), m_ref(ref_get) {}
+DeRefExpression::DeRefExpression(Expression *ref_get, FilePos locus)
+    : LocatorExpression({ref_get}, locus), m_ref(ref_get) {}
 
 void DeRefExpression::dump() {}
 
-RefExpression::RefExpression(Expression *inner)
-    : LocatorExpression({inner}), m_inner_expression(inner) {}
+RefExpression::RefExpression(Expression *inner, FilePos locus)
+    : LocatorExpression({inner}, locus), m_inner_expression(inner) {}
 
 void RefExpression::dump() {}
 
@@ -446,11 +461,11 @@ llvm::FunctionType *FunctionDecl::getFunctionType(ContextHolder holder) const {
   return function_type;
 }
 
-CallStatement::CallStatement(Expression *call_expression)
-    : Statement({call_expression}), m_call_expr(call_expression) {}
+CallStatement::CallStatement(Expression *call_expression, FilePos locus)
+    : Statement({call_expression}, locus), m_call_expr(call_expression) {}
 
-StringLiteral::StringLiteral(std::string string)
-    : Expression({}), m_string_literal(string) {}
+StringLiteral::StringLiteral(std::string string, FilePos locus)
+    : Expression({}, locus), m_string_literal(string) {}
 
 void StringLiteral::dump() {}
 
@@ -533,9 +548,9 @@ Type *CallExpr::getType(ContextHolder holder) {
   return holder->symbol_table.lookupFunction(m_func_name)->getReturnType();
 }
 
-static Type* getIntWithMoreBits(BuiltinType* lhs, BuiltinType* rhs){
-    assert(lhs->isIntegerKind() && rhs->isIntegerKind());
-    return lhs->getBitSize() > rhs->getBitSize() ? lhs : rhs;
+static Type *getIntWithMoreBits(BuiltinType *lhs, BuiltinType *rhs) {
+  assert(lhs->isIntegerKind() && rhs->isIntegerKind());
+  return lhs->getBitSize() > rhs->getBitSize() ? lhs : rhs;
 }
 
 Type *BinaryExpression::getType(ContextHolder holder) {
@@ -563,8 +578,8 @@ Type *BinaryExpression::getType(ContextHolder holder) {
 
   if (m_lhs->getType(holder)->isBuiltin() &&
       m_rhs->getType(holder)->isBuiltin()) {
-      BuiltinType* casted_lhs =m_lhs->getType(holder)->getAs<BuiltinType>();
-      BuiltinType* casted_rhs =m_rhs->getType(holder)->getAs<BuiltinType>();
+    BuiltinType *casted_lhs = m_lhs->getType(holder)->getAs<BuiltinType>();
+    BuiltinType *casted_rhs = m_rhs->getType(holder)->getAs<BuiltinType>();
 
     // return float type if either the left hand side or the right hand side
     // have a floating point
@@ -830,8 +845,7 @@ void AssignmentStatement::codegen(ContextHolder holder) {
 
   if (!Type::isSame(m_expression->getType(holder),
                     m_ref_expr->getType(holder))) {
-    // FIXME: add a way to diagnose stuff
-    std::cerr << "invalid type";
+    holder->diagnostics.diag(this, holder->getLine(getPos()), "invalid type");
     std::exit(-1);
     return;
   }
@@ -902,7 +916,7 @@ llvm::Value *CallExpr::getVal(ContextHolder holder) {
   for (auto it = function_decl->getArgBegin(), ie = function_decl->getArgsEnd();
        it != ie; ++it) {
     if (!Type::isSame(it->type, m_expressions[count]->getType(holder))) {
-      std::cerr << "Invalid type";
+      holder->diagnostics.diag(this, holder->getLine(getPos()), "type mismatch");
       std::exit(-1);
     }
 
@@ -911,7 +925,8 @@ llvm::Value *CallExpr::getVal(ContextHolder holder) {
   }
 
   if (count != m_expressions.size()) {
-    std::cerr << "number of argument mismatch";
+    holder->diagnostics.diag(this, holder->getLine(getPos()),
+                             "number of argument mismatch");
     std::exit(-1);
   }
 
@@ -959,7 +974,8 @@ void DeclarationStatement::codegen(ContextHolder holder) {
   // if we don't have an initializer, we don't allocate space
   if (m_expression) {
     if (!Type::isSame(m_type, m_expression->getType(holder))) {
-      std::cerr << "invalid type";
+      holder->diagnostics.diag(this, holder->getLine(getPos()),
+                               "type mismatch");
       std::exit(-1);
       return;
     }

@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 TEST(Type, BasicTest) {
-  ContextHolder holder = std::make_unique<GlobalContext>();
+  ContextHolder holder = std::make_unique<GlobalContext>("resource/comp.txt");
   BuiltinType a(BuiltinType::BuiltinType::Int);
   BuiltinType b(BuiltinType::BuiltinType::Int);
   BuiltinType c(BuiltinType::BuiltinType::Int);

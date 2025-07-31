@@ -5,4 +5,7 @@
 
 Sema::Sema() {}
 
-bool Sema::checkFunction(FunctionDecl *function_decl) { return true; }
+bool Sema::checkFunction(FunctionDecl *function_decl) { 
+
+    return true;
+}

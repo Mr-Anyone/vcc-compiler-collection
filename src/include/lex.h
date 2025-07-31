@@ -107,7 +107,7 @@ private:
 
 class Tokenizer {
 public:
-  Tokenizer(const char *filename);
+    Tokenizer(FileStream &stream);
 
   // consume token
   const Token next();
@@ -121,6 +121,7 @@ public:
   void consume();
   TokenType getNextType();
   TokenType getCurrentType();
+  FilePos getPos();
 
   std::string getLine(const FilePos &pos);
 
@@ -192,7 +193,9 @@ private:
 
   Token readOneToken();
   void removeWhiteSpace();
-  FileStream m_file;
+
+  /// FIXME: this really is a trust me, I am always valid lifetime
+  FileStream &m_file;
 
   Token m_current_token;
 };

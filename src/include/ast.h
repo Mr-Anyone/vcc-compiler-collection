@@ -21,8 +21,8 @@ class ASTBase {
 public:
   virtual void dump();
 
-  ASTBase(const std::vector<Expression *> childrens);
-  ASTBase(const std::vector<Statement *> childrens);
+  ASTBase(const std::vector<Expression *> childrens, FilePos pos);
+  ASTBase(const std::vector<Statement *> childrens, FilePos pos);
 
   // nullptr on failure
   const FunctionDecl *getFirstFunctionDecl() const;
@@ -35,12 +35,15 @@ public:
   const std::set<ASTBase *> &getChildren() const;
   void debugDump(int depth = 1);
 
+  const FilePos& getPos() const;
+
 protected:
   void setParent(ASTBase *parent);
   void addChildren(ASTBase *children);
   void removeChildren(ASTBase *children);
 
 private:
+  FilePos m_locus;
   ASTBase *m_parent;
   std::string m_name;
   std::set<ASTBase *> m_childrens;
@@ -49,7 +52,7 @@ private:
 //============================== Statements ==============================
 class Statement : public ASTBase {
 public:
-  Statement(const std::vector<ASTBase *> childrens);
+  Statement(const std::vector<ASTBase *> childrens, FilePos locus);
   virtual void codegen(ContextHolder holder) = 0;
 
 private:
@@ -57,7 +60,7 @@ private:
 
 class CallStatement : public Statement {
 public:
-  CallStatement(Expression *call_expression);
+  CallStatement(Expression *call_expression, FilePos locus);
 
   virtual void codegen(ContextHolder holder) override;
 
@@ -69,7 +72,7 @@ class FunctionArgLists : public Statement {
 public:
   using ArgsIter = std::vector<TypeInfo>::const_iterator;
 
-  FunctionArgLists(std::vector<TypeInfo> &&args);
+  FunctionArgLists(std::vector<TypeInfo> &&args, FilePos locus);
 
   // the first few alloc, and load instruction
   virtual void codegen(ContextHolder holder) override;
@@ -87,7 +90,7 @@ public:
   /// if `is_extern` is true, codegen only generate a declaration and assume to
   /// have no body
   FunctionDecl(std::vector<Statement *> &expression, FunctionArgLists *arg_list,
-               std::string &&name, Type *return_type, bool is_extern);
+               std::string &&name, Type *return_type, bool is_extern, FilePos locus);
 
   virtual void codegen(ContextHolder holder) override;
   void dump() override;
@@ -116,7 +119,7 @@ private:
 
 class AssignmentStatement : public Statement {
 public:
-  AssignmentStatement(Expression *ref_expression, Expression *expression);
+  AssignmentStatement(Expression *ref_expression, Expression *expression, FilePos locus);
 
   virtual void codegen(ContextHolder holder) override;
   virtual void dump() override;
@@ -130,7 +133,7 @@ private:
 class ReturnStatement : public Statement {
 public:
   // returning an identifier
-  ReturnStatement(Expression *expression);
+  ReturnStatement(Expression *expression, FilePos locus);
 
   virtual void codegen(ContextHolder holder) override;
 
@@ -141,7 +144,7 @@ private:
 
 class IfStatement : public Statement {
 public:
-  IfStatement(Expression *cond, std::vector<Statement *> &&expressions);
+  IfStatement(Expression *cond, std::vector<Statement *> &&expressions, FilePos locus);
   virtual void dump() override;
   virtual void codegen(ContextHolder holder) override;
 
@@ -157,7 +160,7 @@ public:
   // if expression is nullptr, it means that we just allocate space
   // and don't assign it to the thing
   DeclarationStatement(const std::string &name, Expression *expression,
-                       Type *type);
+                       Type *type, FilePos locus);
   virtual void dump() override;
   virtual void codegen(ContextHolder holder) override;
 
@@ -169,7 +172,7 @@ private:
 
 class WhileStatement : public Statement {
 public:
-  WhileStatement(Expression *cond, std::vector<Statement *> &&expressions);
+  WhileStatement(Expression *cond, std::vector<Statement *> &&expressions, FilePos locus);
   virtual void codegen(ContextHolder holder) override;
   virtual void dump() override;
 
@@ -182,7 +185,7 @@ private:
 // These are expressions that yields some sort of value
 class Expression : public ASTBase {
 public:
-  Expression(const std::vector<Expression *> childrens);
+  Expression(const std::vector<Expression *> childrens, FilePos locus);
   virtual Type *getType(ContextHolder holder) = 0;
   virtual llvm::Value *getVal(ContextHolder holder) = 0;
 };
@@ -191,7 +194,7 @@ public:
 /// This is something that returns an value
 class LocatorExpression : public Expression {
 public:
-  LocatorExpression(const std::vector<Expression *> &childrens);
+  LocatorExpression(const std::vector<Expression *> &childrens, FilePos locus);
 
   /// recursively traverse the tree to get the reference to
   /// the current type
@@ -204,7 +207,7 @@ protected:
 
 class ConstantExpr : public Expression {
 public:
-  explicit ConstantExpr(int value);
+  explicit ConstantExpr(int value, FilePos locus);
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
 
@@ -219,7 +222,7 @@ private:
 class CallExpr : public Expression {
 public:
   CallExpr(const std::string &name,
-           const std::vector<Expression *> &expressions);
+           const std::vector<Expression *> &expressions, FilePos locus);
   llvm::Value *getVal(ContextHolder holder) override;
   void dump() override;
 
@@ -248,7 +251,7 @@ public:
   virtual Type *getType(ContextHolder holder) override;
 
 public:
-  BinaryExpression(Expression *lhs, BinaryExpressionType type);
+  BinaryExpression(Expression *lhs, BinaryExpressionType type, FilePos locus);
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
@@ -272,7 +275,7 @@ public:
   /// name - the name of the identifier/variable
   /// compute_ref - true if codegen returns an address, otherwise returns the
   /// value to the identifier
-  IdentifierExpr(const std::string &name);
+  IdentifierExpr(const std::string &name, FilePos locus);
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
@@ -287,10 +290,10 @@ private:
 // The parser parse enough type so that this won't be a problem
 class MemberAccessExpression : public LocatorExpression {
 public:
-  MemberAccessExpression(const std::string &name, const std::string &member);
+  MemberAccessExpression(const std::string &name, const std::string &member, FilePos locus);
 
   // from nested postfix-expression
-  MemberAccessExpression(LocatorExpression *parent, const std::string &member);
+  MemberAccessExpression(LocatorExpression *parent, const std::string &member, FilePos locus);
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
@@ -314,8 +317,8 @@ private:
 // FIXME: maybe we should do type deduction here instead!
 class ArrayAccessExpression : public LocatorExpression {
 public:
-  ArrayAccessExpression(const std::string &name, Expression *expression);
-  ArrayAccessExpression(LocatorExpression *parent, Expression *expression);
+  ArrayAccessExpression(const std::string &name, Expression *expression, FilePos locus);
+  ArrayAccessExpression(LocatorExpression *parent, Expression *expression, FilePos locus);
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
@@ -346,7 +349,7 @@ private:
 // deref<a> = 10 #  `` return the address of the pointee
 class DeRefExpression : public LocatorExpression {
 public:
-  DeRefExpression(Expression *ref_get);
+  DeRefExpression(Expression *ref_get, FilePos locus);
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
@@ -371,7 +374,7 @@ private:
 // ptr int a = ref<c>; # this makes well form
 class RefExpression : public LocatorExpression {
 public:
-  RefExpression(Expression *inner);
+  RefExpression(Expression *inner, FilePos locus);
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
@@ -387,7 +390,7 @@ private:
 // ptr char some_string = "this is my first string";
 class StringLiteral : public Expression {
 public:
-  StringLiteral(std::string string);
+  StringLiteral(std::string string, FilePos locus);
 
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;

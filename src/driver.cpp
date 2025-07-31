@@ -4,8 +4,8 @@
 
 Parser parseFile(const char *path_to_file) {
   // FIXME: move this into its own function!
-  ContextHolder context = std::make_shared<GlobalContext>();
-  Parser parser(path_to_file, context);
+  ContextHolder context = std::make_shared<GlobalContext>(path_to_file);
+  Parser parser(context);
   parser.start();
 
   return parser;

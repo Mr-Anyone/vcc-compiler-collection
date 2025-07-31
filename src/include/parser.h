@@ -10,7 +10,7 @@
 
 class Parser {
 public:
-  Parser(const char *filename, ContextHolder context);
+  Parser(ContextHolder context);
 
   void start();
   const std::vector<Statement *> &getSyntaxTree();
@@ -46,18 +46,19 @@ private:
   Expression *buildTrivialExpression();
   Expression *buildDerefExpression();
   Expression *buildCallExpr();
-
-  // FIXME: there can be a lot of cleanup.
-  // In fact this entire thing could be parsed without recursion
-  /// lhs - the left hand side of the expression
-  /// is_ref_type - True implies ast yields ref when codegen is called,
-  /// otherwise codegen returns value
   LocatorExpression *buildPosfixExpression(LocatorExpression *lhs = nullptr);
-
   LocatorExpression *
   buildTailPosfixExpression(LocatorExpression *lhs); // helper for above
 
-  inline Statement *logError(const char *message);
+  /// This is a way so that we can use one interface to log all the error
+  /// The problem we are trying to solve is that logError have to return a type
+  /// that is compatible to Expression , Type*, and Statement*.
+  struct ErrorResult {
+    inline operator Expression *() { return nullptr; }
+    inline operator Statement *() { return nullptr; }
+    inline operator Type *() { return nullptr; }
+  };
+  inline ErrorResult logError(const std::string &message);
 
   // for binary expression
   // clang-format off
@@ -81,8 +82,6 @@ private:
   ContextHolder m_context;
   lex::Tokenizer m_tokenizer;
   Sema m_actions;
-
-  bool m_error = false;
 
   // Store the computation results
   std::vector<Statement *> m_top_level_statements;

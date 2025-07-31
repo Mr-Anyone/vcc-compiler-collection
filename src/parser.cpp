@@ -5,8 +5,8 @@
 
 using lex::Token;
 
-Parser::Parser(const char *filename, ContextHolder context)
-    : m_tokenizer(filename), m_context(context) {}
+Parser::Parser(ContextHolder context)
+    : m_tokenizer(context->stream), m_context(context) {}
 
 void Parser::start() {
   static bool started_before = false;
@@ -55,21 +55,18 @@ Type *Parser::buildTypeQualification() {
   // 'array', '(', <integer_literal>, ')', <type_qualification>
   if (m_tokenizer.getCurrentType() == lex::Array) {
     if (m_tokenizer.getNextType() != lex::LeftParentheses) {
-      logError("expectex (");
-      return nullptr;
+      return logError("expectex (");
     }
     m_tokenizer.consume();
 
     if (m_tokenizer.getCurrentType() != lex::IntegerLiteral) {
-      logError("expected integer");
-      return nullptr;
+      return logError("expected integer");
     }
     int count = m_tokenizer.current().getIntegerLiteral();
     m_tokenizer.consume();
 
     if (m_tokenizer.getCurrentType() != lex::RightParentheses) {
-      logError("expected )");
-      return nullptr;
+      return logError("expected )");
     }
     m_tokenizer.consume();
 
@@ -101,8 +98,7 @@ Type *Parser::buildTypeQualification() {
   if (m_tokenizer.getCurrentType() == lex::Struct) {
     m_tokenizer.consume();
     if (m_tokenizer.getCurrentType() != lex::Identifier) {
-      logError("expected identifier");
-      return nullptr;
+      return logError("expected identifier");
     }
 
     std::string struct_name = m_tokenizer.current().getStringLiteral();
@@ -175,6 +171,7 @@ void Parser::addStructDefinition() {
 Statement *Parser::buildExternalDecl() {
   if (m_tokenizer.getCurrentType() != lex::External)
     return logError("expected extern");
+  FilePos locus = m_tokenizer.getPos();
   m_tokenizer.consume();
 
   if (m_tokenizer.getCurrentType() != lex::FunctionDecl)
@@ -195,9 +192,9 @@ Statement *Parser::buildExternalDecl() {
 
   std::vector<Statement *> statements{};
 
-  return new FunctionDecl(statements,
-                          dyncast<FunctionArgLists>(function_arg_list),
-                          std::move(name), return_type, /*is_extern*/ true);
+  return new FunctionDecl(
+      statements, dyncast<FunctionArgLists>(function_arg_list), std::move(name),
+      return_type, /*is_extern*/ true, locus);
 }
 
 // top_level :== <function_decl> | <struct_definition> | <external_decl>
@@ -231,26 +228,17 @@ const std::vector<Statement *> &Parser::buildSyntaxTree() {
   return m_top_level_statements;
 }
 
-Statement *Parser::logError(const char *message) {
-  m_error = true;
-
-  Token current_token = m_tokenizer.current();
-  std::cerr << current_token.getPos().row << ":" << current_token.getPos().col
-            << " Error: " << message << "\n";
-  std::string line = m_tokenizer.getLine(current_token.getPos());
-  std::cerr << line << "\n";
-  for (int i = 0; i < current_token.getPos().col - 1; ++i) {
-    std::cerr << " ";
-  }
-  std::cerr << "^---see here. \n" << std::endl;
-
-  return nullptr;
+inline Parser::ErrorResult Parser::logError(const std::string &message) {
+  m_context->diagnostics.diag(m_tokenizer, message);
+  return ErrorResult();
 }
 
 // if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 Statement *Parser::buildIfStatement() {
   if (m_tokenizer.getCurrentType() != lex::If)
     return logError("expected if");
+
+  FilePos locus = m_tokenizer.getPos();
   m_tokenizer.consume();
 
   Expression *cond = buildExpression();
@@ -268,7 +256,7 @@ Statement *Parser::buildIfStatement() {
     return logError("expected end");
   m_tokenizer.consume();
 
-  return new IfStatement(cond, std::move(expressions));
+  return new IfStatement(cond, std::move(expressions), locus);
 }
 
 // while_statement :== 'while', <expression> 'then', <statements>+,'end'
@@ -276,6 +264,7 @@ Statement *Parser::buildWhileStatement() {
   if (m_tokenizer.getCurrentType() != lex::While)
     return logError("expected while");
   m_tokenizer.consume();
+  FilePos locus = m_tokenizer.getPos();
 
   Expression *cond = buildExpression();
 
@@ -291,18 +280,19 @@ Statement *Parser::buildWhileStatement() {
     return logError("expected end");
   m_tokenizer.consume();
 
-  return new WhileStatement(cond, std::move(expressions));
+  return new WhileStatement(cond, std::move(expressions), locus);
 }
 
 // call_statement :== <call_expression>, ';'
 Statement *Parser::buildCallStatement() {
+  FilePos locus = m_tokenizer.getPos();
   Expression *call_expresion = buildCallExpr();
   if (m_tokenizer.getCurrentType() != lex::SemiColon) {
     return logError("expected semi colon");
   }
   m_tokenizer.consume();
 
-  return new CallStatement(call_expresion);
+  return new CallStatement(call_expresion, locus);
 }
 
 // statements :== <assignment_statement> | <return_statement> | <if_statement> |
@@ -338,6 +328,7 @@ Statement *Parser::buildFunctionDecl() {
   if (m_tokenizer.current().getType() != lex::FunctionDecl)
     return logError("function declaration must begin with keyword function");
 
+  FilePos locus = m_tokenizer.getPos();
   // eat function decl
   Token name_token = m_tokenizer.next();
   if (name_token.getType() != lex::Identifier)
@@ -369,13 +360,14 @@ Statement *Parser::buildFunctionDecl() {
     return logError("expected }");
   m_tokenizer.consume();
 
-  return new FunctionDecl(expressions,
-                          dynamic_cast<FunctionArgLists *>(arg_list),
-                          std::move(name), return_type, /*is_extern*/ false);
+  return new FunctionDecl(
+      expressions, dynamic_cast<FunctionArgLists *>(arg_list), std::move(name),
+      return_type, /*is_extern*/ false, locus);
 }
 
 // assignment_statement :== <trivial_expression> ,'=' <expression>, ';'
 Statement *Parser::buildAssignmentStatement() {
+  FilePos locus = m_tokenizer.getPos();
   LocatorExpression *lhs = dyncast<LocatorExpression>(buildTrivialExpression());
   if (!lhs)
     return nullptr;
@@ -391,7 +383,7 @@ Statement *Parser::buildAssignmentStatement() {
 
   m_tokenizer.consume();
 
-  return new AssignmentStatement(lhs, expression);
+  return new AssignmentStatement(lhs, expression, locus);
 }
 
 // FIXME: maybe put arg_declaration into its own function?
@@ -403,6 +395,7 @@ FunctionArgLists *Parser::buildFunctionArgList() {
     return nullptr;
   }
   m_tokenizer.consume();
+  FilePos locus = m_tokenizer.getPos();
 
   // parsing args declaration
   // FIXME: add a way to map token into type qualification
@@ -433,11 +426,12 @@ FunctionArgLists *Parser::buildFunctionArgList() {
   // pop this token ]
   m_tokenizer.consume();
 
-  return new FunctionArgLists(std::move(args));
+  return new FunctionArgLists(std::move(args), locus);
 }
 
 // return_statement :== 'ret', {<expression>} ';'
 Statement *Parser::buildReturnStatement() {
+  FilePos locus = m_tokenizer.getPos();
   if (m_tokenizer.getCurrentType() != lex::Ret) {
     return logError("expected error");
   }
@@ -454,7 +448,7 @@ Statement *Parser::buildReturnStatement() {
   }
   m_tokenizer.consume();
 
-  return new ReturnStatement(expression);
+  return new ReturnStatement(expression, locus);
 }
 
 // expression :==  <binary_expression>
@@ -505,7 +499,8 @@ Expression *Parser::buildBinaryExpression(int min_precendence) {
         precedence_level.find(current_operator_token.getType())->second;
 
     result = new BinaryExpression(
-        result, BinaryExpression::getFromLexType(current_operator_token));
+        result, BinaryExpression::getFromLexType(current_operator_token),
+        current_operator_token.getPos());
     m_tokenizer.consume(); // consume the binary token
 
     int next_precedence_level = current_precedence_level + 1;
@@ -539,6 +534,7 @@ static void appendChild(LocatorExpression *expression,
 //     <postfix_expression>, '.', <identifier> |
 //     <postfix_expression>, '[', <expression>, ']'
 LocatorExpression *Parser::buildTailPosfixExpression(LocatorExpression *lhs) {
+  FilePos locus = m_tokenizer.getPos();
   assert(lhs && "we must have a parent if we made it here");
   assert(isFullstopOrLeftBracket(m_tokenizer.current()));
   if (m_tokenizer.getCurrentType() == lex::Fullstop) {
@@ -552,7 +548,7 @@ LocatorExpression *Parser::buildTailPosfixExpression(LocatorExpression *lhs) {
     m_tokenizer.consume();
 
     MemberAccessExpression *expression =
-        new MemberAccessExpression(lhs, member);
+        new MemberAccessExpression(lhs, member, locus);
     appendChild(lhs, expression); // building the syntax tree
 
     if (isFullstopOrLeftBracket(m_tokenizer.current()))
@@ -578,7 +574,7 @@ LocatorExpression *Parser::buildTailPosfixExpression(LocatorExpression *lhs) {
   }
   m_tokenizer.consume();
   ArrayAccessExpression *new_expression =
-      new ArrayAccessExpression(lhs, expression);
+      new ArrayAccessExpression(lhs, expression, locus);
   appendChild(lhs, new_expression); // building the syntax tree
   if (isFullstopOrLeftBracket(m_tokenizer.current()))
     buildPosfixExpression(new_expression);
@@ -589,12 +585,12 @@ LocatorExpression *Parser::buildTailPosfixExpression(LocatorExpression *lhs) {
 //     <postfix_expression>, '.', <identifier> |
 //     <postfix_expression>, '[', <expression>, ']'
 LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
-  // the tail case for the following:
   //     <postfix_expression>, '.', <identifier> |
   //     <postfix_expression>, '[', <expression>, ']'
   if (isFullstopOrLeftBracket(m_tokenizer.current())) {
     return buildTailPosfixExpression(lhs);
   }
+  FilePos filepos = m_tokenizer.getPos();
 
   // the <deref_expression> case
   if (m_tokenizer.getCurrentType() == lex::Deref) {
@@ -629,7 +625,7 @@ LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
     m_tokenizer.consume();
 
     ArrayAccessExpression *array_access =
-        new ArrayAccessExpression(name, expresion);
+        new ArrayAccessExpression(name, expresion, filepos);
     if (isFullstopOrLeftBracket(m_tokenizer.current()))
       buildPosfixExpression(array_access);
     return array_access;
@@ -647,7 +643,8 @@ LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
   std::string literal = m_tokenizer.current().getStringLiteral();
   m_tokenizer.consume();
 
-  MemberAccessExpression *access = new MemberAccessExpression(name, literal);
+  MemberAccessExpression *access =
+      new MemberAccessExpression(name, literal, filepos);
   if (isFullstopOrLeftBracket(m_tokenizer.current()))
     buildPosfixExpression(access);
   return access;
@@ -655,6 +652,7 @@ LocatorExpression *Parser::buildPosfixExpression(LocatorExpression *lhs) {
 
 // ref_expression :== 'ref', '<', <trivial_expression>, '>'
 Expression *Parser::buildRefExpression() {
+  FilePos locus = m_tokenizer.getPos();
   if (m_tokenizer.getCurrentType() != lex::Ref) {
     logError("expected ref");
     return nullptr;
@@ -674,7 +672,7 @@ Expression *Parser::buildRefExpression() {
   }
   m_tokenizer.consume();
 
-  return new RefExpression(expression);
+  return new RefExpression(expression, locus);
 }
 
 // trivial_expression :== <identifier> | <call_expression> |
@@ -682,10 +680,11 @@ Expression *Parser::buildRefExpression() {
 //                             <posfix_expression> | <deref_expression> |
 //                             <ref_expression> | <string_literal>
 Expression *Parser::buildTrivialExpression() {
+  FilePos locus = m_tokenizer.getPos();
   // <integer_literal>
   if (m_tokenizer.getCurrentType() == lex::IntegerLiteral) {
     Expression *value =
-        new ConstantExpr(m_tokenizer.current().getIntegerLiteral());
+        new ConstantExpr(m_tokenizer.current().getIntegerLiteral(), locus);
     m_tokenizer.consume();
     return value;
   }
@@ -693,7 +692,7 @@ Expression *Parser::buildTrivialExpression() {
   // FIXME: maybe we should move this into it's own function?
   if (m_tokenizer.getCurrentType() == lex::String) {
     StringLiteral *string_node =
-        new StringLiteral(m_tokenizer.current().getStringLiteral());
+        new StringLiteral(m_tokenizer.current().getStringLiteral(), locus);
     m_tokenizer.consume();
     return string_node;
   }
@@ -709,7 +708,7 @@ Expression *Parser::buildTrivialExpression() {
     }
 
     Expression *value =
-        new IdentifierExpr(m_tokenizer.current().getStringLiteral());
+        new IdentifierExpr(m_tokenizer.current().getStringLiteral(), locus);
     m_tokenizer.consume();
 
     return value;
@@ -740,16 +739,15 @@ Expression *Parser::buildTrivialExpression() {
 
 // call_expressions :== <identifier>, '(', { <expression> ',' }+,  ')'
 Expression *Parser::buildCallExpr() {
+  FilePos locus = m_tokenizer.getPos();
   if (m_tokenizer.getCurrentType() != lex::Identifier) {
-    logError("expected identfier");
-    return nullptr;
+    return logError("expected identfier");
   }
 
   std::string function_name = m_tokenizer.current().getStringLiteral();
 
   if (m_tokenizer.getNextType() != lex::LeftParentheses) {
-    logError("expected (");
-    return nullptr;
+    return logError("expected (");
   }
   m_tokenizer.consume();
 
@@ -762,29 +760,28 @@ Expression *Parser::buildCallExpr() {
 
     // consume the comma
     if (m_tokenizer.getCurrentType() != lex::Comma) {
-      logError("expected ,");
-      return nullptr;
+      return logError("expected ,");
     }
 
     m_tokenizer.consume();
   }
 
   if (m_tokenizer.getCurrentType() != lex::RightParentheses) {
-    logError("expected )");
-    return nullptr;
+    return logError("expected )");
   }
   m_tokenizer.consume();
 
-  return new CallExpr(function_name, expressions);
+  return new CallExpr(function_name, expressions, locus);
 }
 
 ContextHolder Parser::getHolder() { return m_context; }
 
-bool Parser::haveError() const { return m_error; }
+bool Parser::haveError() const { return m_context->diagnostics.hasError(); }
 
 // declaration_statement :== <type_qualification>, <identifier>, {'=',
 // <expression>} , ';'
 Statement *Parser::buildDeclarationStatement() {
+  FilePos locus = m_tokenizer.getPos();
   Type *parsed_type = buildTypeQualification();
 
   if (m_tokenizer.getCurrentType() != lex::Identifier)
@@ -796,7 +793,7 @@ Statement *Parser::buildDeclarationStatement() {
   // <type_qualification>, <identifier>, ';'
   if (m_tokenizer.getNextType() == lex::SemiColon) {
     m_tokenizer.consume(); // applying the side effect
-    return new DeclarationStatement(name, nullptr, parsed_type);
+    return new DeclarationStatement(name, nullptr, parsed_type, locus);
   }
 
   if (m_tokenizer.getCurrentType() != lex::Equal)
@@ -809,20 +806,19 @@ Statement *Parser::buildDeclarationStatement() {
     return logError("expected ;");
   m_tokenizer.consume();
 
-  return new DeclarationStatement(name, expression, parsed_type);
+  return new DeclarationStatement(name, expression, parsed_type, locus);
 }
 
 // deref_expression :== 'deref', '<', <trivial_expression>, '>'
 Expression *Parser::buildDerefExpression() {
+  FilePos locus = m_tokenizer.getPos();
   if (m_tokenizer.getCurrentType() != lex::Deref) {
-    logError("expected deref");
-    return nullptr;
+    return logError("expected deref");
   }
   m_tokenizer.consume();
 
   if (m_tokenizer.getCurrentType() != lex::LessSign) {
-    logError("expected <");
-    return nullptr;
+    return logError("expected <");
   }
 
   m_tokenizer.consume();
@@ -830,12 +826,11 @@ Expression *Parser::buildDerefExpression() {
   Expression *ref_get = buildTrivialExpression();
 
   if (m_tokenizer.getCurrentType() != lex::GreaterSign) {
-    logError("expected >");
-    return nullptr;
+    return logError("expected >");
   }
   m_tokenizer.consume();
 
-  LocatorExpression *deref_expression = new DeRefExpression(ref_get);
+  LocatorExpression *deref_expression = new DeRefExpression(ref_get, locus);
   // FIXME: this is kind of a jank hack to get posfix expression to work
   // with deref expression
   if (isFullstopOrLeftBracket(m_tokenizer.current())) {

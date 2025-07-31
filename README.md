@@ -11,8 +11,8 @@
 - [X] Add comments
 - [X] String Type  
 - [X] Bool type with problem BinaryExpression::getType() 
-- [ ] Diagnostics Driver
-- [ ] Add source location 
+- [X] Diagnostics Driver
+- [X] Add source location 
 - [ ] The C FFI problem with SDL
 - [ ] THE HEAP ALLOCATION PROBLEM WITH AstBase AND TYPE
 

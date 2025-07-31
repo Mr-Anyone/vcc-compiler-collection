@@ -10,7 +10,8 @@ TEST(LexTest, TokenTest) {
   stream << file_input;
   stream.close();
 
-  lex::Tokenizer tokenizer("/tmp/testing.txt");
+  FileStream some_stream("/tmp/testing.txt");
+  lex::Tokenizer tokenizer(some_stream);
   EXPECT_EQ(tokenizer.getCurrentType(), lex::Identifier);
   EXPECT_EQ(tokenizer.getNextType(), lex::FunctionDecl);
   EXPECT_EQ(tokenizer.getNextType(), lex::Add);
@@ -19,7 +20,8 @@ TEST(LexTest, TokenTest) {
 }
 
 TEST(LexTest, EndOfFileReading) {
-  lex::Tokenizer tokenizer("resource/lex_end_of_file.txt");
+  FileStream some_stream("resource/lex_end_of_file.txt");
+  lex::Tokenizer tokenizer(some_stream);
   while (tokenizer.getCurrentType() != lex::EndOfFile) {
     tokenizer.next();
   }
@@ -41,7 +43,8 @@ TEST(LexTest, NewToken) {
   stream << file_input;
   stream.close();
 
-  lex::Tokenizer tokenizer("/tmp/testing2.txt");
+  FileStream stream_two("/tmp/testing2.txt");
+  lex::Tokenizer tokenizer(stream_two);
   EXPECT_EQ(tokenizer.getCurrentType(), lex::Identifier);
   EXPECT_EQ(tokenizer.getNextType(), lex::FunctionDecl);
   EXPECT_EQ(tokenizer.getNextType(), lex::Add);

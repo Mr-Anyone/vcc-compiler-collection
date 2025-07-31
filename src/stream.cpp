@@ -10,6 +10,12 @@ FileStream::FileStream(const char *filename) {
 
   if (!m_file)
     m_open = false;
+
+  if (!is_open()) {
+    std::cerr << "cannot open file:" << filename << "\n";
+    std::exit(-1);
+  }
+
 }
 
 char FileStream::get() {

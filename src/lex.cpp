@@ -9,13 +9,9 @@ using namespace lex;
 
 void Tokenizer::consume() { m_current_token = readOneToken(); }
 
-Tokenizer::Tokenizer(const char *filename) : m_file(filename) {
-  // FIXME: handle this better!
-  if (!m_file.is_open()) {
-    std::cerr << "cannot open file:" << filename << "\n";
-    std::exit(-1);
-  }
 
+
+Tokenizer::Tokenizer(FileStream& stream) : m_file(stream) {
   m_current_token = readOneToken();
 }
 
@@ -273,4 +269,8 @@ std::string Tokenizer::getLine(const FilePos &pos) {
 
 bool Token::isTypeQualification() const {
   return TypeQualificationStart < getType() && getType() < TypeQualificationEnd;
+}
+
+FilePos Tokenizer::getPos(){
+    return current().getPos();
 }
