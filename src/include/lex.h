@@ -49,6 +49,7 @@ enum TokenType {
   Ptr,    // ptr
   Char,   // char
   Float,  // float
+  Bool,
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start
@@ -158,6 +159,7 @@ private:
       {"int", Int},
       {"float", Float},
       {"array", Array},
+      {"bool", Bool},
       {"gives", Gives},
       {"char", Char},
       {"void", Void},

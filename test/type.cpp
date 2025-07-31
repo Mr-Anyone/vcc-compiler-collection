@@ -68,4 +68,10 @@ TEST(Type, BasicTest) {
   EXPECT_FALSE(char_type.isArray());
   EXPECT_FALSE(char_type.isVoid());
   EXPECT_EQ(char_type.getType(holder), llvm::Type::getInt8Ty(holder->context));
+
+  BuiltinType bool_type (BuiltinType::Bool);
+  EXPECT_TRUE(bool_type.isBuiltin());
+  EXPECT_FALSE(bool_type.isFloat());
+  EXPECT_FALSE(bool_type.isInt());
+  EXPECT_EQ(bool_type.getType(holder), llvm::Type::getInt1Ty(holder->context));
 }

@@ -61,12 +61,21 @@ private:
 
 class BuiltinType : public Type {
 public:
-  enum Builtin { Int, Float, Char };
+  enum Builtin { Int, Float, Char, Bool };
 
   BuiltinType(Builtin builtin);
   Builtin getKind() const;
-  bool isInt() const;
   bool isFloat() const;
+
+  bool isInt() const;
+  bool isChar() const;
+  bool isBool() const;
+
+  /// isIntegerKind - True if the type is a int, char, or bool 
+  bool isIntegerKind() const;
+
+  int getBitSize() const;
+
 
   virtual llvm::Type *getType(ContextHolder holder) override;
 

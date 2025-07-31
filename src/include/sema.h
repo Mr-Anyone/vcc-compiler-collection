@@ -17,12 +17,8 @@ public:
   /// Perform a list of checks applies to function
   /// returns ture if passes, false otherwise
   bool checkFunction(FunctionDecl *decl);
-
-  /// deduce the type from a given node
-  Type *deduceType(ASTBase *node, ContextHolder holder);
-
 private:
-  static bool doesDeclareScope(ASTBase *base);
+  ///
 };
 
 #endif

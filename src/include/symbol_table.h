@@ -29,8 +29,8 @@ struct CGTypeInfo {
 ///     end
 ///     ret a + b;
 /// }
-//// FunctionDecl--(symbols a, b)
-////      |-- If statement (symbols c)
+/// FunctionDecl--(symbols a, b)
+///      |-- If statement (symbols c)
 class TrieTree {
 public:
   TrieTree();

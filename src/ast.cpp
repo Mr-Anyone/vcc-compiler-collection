@@ -533,7 +533,27 @@ Type *CallExpr::getType(ContextHolder holder) {
   return holder->symbol_table.lookupFunction(m_func_name)->getReturnType();
 }
 
+static Type* getIntWithMoreBits(BuiltinType* lhs, BuiltinType* rhs){
+    assert(lhs->isIntegerKind() && rhs->isIntegerKind());
+    return lhs->getBitSize() > rhs->getBitSize() ? lhs : rhs;
+}
+
 Type *BinaryExpression::getType(ContextHolder holder) {
+  // check for boolean expression
+  switch (m_kind) {
+  // if it is from a boolean expression, it should always return a boolean
+  // expression regardless of the two types
+  case Equal:
+  case NEquals:
+  case GE:
+  case GT:
+  case LE:
+  case LT:
+    return new BuiltinType(BuiltinType::Bool);
+  default:
+    break;
+  };
+
   if (m_lhs->getType(holder)->isPointer() ||
       m_rhs->getType(holder)->isPointer()) {
     assert(false && "please emit error here. pointer type in binary expression "
@@ -543,16 +563,17 @@ Type *BinaryExpression::getType(ContextHolder holder) {
 
   if (m_lhs->getType(holder)->isBuiltin() &&
       m_rhs->getType(holder)->isBuiltin()) {
-    if (m_lhs->getType(holder)->getAs<BuiltinType>()->isFloat())
-      return m_lhs->getType(holder);
+      BuiltinType* casted_lhs =m_lhs->getType(holder)->getAs<BuiltinType>();
+      BuiltinType* casted_rhs =m_rhs->getType(holder)->getAs<BuiltinType>();
 
-    if (m_rhs->getType(holder)->getAs<BuiltinType>()->isFloat())
-      return m_rhs->getType(holder);
+    // return float type if either the left hand side or the right hand side
+    // have a floating point
+    if (casted_lhs->isFloat())
+      return casted_lhs;
+    else if (casted_rhs->isFloat())
+      return casted_rhs;
 
-    assert(m_lhs->getType(holder)->getAs<BuiltinType>()->isInt() &&
-           m_rhs->getType(holder)->getAs<BuiltinType>()->isInt());
-
-    return m_lhs->getType(holder);
+    return getIntWithMoreBits(casted_lhs, casted_rhs);
   }
 
   assert(false && "don't know what to do here!");
@@ -603,8 +624,8 @@ llvm::Value *ConstantExpr::getVal(ContextHolder holder) {
 }
 
 llvm::Value *BinaryExpression::handleInteger(ContextHolder holder,
-                                             llvm::Value *right_hand_side,
-                                             llvm::Value *left_hand_side) {
+                                             llvm::Value *left_hand_side,
+                                             llvm::Value *right_hand_side) {
   assert(right_hand_side->getType()->isIntegerTy() &&
          left_hand_side->getType()->isIntegerTy() &&
          "both side most be integer for now");

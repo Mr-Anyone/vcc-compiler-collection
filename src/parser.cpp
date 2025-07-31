@@ -31,8 +31,14 @@ const std::vector<Statement *> &Parser::getSyntaxTree() {
 // type_qualification :== 'int' | 'struct', <identifier> |
 //                     'array', '(', <integer_literal>, ')',
 //                     <type_qualification> | 'ptr', <type_qualification> |
-//                     'float' | 'void' | 'char'
+//                     'float' | 'void' | 'char' | 'bool'
 Type *Parser::buildTypeQualification() {
+  // we have a boolean type here
+  if (m_tokenizer.getCurrentType() == lex::Bool) {
+    m_tokenizer.consume();
+    return new BuiltinType(BuiltinType::Bool);
+  }
+
   // we have void type 'void'
   if (m_tokenizer.getCurrentType() == lex::Void) {
     m_tokenizer.consume();
@@ -686,10 +692,9 @@ Expression *Parser::buildTrivialExpression() {
 
   // FIXME: maybe we should move this into it's own function?
   if (m_tokenizer.getCurrentType() == lex::String) {
-    m_tokenizer.consume();
     StringLiteral *string_node =
         new StringLiteral(m_tokenizer.current().getStringLiteral());
-
+    m_tokenizer.consume();
     return string_node;
   }
 

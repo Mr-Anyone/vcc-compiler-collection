@@ -1,5 +1,6 @@
 #include "type.h"
 #include <llvm/IR/DerivedTypes.h>
+#include <string_view>
 
 bool Type::isBuiltin() const {
   return dynamic_cast<const BuiltinType *>(this) != nullptr;
@@ -34,6 +35,10 @@ BuiltinType::BuiltinType(Builtin builtin) : m_builtin(builtin) {
     break;
   case Char:
     m_bits_size = 8;
+    break;
+  case Bool: 
+    m_bits_size = 1;
+    break;
   default:
     assert(false && "how did we get here?");
   }
@@ -46,6 +51,7 @@ llvm::Type *BuiltinType::getType(ContextHolder holder) {
     return m_llvm_type;
 
   switch (m_builtin) {
+  case Bool:
   case Char:
   case Int:
     m_llvm_type = llvm::Type::getIntNTy(holder->context, m_bits_size);
@@ -62,7 +68,7 @@ llvm::Type *BuiltinType::getType(ContextHolder holder) {
 StructType::StructType(const std::vector<Element> &element,
                        const std::string &name)
     : m_elements(element), m_name(name) {
-#ifdef NDEBUG
+#ifndef NDEBUG
   for (int i = 0; i < m_elements.size(); ++i) {
     assert(m_elements[i].field_num == i &&
            "The array makes no sense otherwise");
@@ -217,3 +223,15 @@ llvm::Type *VoidType::getType(ContextHolder holder) {
 }
 
 void VoidType::dump() { std::cout << "void"; }
+
+bool BuiltinType::isBool() const { return m_builtin == Bool; }
+
+bool BuiltinType::isChar() const { return m_builtin == Char; }
+
+bool BuiltinType::isIntegerKind() const {
+  return isBool() || isChar() || isInt();
+}
+
+int BuiltinType::getBitSize() const{
+    return m_bits_size;
+}
