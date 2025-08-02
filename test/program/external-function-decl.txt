@@ -1,0 +1,13 @@
+# generated from ffi_ir_parser
+# a test of function decl
+
+external function fflush gives int [ptr void a, ]
+external function SDL_Init gives bool [int a, ]
+external function fprintf gives int [ptr void a, ptr void b, ]
+external function SDL_CreateWindowAndRenderer gives bool [ptr void a, int b, int c, long d, ptr void e, ptr void f, ]
+external function SDL_PollEvent gives bool [ptr void a, ]
+external function SDL_SetRenderDrawColor gives bool [ptr void a, char b, char c, char d, char e, ]
+external function SDL_RenderClear gives bool [ptr void a, ]
+external function SDL_RenderFillRect gives bool [ptr void a, ptr void b, ]
+external function SDL_RenderLine gives bool [ptr void a, float b, float c, float d, float e, ]
+external function SDL_RenderPresent gives bool [ptr void a, ]

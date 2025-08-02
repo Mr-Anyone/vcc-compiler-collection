@@ -31,12 +31,22 @@ const std::vector<Statement *> &Parser::getSyntaxTree() {
 // type_qualification :== 'int' | 'struct', <identifier> |
 //                     'array', '(', <integer_literal>, ')',
 //                     <type_qualification> | 'ptr', <type_qualification> |
-//                     'float' | 'void' | 'char' | 'bool'
+//                     'float' | 'void' | 'char' | 'bool' | 'long' | 'short'
 Type *Parser::buildTypeQualification() {
   // we have a boolean type here
   if (m_tokenizer.getCurrentType() == lex::Bool) {
     m_tokenizer.consume();
     return new BuiltinType(BuiltinType::Bool);
+  }
+
+  if (m_tokenizer.getCurrentType() == lex::Long) {
+    m_tokenizer.consume();
+    return new BuiltinType(BuiltinType::Long);
+  }
+
+  if (m_tokenizer.getCurrentType() == lex::Short) {
+    m_tokenizer.consume();
+    return new BuiltinType(BuiltinType::Long);
   }
 
   // we have void type 'void'

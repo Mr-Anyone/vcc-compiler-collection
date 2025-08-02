@@ -29,15 +29,21 @@ llvm::Type *Type::getType(ContextHolder holder) {
 
 BuiltinType::BuiltinType(Builtin builtin) : m_builtin(builtin) {
   switch (m_builtin) {
-  case Float:
-  case Int:
-    m_bits_size = 32;
+  case Bool:
+    m_bits_size = 1;
     break;
   case Char:
     m_bits_size = 8;
     break;
-  case Bool: 
-    m_bits_size = 1;
+  case Short:
+    m_bits_size = 16;
+    break;
+  case Float:
+  case Int:
+    m_bits_size = 32;
+    break;
+  case Long:
+    m_bits_size = 64;
     break;
   default:
     assert(false && "how did we get here?");
@@ -51,6 +57,8 @@ llvm::Type *BuiltinType::getType(ContextHolder holder) {
     return m_llvm_type;
 
   switch (m_builtin) {
+  case Long:
+  case Short:
   case Bool:
   case Char:
   case Int:
@@ -68,7 +76,7 @@ llvm::Type *BuiltinType::getType(ContextHolder holder) {
 StructType::StructType(const std::vector<Element> &element,
                        const std::string &name)
     : m_elements(element), m_name(name) {
-#ifndef NDEBUG
+#ifdef NDEBUG
   for (int i = 0; i < m_elements.size(); ++i) {
     assert(m_elements[i].field_num == i &&
            "The array makes no sense otherwise");
@@ -232,6 +240,4 @@ bool BuiltinType::isIntegerKind() const {
   return isBool() || isChar() || isInt();
 }
 
-int BuiltinType::getBitSize() const{
-    return m_bits_size;
-}
+int BuiltinType::getBitSize() const { return m_bits_size; }

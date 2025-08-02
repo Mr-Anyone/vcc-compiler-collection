@@ -49,7 +49,9 @@ enum TokenType {
   Ptr,    // ptr
   Char,   // char
   Float,  // float
-  Bool,
+  Bool,   // bool
+  Long,   // long
+  Short,  // short
   TypeQualificationEnd,
 
   BinaryOperatorStart, // Binary operator start
@@ -107,7 +109,7 @@ private:
 
 class Tokenizer {
 public:
-    Tokenizer(FileStream &stream);
+  Tokenizer(FileStream &stream);
 
   // consume token
   const Token next();
@@ -159,6 +161,8 @@ private:
 
       {"int", Int},
       {"float", Float},
+      {"long", Long},
+      {"short", Short},
       {"array", Array},
       {"bool", Bool},
       {"gives", Gives},

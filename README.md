@@ -13,9 +13,9 @@
 - [X] Bool type with problem BinaryExpression::getType() 
 - [X] Diagnostics Driver
 - [X] Add source location 
+- [X] Add the following type short, long, and void*
 - [ ] The C FFI problem with SDL
 - [ ] Adding a cast expression
-- [ ] Add the following type short, long, and void*
 - [ ] Add the following operations and, and or.
 - [ ] THE HEAP ALLOCATION PROBLEM WITH AstBase AND TYPE
 
@@ -71,7 +71,8 @@ return_statement :== 'ret', {<expression>} ';'
 
 type_qualification :== 'int' | 'struct', <identifier> |
                     'array', '(', <integer_literal>, ')', <type_qualification> |
-                    'ptr', <type_qualification> | 'float' | 'void' | 'char' | 'bool'
+                    'ptr', <type_qualification> | 'float' | 'void' | 
+                    'char' | 'bool' | 'long' | 'short'
 
 struct_definition :== 'struct', <identifier> ,'{'
                         , {<type_qualification> <identifier>}+, '}'
@@ -141,6 +142,13 @@ ptr int b = a + 10; # this is ill form
 
 ```
 ptr char some_str = "testing"; # Here some_str points to the 't' character
+```
+
+6. Cast expression converts a type A into type B assuming that type A can be converted into type B. Conversion between array to pointer is ill formed.
+
+```
+array (10) array_a ;
+ptr int a = cast<a>; # this is well form
 ```
 
 ## Statements

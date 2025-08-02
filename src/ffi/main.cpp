@@ -1,3 +1,8 @@
+//===----------------------------------------------------------------------===//
+// This utility parses an LLVM IR file and prints out the function declarations
+// in a simplified "compilation-like" format, mapping LLVM types to 
+// the programming language types (e.g., `i32` to `int`, `float` to `float`, etc).
+//===----------------------------------------------------------------------===//
 #include <cstdlib>
 #include <iostream>
 
@@ -60,11 +65,13 @@ void printCompDecl(llvm::Function *function) {
   llvm::outs() << "external function " << function->getName() << " gives ";
   printCompType(function->getReturnType());
   llvm::outs() << " [";
+  
+  char start_of_alphabet =  'a';
   // printing the function argument list
   for (auto it = function->arg_begin(), ie = function->arg_end(); it != ie;
        ++it) {
       printCompType(it->getType());
-      llvm::outs()  << ", ";
+      llvm::outs() <<" " << start_of_alphabet++ << ", ";
   }
 
   llvm::outs() << "]\n";
