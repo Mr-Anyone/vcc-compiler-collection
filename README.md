@@ -14,6 +14,9 @@
 - [X] Diagnostics Driver
 - [X] Add source location 
 - [ ] The C FFI problem with SDL
+- [ ] Adding a cast expression
+- [ ] Add the following type short, long, and void*
+- [ ] Add the following operations and, and or.
 - [ ] THE HEAP ALLOCATION PROBLEM WITH AstBase AND TYPE
 
 # Example Code 

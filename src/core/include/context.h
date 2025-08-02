@@ -19,7 +19,6 @@ struct Token;
 class DiagnosticDriver {
 public:
   void diag(const std::string &message);
-
   /// FIXME: this is terrible style, maybe we should just pass the line to be
   /// printed, or just a format. This is because there could be
   /// mutability form tokenizer
