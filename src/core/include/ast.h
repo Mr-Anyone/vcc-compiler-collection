@@ -143,6 +143,7 @@ public:
 
 private:
   void buildExternalDecl(ContextHolder holder);
+  void emitAllocs(ContextHolder holder);
 
   bool m_is_extern; // is external or not?
 
@@ -183,21 +184,6 @@ private:
   Expression *m_expression;
 };
 
-class IfStatement : public Statement {
-public:
-  IfStatement(Expression *cond, std::vector<Statement *> &&expressions,
-              FilePos locus);
-  virtual void dump() override;
-  virtual void codegen(ContextHolder holder) override;
-  virtual code::TreeCode getCode() const override;
-
-private:
-  // m_cond is a expression which may or may not be i1.
-  // this is a terrible name
-  Expression *m_cond;
-  std::vector<Statement *> m_statements;
-};
-
 class DeclarationStatement : public Statement {
 public:
   // if expression is nullptr, it means that we just allocate space
@@ -208,12 +194,30 @@ public:
   virtual void dump() override;
   virtual void codegen(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
-  void emitEndLifetime(ContextHolder holder);
-
+  Expression* getExpression();
+  Type* getType();
+  const std::string& getName();
 private:
+
   std::string m_name;
   Expression *m_expression;
   Type *m_type;
+};
+
+class IfStatement : public Statement {
+public:
+  IfStatement(Expression *cond, std::vector<Statement *> &&expressions,
+              FilePos locus);
+  virtual void dump() override;
+  virtual void codegen(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
+
+  std::vector<DeclarationStatement*> getDeclarationStatements() const;
+private:
+  // m_cond is a expression which may or may not be i1.
+  // this is a terrible name
+  Expression *m_cond;
+  std::vector<Statement *> m_statements;
 };
 
 class WhileStatement : public Statement {
@@ -223,6 +227,8 @@ public:
   virtual void codegen(ContextHolder holder) override;
   virtual void dump() override;
   virtual code::TreeCode getCode() const override;
+
+  std::vector<DeclarationStatement*> getDeclarationStatements() const;
 
 private:
   Expression *m_cond;

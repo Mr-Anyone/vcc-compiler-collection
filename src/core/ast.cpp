@@ -258,6 +258,11 @@ DeclarationStatement::DeclarationStatement(const std::string &name,
     addChildren(base);
 }
 
+const std::string& DeclarationStatement::getName() {return m_name;}
+
+Type* DeclarationStatement::getType() {return m_type;}
+
+
 void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
 
 WhileStatement::WhileStatement(Expression *cond,
@@ -267,12 +272,6 @@ WhileStatement::WhileStatement(Expression *cond,
   for (ASTBase *base : m_statements) {
     addChildren(base);
   }
-}
-
-void DeclarationStatement::emitEndLifetime(ContextHolder holder) {
-  llvm::Value *loc =
-      holder->symbol_table.lookupLocalVariable(this, m_name).value;
-  holder->builder.CreateLifetimeEnd(loc);
 }
 
 void WhileStatement::dump() { return; }
@@ -486,6 +485,30 @@ void CastExpression::emitErrorAndExit(ContextHolder holder) {
                            "cannot perform a cast");
   std::exit(-1);
 }
+
+static std::vector<DeclarationStatement *>
+getDeclarationStatementImpl(const std::vector<Statement *> &statement) {
+  std::vector<DeclarationStatement *> result;
+  for (Statement *s : statement) {
+    if (s->getCode() == code::DeclarationStatement)
+      result.push_back(dyncast<DeclarationStatement>(s));
+  }
+
+  return result;
+}
+
+std::vector<DeclarationStatement *>
+WhileStatement::getDeclarationStatements() const {
+  return getDeclarationStatementImpl(m_statements);
+}
+
+std::vector<DeclarationStatement *>
+IfStatement::getDeclarationStatements() const {
+  return getDeclarationStatementImpl(m_statements);
+}
+
+Expression *DeclarationStatement::getExpression() { return m_expression; }
+
 // ================================================================================
 // ====================== Expression Implementation::getType
 // ======================
@@ -952,9 +975,49 @@ void CallStatement::codegen(ContextHolder holder) {
   m_call_expr->getVal(holder);
 }
 
+void FunctionDecl::emitAllocs(ContextHolder holder) {
+  std::vector<DeclarationStatement *> declaration_statements{};
+
+  // recursively getting all the declaration statements
+  // and allocating the space at the beginning of FunctionDecl
+  for (Statement *statement : m_statements) {
+    switch (statement->getCode()) {
+    case code::DeclarationStatement: {
+      declaration_statements.push_back(
+          dyncast<DeclarationStatement>(statement));
+      break;
+    }
+    case code::WhileStatement: {
+      std::vector<DeclarationStatement *> added =
+          dyncast<WhileStatement>(statement)->getDeclarationStatements();
+      declaration_statements.insert(declaration_statements.end(), added.begin(),
+                                    added.end());
+      break;
+    }
+    case code::IfStatement: {
+      std::vector<DeclarationStatement *> added =
+          dyncast<IfStatement>(statement)->getDeclarationStatements();
+      declaration_statements.insert(declaration_statements.end(), added.begin(),
+                                    added.end());
+    }
+    default:
+      break;
+    }
+  }
+
+  // allocating the space and inserting into trie tree
+  for (DeclarationStatement *statement : declaration_statements) {
+    llvm::Type *llvm_type = statement->getType()->getType(holder);
+    llvm::Value *loc = holder->builder.CreateAlloca(llvm_type);
+    holder->symbol_table.addLocalVariable(statement, statement->getName(),
+                                          statement->getType(), loc);
+  }
+}
+
 void FunctionDecl::codegen(ContextHolder holder) {
   if (m_is_extern)
     return buildExternalDecl(holder);
+
   llvm::FunctionType *function_type = getFunctionType(holder);
 
   m_function = llvm::Function::Create(
@@ -971,6 +1034,8 @@ void FunctionDecl::codegen(ContextHolder holder) {
 
   // code generation for statement
   m_arg_list->codegen(holder);
+  emitAllocs(holder); // creating the space needed for declaration statement
+
   for (Statement *statement : m_statements) {
     statement->codegen(holder);
   }
@@ -1027,18 +1092,8 @@ void IfStatement::codegen(ContextHolder holder) {
       holder->builder.CreateCondBr(cond, true_if_block, fallthrough_block);
 
   holder->builder.SetInsertPoint(true_if_block);
-  std::vector<DeclarationStatement *>
-      declaration_statements; // we need to emit lifetime as well to not stack
   for (Statement *statement : m_statements) {
-    if (vcc::isa<DeclarationStatement>(statement))
-      declaration_statements.push_back(
-          vcc::dyncast<DeclarationStatement>(statement));
     statement->codegen(holder);
-  }
-
-  // emit that it is at the end of its lifetime so that the stack is cleaned up
-  for (DeclarationStatement *statement : declaration_statements) {
-    statement->emitEndLifetime(holder);
   }
 
   assert(m_statements.size() >= 1 && "must be true for now");
@@ -1050,15 +1105,8 @@ void IfStatement::codegen(ContextHolder holder) {
 }
 
 void DeclarationStatement::codegen(ContextHolder holder) {
-  // initialize the first variable
-  const FunctionDecl *func = getFirstFunctionDecl();
   llvm::Value *alloc_loc =
-      holder->builder.CreateAlloca(m_type->getType(holder));
-  holder->symbol_table.addLocalVariable(this, m_name, m_type, alloc_loc);
-
-  // creating start of lifetime, this is really important because we might stack
-  // overflow if we don't do so
-  holder->builder.CreateLifetimeStart(alloc_loc);
+      holder->symbol_table.lookupLocalVariable(this, m_name).value;
 
   // if we don't have an initializer, we don't allocate space
   if (m_expression) {
@@ -1093,19 +1141,8 @@ void WhileStatement::codegen(ContextHolder holder) {
 
   // set up while body block
   holder->builder.SetInsertPoint(while_true_block);
-  std::vector<DeclarationStatement *>
-      declaration_statements; // we need to emit lifetime as well to not stack
-                              // overflow
   for (Statement *statement : m_statements) {
-    if (isa<DeclarationStatement>(statement))
-      declaration_statements.push_back(
-          dyncast<DeclarationStatement>(statement));
     statement->codegen(holder);
-  }
-
-  // emit that it is at the end of its lifetime so that the stack is cleaned up
-  for (DeclarationStatement *statement : declaration_statements) {
-    statement->emitEndLifetime(holder);
   }
 
   assert(m_statements.size() >= 1 && "must be true for now");
