@@ -2,6 +2,8 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <string_view>
 
+using namespace vcc;
+
 bool Type::isBuiltin() const {
   return dynamic_cast<const BuiltinType *>(this) != nullptr;
 }

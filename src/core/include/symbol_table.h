@@ -4,6 +4,7 @@
 #include <iostream>
 #include <llvm/IR/Value.h>
 
+namespace vcc {
 class FunctionDecl;
 class ASTBase;
 class Type;
@@ -90,5 +91,7 @@ private:
                               // corresponding TrieTree.
   std::unordered_map<std::string, const FunctionDecl *> m_function_table;
 };
+
+}; // namespace vcc
 
 #endif

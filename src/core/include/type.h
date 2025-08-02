@@ -8,6 +8,7 @@
 
 #include "util.h"
 
+namespace vcc {
 // FIXME: A lot of the time Type is immutable
 // Therefore maybe we could just return a pointer
 // by heap allocating once and save a lot of save.
@@ -24,9 +25,10 @@ public:
   bool isPointer() const;
   bool isArray() const;
   bool isVoid() const;
-  bool isVoidPtr()const;
+  bool isVoidPtr() const;
 
   static bool isSame(Type *lhs, Type *rhs);
+
 private:
 };
 
@@ -52,7 +54,7 @@ public:
   PointerType(Type *m_pointee);
 
   Type *getPointee();
-  const Type *getPointee()const;
+  const Type *getPointee() const;
 
   virtual llvm::Type *getType(ContextHolder holder) override;
   virtual void dump() override;
@@ -79,9 +81,9 @@ public:
   bool isIntegerKind() const;
   int getBitSize() const;
 
-
   virtual llvm::Type *getType(ContextHolder holder) override;
   virtual void dump() override;
+
 private:
   Builtin m_builtin;
   int m_bits_size;
@@ -125,4 +127,5 @@ struct TypeInfo {
   Type *type;
   std::string name;
 };
+}; // namespace vcc
 #endif

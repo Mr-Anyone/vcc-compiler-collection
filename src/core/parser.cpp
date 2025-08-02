@@ -3,7 +3,8 @@
 #include <cassert>
 #include <iostream>
 
-using lex::Token;
+using namespace vcc;
+using vcc::lex::Token;
 
 Parser::Parser(ContextHolder context)
     : m_tokenizer(context->stream), m_context(context) {}
@@ -693,24 +694,23 @@ Expression *Parser::buildCastExpression() {
     return logError("expected cast expression");
   m_tokenizer.consume();
 
-  if(m_tokenizer.getCurrentType() != lex::LessSign){
-      return logError("expected <");
+  if (m_tokenizer.getCurrentType() != lex::LessSign) {
+    return logError("expected <");
   }
   m_tokenizer.consume();
 
-  Type* type = buildTypeQualification();
+  Type *type = buildTypeQualification();
 
-  if(m_tokenizer.getCurrentType() != lex::GreaterSign){
-      return logError("expected >");
+  if (m_tokenizer.getCurrentType() != lex::GreaterSign) {
+    return logError("expected >");
   }
   m_tokenizer.consume();
-
 
   if (m_tokenizer.getCurrentType() != lex::LeftParentheses)
     return logError("expected (");
   m_tokenizer.consume();
 
-  Expression* expression = buildExpression();
+  Expression *expression = buildExpression();
 
   if (m_tokenizer.getCurrentType() != lex::RightParentheses)
     return logError("expected )");

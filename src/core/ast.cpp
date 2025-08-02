@@ -7,6 +7,8 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 
+using namespace vcc;
+
 static void printSpaceBasedOnDepth(int depth) {
   for (int i = 0; i < depth * 2 - 1; ++i) {
     std::cout << " ";

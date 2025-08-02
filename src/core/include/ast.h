@@ -12,6 +12,7 @@
 #include "lex.h"
 
 // defined in type.h
+namespace vcc {
 struct TypeInfo;
 class BuiltinType;
 
@@ -282,12 +283,14 @@ public:
 
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
-private:
-  llvm::Value* builtinCast(BuiltinType* from, BuiltinType* to, ContextHolder holder);
 
-  void emitErrorAndExit(ContextHolder holder); 
-  Expression* m_to_be_casted_expression;
-  Type* m_cast_to;
+private:
+  llvm::Value *builtinCast(BuiltinType *from, BuiltinType *to,
+                           ContextHolder holder);
+
+  void emitErrorAndExit(ContextHolder holder);
+  Expression *m_to_be_casted_expression;
+  Type *m_cast_to;
 };
 
 /// === START OF LocatorExpression ===
@@ -426,5 +429,6 @@ public:
 private:
   std::string m_string_literal;
 };
+} // namespace vcc
 
 #endif

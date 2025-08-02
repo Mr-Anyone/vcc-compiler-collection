@@ -8,6 +8,7 @@
 
 #include "ast.h"
 
+namespace vcc {
 // Returns the demangled name of the class
 inline std::string getASTClassName(ASTBase *node) {
   if (!node)
@@ -49,5 +50,7 @@ template <typename T, typename U> T *dyncast(U a) {
 
   return nullptr;
 }
+
+}; // namespace vcc
 
 #endif

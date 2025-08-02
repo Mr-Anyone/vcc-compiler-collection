@@ -8,6 +8,7 @@
 
 #include "type.h"
 
+namespace vcc {
 class Parser {
 public:
   Parser(ContextHolder context);
@@ -88,5 +89,6 @@ private:
   std::vector<Statement *> m_top_level_statements;
   std::unordered_map<std::string, StructType *> m_struct_defs;
 };
+}; // namespace vcc
 
 #endif

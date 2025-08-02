@@ -2,6 +2,8 @@
 #include "ast.h"
 #include "util.h"
 
+using namespace vcc;
+
 SymbolTable::SymbolTable() : m_local_variable_table(), m_function_table() {}
 
 void SymbolTable::addFunction(const FunctionDecl *function_decl) {

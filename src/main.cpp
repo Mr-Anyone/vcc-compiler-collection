@@ -12,11 +12,11 @@
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
-#include <llvm/TargetParser/Host.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
+#include <llvm/TargetParser/Host.h>
 
 llvm::cl::opt<bool> print_ast("print-ast",
                               llvm::cl::desc("Whether to print syntax tree"));
@@ -38,15 +38,15 @@ int main(int argc, char *argv[]) {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
 
-  Parser parser = parseFile(input_filename.c_str());
-  ContextHolder holder = parser.getHolder();
-  Sema sema;
+  vcc::Parser parser = vcc::parseFile(input_filename.c_str());
+  vcc::ContextHolder holder = parser.getHolder();
+  vcc::Sema sema;
 
-  for (ASTBase *tree : parser.getSyntaxTree()) {
+  for (vcc::ASTBase *tree : parser.getSyntaxTree()) {
     if (print_ast)
       tree->debugDump();
 
-    dyncast<Statement>(tree)->codegen(holder);
+    dyncast<vcc::Statement>(tree)->codegen(holder);
   }
 
   // Create the analysis managers.

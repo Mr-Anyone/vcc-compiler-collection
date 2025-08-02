@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace vcc {
 namespace lex {
 
 enum TokenType {
@@ -35,7 +36,7 @@ enum TokenType {
   SemiColon, //;
   Equal,     // =
   Ret,       // ret
-  Cast,       // cast
+  Cast,      // cast
   If,        // If
   Then,      // Then
   End,       // End
@@ -206,5 +207,6 @@ private:
   Token m_current_token;
 };
 }; // namespace lex
+}; // namespace vcc
 
 #endif

@@ -3,8 +3,8 @@
 #include <gtest/gtest.h>
 
 TEST(CompTest, TestCompile) {
-  Parser parser = parseFile("resource/comp.txt");
-  for (Statement *base : parser.getSyntaxTree()) {
+  vcc::Parser parser = vcc::parseFile("resource/comp.txt");
+  for (vcc::Statement *base : parser.getSyntaxTree()) {
     base->codegen(parser.getHolder());
   }
 

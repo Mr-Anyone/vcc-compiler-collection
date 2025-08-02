@@ -21,7 +21,7 @@ foreach(TEST_PROGRAM ${TEST_PROGRAMS})
 
     add_test(
         NAME "test_compile_${TEST_NAME}"
-        COMMAND ${CMAKE_BINARY_DIR}/src/main ${TEST_PROGRAM}
+        COMMAND ${CMAKE_BINARY_DIR}/src/vcc ${TEST_PROGRAM}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 endforeach()

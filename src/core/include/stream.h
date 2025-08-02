@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 
+namespace vcc {
 /// 0 means we are at \n character
 /// therefore it is impossible to have row=1, and col=0
 struct FilePos {
@@ -26,8 +27,8 @@ public:
   FileStream(const char *filename);
 
   // Remove copy constructor, because this is unsafe
-  FileStream(const FileStream& other) = delete;
-  FileStream& operator= (const FileStream& other) = delete;
+  FileStream(const FileStream &other) = delete;
+  FileStream &operator=(const FileStream &other) = delete;
 
   /// consumes the character
   char get();
@@ -71,4 +72,5 @@ private:
   FilePos m_pos = {1, 1, 0};
 };
 
+}; // namespace vcc
 #endif

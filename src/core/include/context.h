@@ -9,12 +9,13 @@
 #include "symbol_table.h"
 #include <memory>
 
+#include "stream.h"
+
+namespace vcc {
 namespace lex {
 class Tokenizer;
 struct Token;
 }; // namespace lex
-
-#include "stream.h"
 
 class DiagnosticDriver {
 public:
@@ -53,9 +54,12 @@ struct GlobalContext {
   DiagnosticDriver diagnostics;
   FileStream stream;
 
-  inline std::string getLine(const FilePos& pos){ return stream.getLine(pos.loc);}
+  inline std::string getLine(const FilePos &pos) {
+    return stream.getLine(pos.loc);
+  }
 };
 
 using ContextHolder = std::shared_ptr<GlobalContext>;
 
+}; // namespace vcc
 #endif

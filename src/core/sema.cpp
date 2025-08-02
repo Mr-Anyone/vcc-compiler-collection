@@ -3,9 +3,8 @@
 #include <iostream>
 #include <memory>
 
+using namespace vcc;
+
 Sema::Sema() {}
 
-bool Sema::checkFunction(FunctionDecl *function_decl) { 
-
-    return true;
-}
+bool Sema::checkFunction(FunctionDecl *function_decl) { return true; }

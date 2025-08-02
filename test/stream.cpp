@@ -4,9 +4,11 @@
 #include <gtest/gtest.h>
 #include <type_traits>
 
+using vcc::FilePos;
+
 // Demonstrate some basic assertions.
 TEST(StreamTest, BasicTest) {
-  FileStream stream("resource/streamtest.txt");
+  vcc::FileStream stream("resource/streamtest.txt");
   EXPECT_EQ(stream.tellg(), 0);
 
   char c = stream.get();
@@ -33,7 +35,7 @@ TEST(StreamTest, BasicTest) {
 }
 
 TEST(StreamTest, SeekTest) {
-  FileStream stream("resource/streamtest.txt");
+  vcc::FileStream stream("resource/streamtest.txt");
 
   stream.seekg(0);
   EXPECT_EQ(stream.getPos(), (FilePos{1, 1, 0}));

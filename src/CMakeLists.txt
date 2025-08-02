@@ -12,8 +12,8 @@ set(
     core/stream.cpp
 )
 
-add_executable(main main.cpp)
-target_link_libraries(main comp)
+add_executable(vcc main.cpp)
+target_link_libraries(vcc comp)
 
 add_library(comp ${LIB_FILES})
 target_include_directories(

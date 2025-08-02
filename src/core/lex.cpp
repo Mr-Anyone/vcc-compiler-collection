@@ -5,13 +5,11 @@
 #include <istream>
 #include <string>
 
-using namespace lex;
+using namespace vcc::lex;
 
 void Tokenizer::consume() { m_current_token = readOneToken(); }
 
-
-
-Tokenizer::Tokenizer(FileStream& stream) : m_file(stream) {
+Tokenizer::Tokenizer(FileStream &stream) : m_file(stream) {
   m_current_token = readOneToken();
 }
 
@@ -261,7 +259,7 @@ TokenType Tokenizer::getNextType() { return next().getType(); }
 
 TokenType Tokenizer::getCurrentType() { return m_current_token.getType(); }
 
-FilePos Token::getPos() const { return pos; }
+vcc::FilePos Token::getPos() const { return pos; }
 
 std::string Tokenizer::getLine(const FilePos &pos) {
   return m_file.getLine(pos.loc);
@@ -271,6 +269,4 @@ bool Token::isTypeQualification() const {
   return TypeQualificationStart < getType() && getType() < TypeQualificationEnd;
 }
 
-FilePos Tokenizer::getPos(){
-    return current().getPos();
-}
+vcc::FilePos Tokenizer::getPos() { return current().getPos(); }

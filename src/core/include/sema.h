@@ -5,6 +5,8 @@
 
 #include "ast.h"
 #include "type.h"
+
+namespace vcc {
 class Parser;
 
 /// This entire idea is horrible for performance!
@@ -17,8 +19,10 @@ public:
   /// Perform a list of checks applies to function
   /// returns ture if passes, false otherwise
   bool checkFunction(FunctionDecl *decl);
+
 private:
   ///
 };
 
+}; // namespace vcc
 #endif

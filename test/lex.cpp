@@ -10,27 +10,27 @@ TEST(LexTest, TokenTest) {
   stream << file_input;
   stream.close();
 
-  FileStream some_stream("/tmp/testing.txt");
-  lex::Tokenizer tokenizer(some_stream);
-  EXPECT_EQ(tokenizer.getCurrentType(), lex::Identifier);
-  EXPECT_EQ(tokenizer.getNextType(), lex::FunctionDecl);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Add);
+  vcc::FileStream some_stream("/tmp/testing.txt");
+  vcc::lex::Tokenizer tokenizer(some_stream);
+  EXPECT_EQ(tokenizer.getCurrentType(), vcc::lex::Identifier);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::FunctionDecl);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Add);
 
   std::remove("/tmp/testing.txt");
 }
 
 TEST(LexTest, EndOfFileReading) {
-  FileStream some_stream("resource/lex_end_of_file.txt");
-  lex::Tokenizer tokenizer(some_stream);
-  while (tokenizer.getCurrentType() != lex::EndOfFile) {
+  vcc::FileStream some_stream("resource/lex_end_of_file.txt");
+  vcc::lex::Tokenizer tokenizer(some_stream);
+  while (tokenizer.getCurrentType() != vcc::lex::EndOfFile) {
     tokenizer.next();
   }
 
   // testing multiple times to see if this works
-  EXPECT_EQ(lex::EndOfFile, tokenizer.getNextType());
-  EXPECT_EQ(lex::EndOfFile, tokenizer.getNextType());
-  EXPECT_EQ(lex::EndOfFile, tokenizer.getNextType());
-  EXPECT_EQ(lex::EndOfFile, tokenizer.getNextType());
+  EXPECT_EQ(vcc::lex::EndOfFile, tokenizer.getNextType());
+  EXPECT_EQ(vcc::lex::EndOfFile, tokenizer.getNextType());
+  EXPECT_EQ(vcc::lex::EndOfFile, tokenizer.getNextType());
+  EXPECT_EQ(vcc::lex::EndOfFile, tokenizer.getNextType());
 }
 
 TEST(LexTest, NewToken) {
@@ -43,36 +43,36 @@ TEST(LexTest, NewToken) {
   stream << file_input;
   stream.close();
 
-  FileStream stream_two("/tmp/testing2.txt");
-  lex::Tokenizer tokenizer(stream_two);
-  EXPECT_EQ(tokenizer.getCurrentType(), lex::Identifier);
-  EXPECT_EQ(tokenizer.getNextType(), lex::FunctionDecl);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Add);
-  EXPECT_EQ(tokenizer.getNextType(), lex::EqualKeyword);
-  EXPECT_EQ(tokenizer.getNextType(), lex::NEquals);
-  EXPECT_EQ(tokenizer.getNextType(), lex::GreaterThan);
-  EXPECT_EQ(tokenizer.getNextType(), lex::GreaterEqual);
-  EXPECT_EQ(tokenizer.getNextType(), lex::LessEqual);
-  EXPECT_EQ(tokenizer.getNextType(), lex::LessThan);
-  EXPECT_EQ(tokenizer.getNextType(), lex::If);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Then);
-  EXPECT_EQ(tokenizer.getNextType(), lex::End);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Subtract);
-  EXPECT_EQ(tokenizer.getNextType(), lex::While);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Struct);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Fullstop);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Array);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Ptr);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Float);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Void);
-  EXPECT_EQ(tokenizer.getNextType(), lex::External);
-  EXPECT_EQ(tokenizer.getNextType(), lex::LessSign);
-  EXPECT_EQ(tokenizer.getNextType(), lex::GreaterSign);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Ref);
-  EXPECT_EQ(tokenizer.getNextType(), lex::Char);
-  EXPECT_EQ(tokenizer.getNextType(), lex::String);
+  vcc::FileStream stream_two("/tmp/testing2.txt");
+  vcc::lex::Tokenizer tokenizer(stream_two);
+  EXPECT_EQ(tokenizer.getCurrentType(), vcc::lex::Identifier);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::FunctionDecl);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Add);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::EqualKeyword);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::NEquals);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::GreaterThan);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::GreaterEqual);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::LessEqual);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::LessThan);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::If);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Then);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::End);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Subtract);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::While);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Struct);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Fullstop);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Array);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Ptr);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Float);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Void);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::External);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::LessSign);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::GreaterSign);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Ref);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Char);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::String);
   EXPECT_EQ(tokenizer.current().getStringLiteral(), "This is Literally A Test");
-  EXPECT_EQ(tokenizer.getNextType(), lex::Bool);
+  EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Bool);
 
   std::remove("/tmp/testing2.txt");
 }

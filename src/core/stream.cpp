@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <iostream>
 
+using namespace vcc;
+
 FileStream::FileStream(const char *filename) {
   m_file = std::fopen(filename, "rb");
   m_open = true;
@@ -15,7 +17,6 @@ FileStream::FileStream(const char *filename) {
     std::cerr << "cannot open file:" << filename << "\n";
     std::exit(-1);
   }
-
 }
 
 char FileStream::get() {
@@ -101,11 +102,11 @@ void FileStream::restoreState() {
 
 FilePos FileStream::getPos() { return m_pos; }
 
-bool operator==(const FilePos &lhs, const FilePos &rhs) {
+bool vcc::operator==(const FilePos &lhs, const FilePos &rhs) {
   return lhs.col == rhs.col && lhs.row == rhs.row;
 }
 
-std::ostream &operator<<(std::ostream &os, const FilePos &pos) {
+std::ostream &vcc::operator<<(std::ostream &os, const FilePos &pos) {
   os << "row: " << pos.row << " col: " << pos.col;
   return os;
 }

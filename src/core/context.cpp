@@ -3,6 +3,8 @@
 #include "lex.h"
 #include "stream.h"
 
+using namespace vcc;
+
 GlobalContext::GlobalContext(const char *path_to_file)
     : context(), builder(context), module("my module", context), symbol_table(),
       diagnostics(), stream(path_to_file) {}
