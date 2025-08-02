@@ -640,6 +640,61 @@ Type *ArrayAccessExpression::getGEPType(ContextHolder holder) {
   return parent->getGEPChildType(holder);
 }
 
+// ==========================================
+// TreeCode Implementation
+//
+code::TreeCode FunctionArgLists::getCode() const {
+  return code::FunctionArgLists;
+}
+
+code::TreeCode CallStatement::getCode() const { return code::CallStatement; }
+
+code::TreeCode FunctionDecl::getCode() const { return code::FunctionDecl; }
+
+code::TreeCode AssignmentStatement::getCode() const {
+  return code::AssignmentStatement;
+}
+
+code::TreeCode ReturnStatement::getCode() const {
+  return code::ReturnStatement;
+}
+
+code::TreeCode IfStatement::getCode() const { return code::IfStatement; }
+
+code::TreeCode WhileStatement::getCode() const { return code::WhileStatement; }
+
+code::TreeCode ConstantExpr::getCode() const { return code::ConstantExpr; }
+
+code::TreeCode CallExpr::getCode() const { return code::CallExpr; }
+
+code::TreeCode BinaryExpression::getCode() const {
+  return code::BinaryExpression;
+}
+
+code::TreeCode CastExpression::getCode() const { return code::CastExpression; }
+
+code::TreeCode IdentifierExpr::getCode() const { return code::IdentifierExpr; }
+
+code::TreeCode MemberAccessExpression::getCode() const {
+  return code::MemberAccessExpression;
+}
+
+code::TreeCode ArrayAccessExpression::getCode() const {
+  return code::ArrayAccessExpression;
+}
+
+code::TreeCode DeRefExpression::getCode() const {
+  return code::DeRefExpression;
+}
+
+code::TreeCode RefExpression::getCode() const { return code::RefExpression; }
+
+code::TreeCode StringLiteral::getCode() const { return code::StringLiteral; }
+
+code::TreeCode DeclarationStatement::getCode() const {
+  return code::DeclarationStatement;
+}
+
 // ======================================================
 // ====================== CODE GEN ======================
 llvm::Value *RefExpression::getVal(ContextHolder holder) {

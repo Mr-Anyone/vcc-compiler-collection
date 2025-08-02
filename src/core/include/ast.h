@@ -13,6 +13,32 @@
 
 // defined in type.h
 namespace vcc {
+namespace code {
+enum TreeCode {
+  // Statements
+  FunctionArgLists,
+  CallStatement,
+  FunctionDecl,
+  AssignmentStatement,
+  ReturnStatement,
+  DeclarationStatement,
+  IfStatement,
+  WhileStatement,
+
+  // Expression
+  ConstantExpr,
+  CallExpr,
+  BinaryExpression,
+  CastExpression,
+  IdentifierExpr,
+  MemberAccessExpression,
+  ArrayAccessExpression,
+  DeRefExpression,
+  RefExpression,
+  StringLiteral
+};
+};
+
 struct TypeInfo;
 class BuiltinType;
 
@@ -29,16 +55,20 @@ public:
 
   // nullptr on failure
   const FunctionDecl *getFirstFunctionDecl() const;
+
   // gets the first ASTBase that defines a scope
   // nullptr on failure, get the first ASTBase that represents a scope
   const ASTBase *getScopeDeclLoc() const;
-  static bool doesDefineScope(const ASTBase *at);
 
   const ASTBase *getParent() const;
   const std::set<ASTBase *> &getChildren() const;
+  const FilePos &getPos() const;
+
   void debugDump(int depth = 1);
 
-  const FilePos &getPos() const;
+  virtual code::TreeCode getCode() const = 0;
+
+  static bool doesDefineScope(const ASTBase *at);
 
 protected:
   void setParent(ASTBase *parent);
@@ -66,6 +96,7 @@ public:
   CallStatement(Expression *call_expression, FilePos locus);
 
   virtual void codegen(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   Expression *m_call_expr;
@@ -79,6 +110,7 @@ public:
 
   // the first few alloc, and load instruction
   virtual void codegen(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
   ArgsIter begin() const;
   ArgsIter end() const;
@@ -97,6 +129,8 @@ public:
                FilePos locus);
 
   virtual void codegen(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
+
   void dump() override;
 
   const std::string &getName() const;
@@ -128,6 +162,7 @@ public:
 
   virtual void codegen(ContextHolder holder) override;
   virtual void dump() override;
+  virtual code::TreeCode getCode() const override;
   const std::string &getName();
 
 private:
@@ -141,6 +176,7 @@ public:
   ReturnStatement(Expression *expression, FilePos locus);
 
   virtual void codegen(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   // this gives some sort of value
@@ -153,6 +189,7 @@ public:
               FilePos locus);
   virtual void dump() override;
   virtual void codegen(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   // m_cond is a expression which may or may not be i1.
@@ -167,8 +204,10 @@ public:
   // and don't assign it to the thing
   DeclarationStatement(const std::string &name, Expression *expression,
                        Type *type, FilePos locus);
+
   virtual void dump() override;
   virtual void codegen(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
   void emitEndLifetime(ContextHolder holder);
 
 private:
@@ -183,6 +222,7 @@ public:
                  FilePos locus);
   virtual void codegen(ContextHolder holder) override;
   virtual void dump() override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   Expression *m_cond;
@@ -219,6 +259,7 @@ public:
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
   int getValue();
 
@@ -234,6 +275,7 @@ public:
   void dump() override;
 
   virtual Type *getType(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   std::string m_func_name;
@@ -256,6 +298,7 @@ public:
   };
   static BinaryExpressionType getFromLexType(lex::Token lex_type);
   virtual Type *getType(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 public:
   BinaryExpression(Expression *lhs, BinaryExpressionType type, FilePos locus);
@@ -284,6 +327,7 @@ public:
 
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   llvm::Value *builtinCast(BuiltinType *from, BuiltinType *to,
@@ -308,6 +352,7 @@ public:
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   std::string m_name;
@@ -328,6 +373,8 @@ public:
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
+
   llvm::Value *getCurrentRef(ContextHolder holder);
 
   Type *getGEPType(ContextHolder holder);
@@ -354,6 +401,7 @@ public:
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
   llvm::Value *getCurrentRef(ContextHolder holder);
 
@@ -386,6 +434,7 @@ public:
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
   llvm::Value *getCurrentRef(ContextHolder holder);
   Type *getInnerType(ContextHolder holder);
@@ -411,6 +460,7 @@ public:
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   Expression *m_inner_expression;
@@ -426,6 +476,7 @@ public:
   virtual void dump() override;
   virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
+  virtual code::TreeCode getCode() const override;
 
 private:
   std::string m_string_literal;
