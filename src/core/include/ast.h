@@ -69,6 +69,7 @@ public:
   virtual code::TreeCode getCode() const = 0;
 
   static bool doesDefineScope(const ASTBase *at);
+  static bool doesDefineScope(code::TreeCode code);
 
 protected:
   void setParent(ASTBase *parent);

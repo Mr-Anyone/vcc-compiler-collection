@@ -217,8 +217,12 @@ const ASTBase *ASTBase::getScopeDeclLoc() const {
 }
 
 bool ASTBase::doesDefineScope(const ASTBase *at) {
-  return isa<const FunctionDecl>(at) || isa<const IfStatement>(at) ||
-         isa<const WhileStatement>(at);
+  return doesDefineScope(at->getCode());
+}
+
+bool ASTBase::doesDefineScope(code::TreeCode code) {
+  return code == code::FunctionDecl || code == code::IfStatement ||
+         code == code::WhileStatement;
 }
 
 const FunctionDecl *ASTBase::getFirstFunctionDecl() const {
@@ -258,10 +262,9 @@ DeclarationStatement::DeclarationStatement(const std::string &name,
     addChildren(base);
 }
 
-const std::string& DeclarationStatement::getName() {return m_name;}
+const std::string &DeclarationStatement::getName() { return m_name; }
 
-Type* DeclarationStatement::getType() {return m_type;}
-
+Type *DeclarationStatement::getType() { return m_type; }
 
 void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
 
@@ -490,6 +493,23 @@ static std::vector<DeclarationStatement *>
 getDeclarationStatementImpl(const std::vector<Statement *> &statement) {
   std::vector<DeclarationStatement *> result;
   for (Statement *s : statement) {
+    if (ASTBase::doesDefineScope(s->getCode())) {
+      switch (s->getCode()) {
+      case vcc::code::WhileStatement: {
+        auto other = dyncast<WhileStatement>(s)->getDeclarationStatements();
+        result.insert(result.begin(), other.begin(), other.end());
+        break;
+      }
+      case vcc::code::IfStatement: {
+        auto other = dyncast<IfStatement>(s)->getDeclarationStatements();
+        result.insert(result.begin(), other.begin(), other.end());
+        break;
+      }
+      default:
+        std::cerr << "you have missed a case" << std::endl;
+        std::exit(-1);
+      }
+    }
     if (s->getCode() == code::DeclarationStatement)
       result.push_back(dyncast<DeclarationStatement>(s));
   }
