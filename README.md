@@ -18,6 +18,9 @@
 - [ ] The C FFI problem with SDL
 - [ ] Add the following operations and, and or.
 - [ ] The Heap allocation problem with ASTBase and Type
+- [ ] CallExpr error with no matching function
+- [ ] undefined variable better message
+- [ ] Posfix Expression validity with existence of member  
 
 # Example Code 
 ```
@@ -242,3 +245,26 @@ FunctionDecl name: some_test_here args:
 ```
 
 Why is ConstantExpr infront of MemberAccessExpr?
+
+```
+struct Board{
+    ptr int board,  # 0 means empty, 1 means snake body, 2 means apple
+
+    int width, 
+    int height,
+}
+
+struct World{
+    # to SDL code
+    ptr void window, 
+    ptr void renderer, 
+    struct Board board,
+
+    # is the game still running ?
+    bool is_running, 
+}
+
+ptr struct World world
+deref<world>.board.board[i] = 0;
+```
+generates  incorrect code

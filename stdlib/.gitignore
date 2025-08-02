@@ -1,0 +1,6 @@
+# object files
+*.o
+*.vcco
+
+# the main binary
+main

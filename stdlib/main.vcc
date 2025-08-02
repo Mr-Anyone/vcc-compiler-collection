@@ -1,0 +1,271 @@
+# ==================================================
+# Start of libvcc C interface
+#
+external function print_line
+gives void [ptr char some_string,]
+
+external function print_integer 
+gives void [int a, ]
+
+# the heap abstraction
+external function vcc_malloc 
+gives ptr void [long size, ]
+
+external function vcc_free 
+gives void [ptr void at, ]
+
+external function get_nullptr
+gives ptr void []
+
+# rand function
+external function vcc_rand 
+gives int [int low, int high, ] 
+
+# ==================================================
+# SDL Functions
+#
+external function SDL_Init 
+gives bool [int a, ]
+
+external function SDL_PollEvent
+gives bool [ptr void a, ]
+
+external function SDL_SetRenderDrawColor
+gives bool [ptr void a, char b, char c, char d, char e, ]
+
+external function SDL_RenderClear
+gives bool [ptr void a, ]
+
+external function SDL_RenderLine
+gives bool [ptr void a, float b, float c, float d, float e, ]
+
+external function SDL_RenderPresent
+gives bool [ptr void a, ] 
+
+external function SDL_CreateWindow
+gives ptr void [ptr char title, int width, int height, long flag, ]
+
+#declare ptr @SDL_CreateRenderer(ptr noundef, ptr noundef) #1
+external function SDL_CreateRenderer
+gives ptr void [ptr void window, ptr void driver,]
+
+struct SDL_KeyboardEvent{
+    int type,
+    int reserved, 
+    long timestamp,
+    int padd1,
+    int padd2,
+    int scancode,
+    int key,
+    short pad5,
+    short pad6,
+    bool pad7,
+    bool pad8,
+}
+
+struct  SDL_FRect{
+    float x, 
+    float y, 
+    float w, 
+    float h,
+}
+
+external function SDL_RenderFillRect
+gives bool [ptr void renderer, ptr struct SDL_FRect b, ]
+
+external function sdl_alloc_event 
+gives ptr void []
+
+external function sdl_free_event 
+gives void [ptr void event,]
+
+external function sdl_get_keyboard_event 
+gives ptr struct SDL_KeyboardEvent [ptr void event,]
+
+external function sdl_is_event 
+gives bool [ptr void event, int kind, ]
+
+# ==================================================
+# Snake Logic
+#
+struct Board{
+    ptr long board,  # 0 means empty, 1 means snake body, 2 means apple
+
+    # number of rows
+    int row, 
+
+    # number of columns
+    int col,
+}
+
+struct World{
+    # to SDL code
+    ptr void window, 
+    ptr void renderer, 
+    int windows_width, 
+    int windows_height, 
+
+    # the board we are doing 
+    struct Board board,
+
+    # is the game still running ?
+    bool is_running, 
+
+    # array index of the head
+    int head_row, 
+    int head_col,
+
+    # which direction we are moving 0 (left), 1 (right), 2 (up), 3 (down)
+    int mov_direction,  
+}
+
+function init_board 
+gives void [ptr struct World world,
+    int width, 
+    int height,]{
+
+    # there is four bytes in in an integer
+    long size = cast<long>(width * height * 8); 
+    deref<world>.board.board = cast<ptr long>(vcc_malloc(size, ));
+    deref<world>.board.row = width;
+    deref<world>.board.col = height;
+
+    int i = 0;
+    while i lt width*height then 
+        deref<world>.board.board[i] = cast<long>(0);
+        i = i + 1;
+    end
+
+    ret;
+}
+
+function place_apple 
+gives void []{
+    ret;
+}
+
+
+
+function process_event
+gives void [ptr struct World world, ]{
+    int SDL_EVENT_QUIT  = 256;
+    int SDL_EVENT_KEY_DOWN  = 768;
+    int SDL_SCANCODE_W = 26;
+    int SDL_SCANCODE_S = 22;
+    int SDL_SCANCODE_A = 4;
+    int SDL_SCANCODE_D = 7;
+
+    ptr void event = sdl_alloc_event();
+    while SDL_PollEvent(event, ) eq cast<bool>(1)  then
+        # checking from SDL_EVENT_QUIT
+        if sdl_is_event(event, SDL_EVENT_QUIT, ) eq cast<bool>(1) then 
+            deref<world>.is_running = cast<bool>(0);
+        end
+
+        if sdl_is_event(event, SDL_EVENT_KEY_DOWN, ) eq cast<bool>(1) then 
+            ptr struct SDL_KeyboardEvent keyboard_event = 
+                sdl_get_keyboard_event(event, );
+
+            if deref<keyboard_event>.scancode eq SDL_SCANCODE_W then 
+                deref<world>.head_row = deref<world>.head_row - 1;
+            end
+
+            if deref<keyboard_event>.scancode eq SDL_SCANCODE_S then 
+                deref<world>.head_row = deref<world>.head_row + 1;
+            end
+
+            if deref<keyboard_event>.scancode eq SDL_SCANCODE_A then 
+                deref<world>.head_col = deref<world>.head_col - 1;
+            end
+
+            if deref<keyboard_event>.scancode eq SDL_SCANCODE_D then 
+                deref<world>.head_col = deref<world>.head_col + 1;
+            end
+        end
+
+    end
+    sdl_free_event(event, );
+
+    ret;
+}
+
+# creates a world, and initialized SDL
+# renderer and window
+function init_world 
+gives void [
+    ptr struct World world,
+] {
+    int SDL_INIT_VIDEO = 32;
+
+    deref<world>.is_running = cast<bool>(1);
+    init_board(world, 10, 10, ); 
+
+    bool status = SDL_Init(SDL_INIT_VIDEO,);
+    if status eq 0 then 
+        print_line("SDL_Init failed ", );
+        ret 0;
+    end
+
+    # FIXME: check for error here
+    deref<world>.windows_width = 700;
+    deref<world>.windows_height = 700;
+    deref<world>.window = SDL_CreateWindow("some window", 
+        deref<world>.windows_width, deref<world>.windows_height, cast<long>(0), ); 
+    deref<world>.renderer = SDL_CreateRenderer(deref<world>.window, get_nullptr(), ) ; 
+
+    # setting the head
+    deref<world>.head_row = deref<world>.board.row / 2;
+    deref<world>.head_col = deref<world>.board.col / 2;
+
+    deref<world>.mov_direction = 0; # left
+    ret;
+}
+
+function draw_snake 
+gives void [
+    ptr struct World world,
+] {  
+    # rendering the main things
+    # setting black background
+    SDL_SetRenderDrawColor(deref<world>.renderer, cast<char>(0), cast<char>(0), 
+        cast<char>(0), cast<char>(255), );
+    SDL_RenderClear(deref<world>.renderer,);
+
+
+    int box_width = deref<world>.windows_width / deref<world>.board.col;
+    int box_height = deref<world>.windows_height / deref<world>.board.row;
+    # drawing the square
+    struct SDL_FRect rect;
+    rect.x = cast<float>(deref<world>.head_col * box_width);
+    rect.y = cast<float>(deref<world>.head_row * box_height);
+    rect.w = cast<float>(box_width);
+    rect.h = cast<float>(box_height);
+    SDL_SetRenderDrawColor(deref<world>.renderer, cast<char>(255), cast<char>(0),
+        cast<char>(0), cast<char>(255), );
+    SDL_RenderFillRect(deref<world>.renderer, ref<rect>, );
+    SDL_RenderPresent(deref<world>.renderer,);
+
+    ret;
+}
+
+function main
+gives int[]{
+    # SDL Constants
+    int SDL_EVENT_QUIT  = 256;
+    int SDL_EVENT_KEY_DOWN  = 768;
+    int SDL_SCANCODE_W = 26;
+
+    struct World world;
+    init_world(ref<world>, );
+
+    print_line("I have initialized SDL", );
+    while (world.is_running eq cast<bool>(1)) then  
+        # processing the events like key presses, etc
+        process_event(ref<world>, );
+
+        # drawing the snake
+        draw_snake(ref<world>, );
+    end
+
+    ret 0;
+}
