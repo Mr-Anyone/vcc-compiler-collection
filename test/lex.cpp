@@ -20,7 +20,7 @@ TEST(LexTest, TokenTest) {
 }
 
 TEST(LexTest, EndOfFileReading) {
-  vcc::FileStream some_stream("resource/lex_end_of_file.txt");
+  vcc::FileStream some_stream("resource/lex_end_of_file.vcc");
   vcc::lex::Tokenizer tokenizer(some_stream);
   while (tokenizer.getCurrentType() != vcc::lex::EndOfFile) {
     tokenizer.next();

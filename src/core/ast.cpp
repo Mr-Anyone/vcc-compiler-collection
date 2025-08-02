@@ -269,6 +269,12 @@ WhileStatement::WhileStatement(Expression *cond,
   }
 }
 
+void DeclarationStatement::emitEndLifetime(ContextHolder holder) {
+  llvm::Value *loc =
+      holder->symbol_table.lookupLocalVariable(this, m_name).value;
+  holder->builder.CreateLifetimeEnd(loc);
+}
+
 void WhileStatement::dump() { return; }
 
 MemberAccessExpression::MemberAccessExpression(const std::string &name,
@@ -966,8 +972,18 @@ void IfStatement::codegen(ContextHolder holder) {
       holder->builder.CreateCondBr(cond, true_if_block, fallthrough_block);
 
   holder->builder.SetInsertPoint(true_if_block);
-  for (Statement *expression : m_statements) {
-    expression->codegen(holder);
+  std::vector<DeclarationStatement *>
+      declaration_statements; // we need to emit lifetime as well to not stack
+  for (Statement *statement : m_statements) {
+    if (vcc::isa<DeclarationStatement>(statement))
+      declaration_statements.push_back(
+          vcc::dyncast<DeclarationStatement>(statement));
+    statement->codegen(holder);
+  }
+
+  // emit that it is at the end of its lifetime so that the stack is cleaned up
+  for (DeclarationStatement *statement : declaration_statements) {
+    statement->emitEndLifetime(holder);
   }
 
   assert(m_statements.size() >= 1 && "must be true for now");
@@ -984,6 +1000,10 @@ void DeclarationStatement::codegen(ContextHolder holder) {
   llvm::Value *alloc_loc =
       holder->builder.CreateAlloca(m_type->getType(holder));
   holder->symbol_table.addLocalVariable(this, m_name, m_type, alloc_loc);
+
+  // creating start of lifetime, this is really important because we might stack
+  // overflow if we don't do so
+  holder->builder.CreateLifetimeStart(alloc_loc);
 
   // if we don't have an initializer, we don't allocate space
   if (m_expression) {
@@ -1018,9 +1038,21 @@ void WhileStatement::codegen(ContextHolder holder) {
 
   // set up while body block
   holder->builder.SetInsertPoint(while_true_block);
+  std::vector<DeclarationStatement *>
+      declaration_statements; // we need to emit lifetime as well to not stack
+                              // overflow
   for (Statement *statement : m_statements) {
+    if (isa<DeclarationStatement>(statement))
+      declaration_statements.push_back(
+          dyncast<DeclarationStatement>(statement));
     statement->codegen(holder);
   }
+
+  // emit that it is at the end of its lifetime so that the stack is cleaned up
+  for (DeclarationStatement *statement : declaration_statements) {
+    statement->emitEndLifetime(holder);
+  }
+
   assert(m_statements.size() >= 1 && "must be true for now");
   Statement *last_statement = m_statements[m_statements.size() - 1];
   if (!isa<ReturnStatement>(last_statement))

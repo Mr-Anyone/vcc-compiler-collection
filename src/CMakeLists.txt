@@ -30,3 +30,7 @@ set(
 
 add_executable(ffi_ir_parser ${FFI_PARSER})
 target_link_libraries(ffi_ir_parser comp ${llvm_libs})
+
+# Installing Binaries
+install(TARGETS ffi_ir_parser DESTINATION bin)
+install(TARGETS vcc DESTINATION bin)

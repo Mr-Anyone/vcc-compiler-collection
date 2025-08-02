@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
   }
 
   llvm::TargetOptions options;
-  std::optional<llvm::Reloc::Model> relocModel;
+  std::optional<llvm::Reloc::Model> relocModel = std::make_optional(llvm::Reloc::Model::PIC_);
   llvm::TargetMachine *targetMachine = target->createTargetMachine(
       theRealTriple, "generic", "", options, relocModel);
 

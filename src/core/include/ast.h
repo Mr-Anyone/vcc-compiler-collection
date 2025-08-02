@@ -169,6 +169,7 @@ public:
                        Type *type, FilePos locus);
   virtual void dump() override;
   virtual void codegen(ContextHolder holder) override;
+  void emitEndLifetime(ContextHolder holder);
 
 private:
   std::string m_name;
