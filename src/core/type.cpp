@@ -22,6 +22,13 @@ bool Type::isVoid() const {
   return dynamic_cast<const VoidType *>(this) != nullptr;
 }
 
+bool Type::isVoidPtr() const {
+  if (!isPointer())
+    return false;
+
+  return dyncast<const PointerType>(this)->getPointee()->isVoid();
+}
+
 llvm::Type *Type::getType(ContextHolder holder) {
   assert(false && "please implement getType");
   return nullptr;
@@ -113,6 +120,7 @@ StructType::getElement(const std::string &name) {
 PointerType::PointerType(Type *pointee) : m_pointee(pointee) {}
 
 Type *PointerType::getPointee() { return m_pointee; }
+const Type *PointerType::getPointee() const { return m_pointee; }
 
 llvm::Type *PointerType::getType(ContextHolder holder) {
   return llvm::PointerType::get(m_pointee->getType(holder)->getContext(),
@@ -223,6 +231,9 @@ bool Type::isSame(Type *lhs, Type *rhs) {
                   rhs->getAs<ArrayType>()->getBase());
   }
 
+  if (lhs->isVoid() && rhs->isVoid())
+    return true;
+
   return false;
 }
 
@@ -236,8 +247,12 @@ bool BuiltinType::isBool() const { return m_builtin == Bool; }
 
 bool BuiltinType::isChar() const { return m_builtin == Char; }
 
+bool BuiltinType::isShort() const { return m_builtin == Short; }
+
+bool BuiltinType::isLong() const { return m_builtin == Long; }
+
 bool BuiltinType::isIntegerKind() const {
-  return isBool() || isChar() || isInt();
+  return isBool() || isChar() || isInt() || isShort() || isLong();
 }
 
 int BuiltinType::getBitSize() const { return m_bits_size; }

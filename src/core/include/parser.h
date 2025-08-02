@@ -42,6 +42,7 @@ private:
   // Expressions
   Expression *buildExpression();
   Expression *buildRefExpression();
+  Expression *buildCastExpression();
   Expression *buildBinaryExpression(int min_precedence);
   Expression *buildTrivialExpression();
   Expression *buildDerefExpression();

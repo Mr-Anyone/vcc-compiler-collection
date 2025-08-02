@@ -685,10 +685,45 @@ Expression *Parser::buildRefExpression() {
   return new RefExpression(expression, locus);
 }
 
+// cast_expression :== 'cast', '<', <type_qualification> '>', '(',
+// <expression>,')'
+Expression *Parser::buildCastExpression() {
+  FilePos loc = m_tokenizer.getPos();
+  if (m_tokenizer.getCurrentType() != lex::Cast)
+    return logError("expected cast expression");
+  m_tokenizer.consume();
+
+  if(m_tokenizer.getCurrentType() != lex::LessSign){
+      return logError("expected <");
+  }
+  m_tokenizer.consume();
+
+  Type* type = buildTypeQualification();
+
+  if(m_tokenizer.getCurrentType() != lex::GreaterSign){
+      return logError("expected >");
+  }
+  m_tokenizer.consume();
+
+
+  if (m_tokenizer.getCurrentType() != lex::LeftParentheses)
+    return logError("expected (");
+  m_tokenizer.consume();
+
+  Expression* expression = buildExpression();
+
+  if (m_tokenizer.getCurrentType() != lex::RightParentheses)
+    return logError("expected )");
+  m_tokenizer.consume();
+
+  return new CastExpression(expression, type, loc);
+}
+
 // trivial_expression :== <identifier> | <call_expression> |
 //                             '(', <expression>, ')' | <integer_literal> |
 //                             <posfix_expression> | <deref_expression> |
-//                             <ref_expression> | <string_literal>
+//                             <ref_expression> | <string_literal> |
+//                             <cast_expression>
 Expression *Parser::buildTrivialExpression() {
   FilePos locus = m_tokenizer.getPos();
   // <integer_literal>
@@ -698,6 +733,9 @@ Expression *Parser::buildTrivialExpression() {
     m_tokenizer.consume();
     return value;
   }
+
+  if (m_tokenizer.getCurrentType() == lex::Cast)
+    return buildCastExpression();
 
   // FIXME: maybe we should move this into it's own function?
   if (m_tokenizer.getCurrentType() == lex::String) {

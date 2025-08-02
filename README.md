@@ -14,10 +14,10 @@
 - [X] Diagnostics Driver
 - [X] Add source location 
 - [X] Add the following type short, long, and void*
+- [X] Adding a cast expression
 - [ ] The C FFI problem with SDL
-- [ ] Adding a cast expression
 - [ ] Add the following operations and, and or.
-- [ ] THE HEAP ALLOCATION PROBLEM WITH AstBase AND TYPE
+- [ ] The Heap allocation problem with ASTBase and Type
 
 # Example Code 
 ```
@@ -31,6 +31,8 @@ function testing gives int
     a = 10;
     b = 10;
     c = 10;
+
+    ret 1;
 }
 ```
 
@@ -93,6 +95,8 @@ trivial_expression :== <identifier> | <call_expression> |
                             <posfix_expression> | <deref_expression> | <ref_expression> 
                             | <string_literal>
 
+cast_expression :== 'cast', '<', <type_qualification> '>', '(', <expression>,')'
+    
 posfix_expression :== <identifier> | <deref_expression>
     <posfix_expression>, '.', <identifier> | 
     <posfix_expression>, '[', <expression>, ']'
@@ -151,6 +155,20 @@ array (10) array_a ;
 ptr int a = cast<a>; # this is well form
 ```
 
+ptr void is allowed to be casted from or to any pointer type.
+
+```
+ptr int a; 
+ptr float b; 
+
+# the following are all well formed
+ptr void c = cast<ptr void>(a);
+c = cast<ptr void>(deref<a>);
+c = cast<ptr void>(b);
+a = cast<ptr float>(c);
+b = cast<ptr int>(c);
+
+```
 ## Statements
 
 1. Inside a if statement, the condition is false if and only if the value is 0. In other words, it is true if and only if the value is non zero.
@@ -169,6 +187,7 @@ end
 int a = 30;
 ref<a> = 20; # this is ill-form
 ```
+
 4. The left hand side of assignment statement must a Locator.
 
 5. Void type is only used for function declaration return type

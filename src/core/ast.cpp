@@ -13,9 +13,7 @@ static void printSpaceBasedOnDepth(int depth) {
   }
 }
 
-const FilePos& ASTBase::getPos()const{
-    return m_locus;
-}
+const FilePos &ASTBase::getPos() const { return m_locus; }
 
 Statement::Statement(const std::vector<ASTBase *> childrens, FilePos locus)
     : ASTBase(std::vector<Statement *>(), locus) {
@@ -469,9 +467,22 @@ StringLiteral::StringLiteral(std::string string, FilePos locus)
 
 void StringLiteral::dump() {}
 
+CastExpression::CastExpression(Expression *cast_expression, Type *casted_to,
+                               FilePos loc)
+    : Expression({cast_expression}, loc), m_cast_to(casted_to),
+      m_to_be_casted_expression(cast_expression) {}
+
+void CastExpression::emitErrorAndExit(ContextHolder holder) {
+  // we cannot perform a cast emit a diagnostics message
+  holder->diagnostics.diag(this, holder->getLine(getPos()),
+                           "cannot perform a cast");
+  std::exit(-1);
+}
 // ================================================================================
 // ====================== Expression Implementation::getType
 // ======================
+Type *CastExpression::getType(ContextHolder holder) { return m_cast_to; }
+
 Type *StringLiteral::getType(ContextHolder holder) {
   return new PointerType(new BuiltinType(BuiltinType::Char));
 }
@@ -916,7 +927,8 @@ llvm::Value *CallExpr::getVal(ContextHolder holder) {
   for (auto it = function_decl->getArgBegin(), ie = function_decl->getArgsEnd();
        it != ie; ++it) {
     if (!Type::isSame(it->type, m_expressions[count]->getType(holder))) {
-      holder->diagnostics.diag(this, holder->getLine(getPos()), "type mismatch");
+      holder->diagnostics.diag(this, holder->getLine(getPos()),
+                               "type mismatch");
       std::exit(-1);
     }
 
@@ -1075,4 +1087,61 @@ llvm::Value *StringLiteral::getVal(ContextHolder holder) {
       holder->builder.CreateGlobalString(m_string_literal);
 
   return global_string;
+}
+
+llvm::Value *CastExpression::builtinCast(BuiltinType *from, BuiltinType *to,
+                                         ContextHolder holder) {
+  assert(from && to);
+  assert(!Type::isSame(from, to));
+
+  // handle int -> float
+  if (from->isIntegerKind() && to->isFloat()) {
+    llvm::Value *value = m_to_be_casted_expression->getVal(holder);
+    return holder->builder.CreateSIToFP(value, to->getType(holder));
+  }
+
+  // handle float -> integer kind
+  if (from->isFloat() && to->isIntegerKind()) {
+    llvm::Value *value = m_to_be_casted_expression->getVal(holder);
+    return holder->builder.CreateFPToSI(value, to->getType(holder));
+  }
+
+  // ==========================
+  // handle integer  -> int in the following cases
+  assert(from->isIntegerKind() && to->isIntegerKind());
+  assert(from->getBitSize() != to->getBitSize());
+
+  // we have a special case for bool where we zero extend instead of sign extend
+  if (from->isBool()) {
+    llvm::Value *val = m_to_be_casted_expression->getVal(holder);
+    return holder->builder.CreateZExt(val, to->getType(holder));
+  }
+
+  if (from->getBitSize() > to->getBitSize()) {
+    llvm::Value *val = m_to_be_casted_expression->getVal(holder);
+    return holder->builder.CreateTrunc(val, to->getType(holder));
+  } else {
+    llvm::Value *val = m_to_be_casted_expression->getVal(holder);
+    return holder->builder.CreateSExt(val, to->getType(holder));
+  }
+}
+
+llvm::Value *CastExpression::getVal(ContextHolder holder) {
+  Type *from_type = m_to_be_casted_expression->getType(holder);
+  // we don't do anything if they are the same type
+  if (Type::isSame(from_type, m_cast_to))
+    return m_to_be_casted_expression->getVal(holder);
+
+  if (from_type->isBuiltin() && m_cast_to->isBuiltin())
+    return builtinCast(from_type->getAs<BuiltinType>(),
+                       m_cast_to->getAs<BuiltinType>(), holder);
+
+  // void pointer cast
+  // this is okay since opaque pointer is already assumed in every pointer type
+  if ((from_type->isPointer() && m_cast_to->isVoidPtr()) ||
+      (from_type->isVoidPtr() && m_cast_to->isPointer()))
+    return m_to_be_casted_expression->getVal(holder);
+
+  emitErrorAndExit(holder);
+  return nullptr;
 }

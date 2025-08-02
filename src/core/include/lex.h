@@ -35,6 +35,7 @@ enum TokenType {
   SemiColon, //;
   Equal,     // =
   Ret,       // ret
+  Cast,       // cast
   If,        // If
   Then,      // Then
   End,       // End
@@ -166,6 +167,7 @@ private:
       {"array", Array},
       {"bool", Bool},
       {"gives", Gives},
+      {"cast", Cast},
       {"char", Char},
       {"void", Void},
       {"ptr", Ptr},
