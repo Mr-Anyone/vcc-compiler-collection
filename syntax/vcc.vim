@@ -14,6 +14,8 @@ syntax match vccNumber "\<\d\+\>"
 " Match comments starting with '#' until the end of the line
 syntax match vccComment "#.*$"
 
+" Match string literals (double quotes, allow escapes)
+syntax match vccString "\"[^\"]*\""
 
 " Highlight groups
 highlight link vccKeyword       Keyword
@@ -21,3 +23,4 @@ highlight link vccOperator      Operator
 highlight link vccDelimiter     Delimiter
 highlight link vccNumber        Number
 highlight link vccComment       Comment
+highlight link vccString        String
