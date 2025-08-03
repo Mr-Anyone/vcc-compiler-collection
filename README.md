@@ -15,7 +15,7 @@
 - [X] Add source location 
 - [X] Add the following type short, long, and void*
 - [X] Adding a cast expression
-- [ ] The C FFI problem with SDL
+- [X] The C FFI problem with SDL
 - [ ] Add the following operations and, and or.
 - [ ] The Heap allocation problem with ASTBase and Type
 - [ ] CallExpr error with no matching function
