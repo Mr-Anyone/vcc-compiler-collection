@@ -1,4 +1,4 @@
-#include "lex.h"
+#include "core/lex.h"
 #include <cstdio>
 #include <fstream>
 #include <gtest/gtest.h>

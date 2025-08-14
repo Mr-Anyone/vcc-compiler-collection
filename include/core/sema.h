@@ -1,5 +1,5 @@
-#ifndef SEMA_H
-#define SEMA_H
+#ifndef CORE_SEMA_H
+#define CORE_SEMA_H
 
 #include <string>
 

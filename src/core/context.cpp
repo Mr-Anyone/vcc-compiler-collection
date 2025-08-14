@@ -1,7 +1,7 @@
-#include "context.h"
-#include "ast.h"
-#include "lex.h"
-#include "stream.h"
+#include "core/context.h"
+#include "core/ast.h"
+#include "core/lex.h"
+#include "core/stream.h"
 
 using namespace vcc;
 

@@ -1,6 +1,6 @@
-#include "ast.h"
-#include "type.h"
-#include "util.h"
+#include "core/ast.h"
+#include "core/type.h"
+#include "core/util.h"
 
 #include <cassert>
 #include <iostream>

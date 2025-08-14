@@ -1,6 +1,6 @@
 #include "llvm/IR/Type.h"
-#include "context.h"
-#include "type.h"
+#include "core/context.h"
+#include "core/type.h"
 #include <gtest/gtest.h>
 
 TEST(Type, BasicTest) {

@@ -1,7 +1,8 @@
-#include "parser.h"
-#include "ast.h"
 #include <cassert>
 #include <iostream>
+
+#include "core/parser.h"
+#include "core/ast.h"
 
 using namespace vcc;
 using vcc::lex::Token;

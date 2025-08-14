@@ -1,4 +1,4 @@
-#include "stream.h"
+#include "core/stream.h"
 #include <cstdio>
 #include <fstream>
 #include <gtest/gtest.h>

@@ -1,7 +1,7 @@
-#ifndef LEX_H
-#define LEX_H
+#ifndef CORE_LEX_H
+#define CORE_LEX_H
 
-#include "stream.h"
+#include "core/stream.h"
 #include <set>
 #include <unordered_map>
 #include <unordered_set>

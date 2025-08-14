@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "type.h"
+#include "core/type.h"
 #include "llvm/IR/DerivedTypes.h"
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IRReader/IRReader.h>

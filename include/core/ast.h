@@ -1,5 +1,5 @@
-#ifndef AST_H
-#define AST_H
+#ifndef CORE_AST_H
+#define CORE_AST_H
 
 #include <llvm/IR/Attributes.h>
 #include <llvm/IR/Function.h>
@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 
-#include "context.h"
-#include "lex.h"
+#include "core/context.h"
+#include "core/lex.h"
 
 // defined in type.h
 namespace vcc {

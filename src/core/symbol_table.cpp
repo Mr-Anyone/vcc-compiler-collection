@@ -1,6 +1,6 @@
-#include "symbol_table.h"
-#include "ast.h"
-#include "util.h"
+#include "core/symbol_table.h"
+#include "core/ast.h"
+#include "core/util.h"
 
 using namespace vcc;
 

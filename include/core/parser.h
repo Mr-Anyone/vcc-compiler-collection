@@ -1,12 +1,12 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef CORE_PARSER_H
+#define CORE_PARSER_H
 
-#include "ast.h"
-#include "context.h"
-#include "lex.h"
-#include "sema.h"
+#include "core/ast.h"
+#include "core/context.h"
+#include "core/lex.h"
+#include "core/sema.h"
 
-#include "type.h"
+#include "core/type.h"
 
 namespace vcc {
 class Parser {

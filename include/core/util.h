@@ -1,12 +1,12 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef CORE_UTIL_H
+#define CORE_UTIL_H
 
 #include <cxxabi.h>
 #include <memory>
 #include <string>
 #include <typeinfo>
 
-#include "ast.h"
+#include "core/ast.h"
 
 namespace vcc {
 // Returns the demangled name of the class

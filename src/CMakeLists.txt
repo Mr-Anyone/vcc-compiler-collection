@@ -17,7 +17,7 @@ target_link_libraries(vcc comp)
 
 add_library(comp ${LIB_FILES})
 target_include_directories(
-    comp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/include
+    comp PUBLIC ${PROJECT_SOURCE_DIR}/include
 )
 
 llvm_map_components_to_libnames(llvm_libs support core irreader x86codegen x86asmparser passes)

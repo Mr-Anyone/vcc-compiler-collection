@@ -1,4 +1,4 @@
-#include "stream.h"
+#include "core/stream.h"
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>

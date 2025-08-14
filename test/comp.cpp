@@ -1,5 +1,6 @@
-#include "driver.h"
-#include "parser.h"
+#include "core/driver.h"
+#include "core/parser.h"
+
 #include <gtest/gtest.h>
 
 TEST(CompTest, TestCompile) {

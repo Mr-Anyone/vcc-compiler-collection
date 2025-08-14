@@ -1,7 +1,7 @@
-#include "context.h"
-#include "driver.h"
-#include "parser.h"
-#include "util.h"
+#include "core/context.h"
+#include "core/driver.h"
+#include "core/parser.h"
+#include "core/util.h"
 
 #include "llvm/IR/LegacyPassManager.h"
 #include <iostream>

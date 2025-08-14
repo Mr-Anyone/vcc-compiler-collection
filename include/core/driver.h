@@ -1,5 +1,5 @@
-#ifndef DRIVER_H
-#define DRIVER_H
+#ifndef CORE_DRIVER_H
+#define CORE_DRIVER_H
 
 namespace vcc {
 class Parser;

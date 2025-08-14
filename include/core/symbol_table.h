@@ -1,5 +1,5 @@
-#ifndef SYMBOL_TABLE_H
-#define SYMBOL_TABLE_H
+#ifndef CORE_SYMBOL_TABLE_H
+#define CORE_SYMBOL_TABLE_H
 
 #include <iostream>
 #include <llvm/IR/Value.h>

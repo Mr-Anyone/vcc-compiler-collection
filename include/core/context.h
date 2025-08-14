@@ -1,15 +1,14 @@
-#ifndef CONTEXT_H
-#define CONTEXT_H
+#ifndef CORE_CONTEXT_H
+#define CORE_CONTEXT_H
 
 // the owner of everything
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-
-#include "symbol_table.h"
 #include <memory>
 
-#include "stream.h"
+#include "core/stream.h"
+#include "core/symbol_table.h"
 
 namespace vcc {
 namespace lex {

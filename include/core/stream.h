@@ -1,5 +1,5 @@
-#ifndef STREAM_H
-#define STREAM_H
+#ifndef CORE_STREAM_H
+#define CORE_STREAM_H
 
 #include <cstdio>
 #include <fstream>

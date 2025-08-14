@@ -1,12 +1,13 @@
-#ifndef TYPE_H
-#define TYPE_H
+#ifndef CORE_TYPE_H
+#define CORE_TYPE_H
 
-#include "context.h"
+#include "core/context.h"
+#include "core/util.h"
+
 #include <llvm/IR/Type.h>
 #include <memory.h>
 #include <optional>
 
-#include "util.h"
 
 namespace vcc {
 // FIXME: A lot of the time Type is immutable
