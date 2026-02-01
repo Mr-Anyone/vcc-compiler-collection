@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     if (print_ast)
       tree->debugDump();
 
-    dyncast<vcc::Statement>(tree)->codegen(holder);
+    vcc::dyncast<vcc::Statement>(tree)->codegen(holder);
   }
 
   // Create the analysis managers.
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     MPM.run(holder->module, MAM);
 
   if (print_llvm)
-    holder->module.dump();
+    holder->module.print(llvm::outs(), nullptr);
 
   // === Emit object/assembly file ===
   std::error_code ec;

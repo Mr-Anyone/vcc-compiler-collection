@@ -27,7 +27,7 @@ CGTypeInfo TrieTree::lookup(const ASTBase *at, std::string name) const {
   search_order.push_back(head);
   node_t trie_at = head;
   for (int i = 1; i < trie_order.size(); ++i) {
-    if (!trie_at->child.contains(trie_order[i]))
+    if (trie_at->child.find(trie_order[i]) == trie_at->child.end())
       break;
 
     trie_at = trie_at->child[trie_order[i]];
@@ -66,7 +66,7 @@ void TrieTree::insert(const ASTBase *pos, std::string name, Type *type,
   node_t traverse_trie = head;
   for (int i = 1; i < trie_insert_order.size(); ++i) {
     const ASTBase *next_scope = trie_insert_order[i];
-    if (traverse_trie->child.contains(next_scope)) {
+    if (traverse_trie->child.find(next_scope) != traverse_trie->child.end()) {
       traverse_trie = traverse_trie->child[next_scope];
     } else {
       node_t next_node = std::make_unique<TrieNode>(next_scope);
@@ -97,8 +97,8 @@ void TrieTree::getTrieOrder(const ASTBase *start,
 void SymbolTable::addLocalVariable(ASTBase *loc, std::string name, Type *type,
                                    llvm::Value *value) {
   // Create a trie it does not exist
-  if (!m_local_variable_table.contains(
-          loc->getFirstFunctionDecl()->getName())) {
+  if (m_local_variable_table.find(
+          loc->getFirstFunctionDecl()->getName()) == m_local_variable_table.end()) {
     TrieTree lookup_table(loc->getFirstFunctionDecl());
     m_local_variable_table[loc->getFirstFunctionDecl()->getName()] =
         lookup_table;

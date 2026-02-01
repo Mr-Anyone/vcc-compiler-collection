@@ -5,7 +5,7 @@
 
 TEST(Type, BasicTest) {
   vcc::ContextHolder holder =
-      std::make_unique<vcc::GlobalContext>("resource/comp.txt");
+      std::make_unique<vcc::GlobalContext>("resource/comp.vcc");
   vcc::BuiltinType a(vcc::BuiltinType::BuiltinType::Int);
   vcc::BuiltinType b(vcc::BuiltinType::BuiltinType::Int);
   vcc::BuiltinType c(vcc::BuiltinType::BuiltinType::Int);

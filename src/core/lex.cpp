@@ -111,7 +111,7 @@ Token Tokenizer::readOneToken() {
     }
 
     // we are parsing the general one character tokens like *, -, etc
-    if (one_character_token.contains(c)) {
+    if (one_character_token.find(c) != one_character_token.end()) {
       if (is_first_time) {
         // creating the lookup term
         std::string lookup_term;
@@ -146,7 +146,7 @@ Token Tokenizer::readOneToken() {
 }
 
 bool Tokenizer::isKeyword(const std::string &keyword) {
-  return keyword_map.contains(keyword);
+  return keyword_map.find(keyword) != keyword_map.end();
 }
 
 const Token &Tokenizer::current() { return m_current_token; }
