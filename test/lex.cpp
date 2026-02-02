@@ -5,18 +5,18 @@
 
 // Demonstrate some basic assertions.
 TEST(LexTest, TokenTest) {
-  std::ofstream stream("/tmp/testing.txt");
+  std::ofstream stream("testing.txt");
   const char *file_input = "some_identifier function +";
   stream << file_input;
   stream.close();
 
-  vcc::FileStream some_stream("/tmp/testing.txt");
+  vcc::FileStream some_stream("testing.txt");
   vcc::lex::Tokenizer tokenizer(some_stream);
   EXPECT_EQ(tokenizer.getCurrentType(), vcc::lex::Identifier);
   EXPECT_EQ(tokenizer.getNextType(), vcc::lex::FunctionDecl);
   EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Add);
 
-  std::remove("/tmp/testing.txt");
+  std::remove("testing.txt");
 }
 
 TEST(LexTest, EndOfFileReading) {
@@ -34,7 +34,7 @@ TEST(LexTest, EndOfFileReading) {
 }
 
 TEST(LexTest, NewToken) {
-  std::ofstream stream("/tmp/testing2.txt");
+  std::ofstream stream("testing2.txt");
   const char *file_input =
       "some_identifier function + eq ne gt ge le lt "
       "if then end - while struct . array ptr float void external"
@@ -43,7 +43,7 @@ TEST(LexTest, NewToken) {
   stream << file_input;
   stream.close();
 
-  vcc::FileStream stream_two("/tmp/testing2.txt");
+  vcc::FileStream stream_two("testing2.txt");
   vcc::lex::Tokenizer tokenizer(stream_two);
   EXPECT_EQ(tokenizer.getCurrentType(), vcc::lex::Identifier);
   EXPECT_EQ(tokenizer.getNextType(), vcc::lex::FunctionDecl);
@@ -74,5 +74,5 @@ TEST(LexTest, NewToken) {
   EXPECT_EQ(tokenizer.current().getStringLiteral(), "This is Literally A Test");
   EXPECT_EQ(tokenizer.getNextType(), vcc::lex::Bool);
 
-  std::remove("/tmp/testing2.txt");
+  std::remove("testing2.txt");
 }

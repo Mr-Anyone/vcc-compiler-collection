@@ -116,7 +116,7 @@ Type *Parser::buildTypeQualification() {
     std::string struct_name = m_tokenizer.current().getStringLiteral();
     m_tokenizer.consume();
 
-    assert(m_struct_defs.contains(struct_name) &&
+    assert(m_struct_defs.find(struct_name)  != m_struct_defs.end() &&
            "undefined reference to struct");
     return m_struct_defs[struct_name];
   }
@@ -173,7 +173,7 @@ void Parser::addStructDefinition() {
   m_tokenizer.consume();
 
   // Finally, inserting the element into the table
-  assert(!m_struct_defs.contains(name) &&
+  assert(m_struct_defs.find(name) == m_struct_defs.end() &&
          "we have duplicated definition of the same struct");
   m_struct_defs[name] = new StructType(elements, name);
 }

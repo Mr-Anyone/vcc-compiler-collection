@@ -8,13 +8,13 @@ SymbolTable::SymbolTable() : m_local_variable_table(), m_function_table() {}
 
 void SymbolTable::addFunction(const FunctionDecl *function_decl) {
   std::string function_name = function_decl->getName();
-  assert(!m_function_table.contains(function_name));
+  assert(m_function_table.find(function_name) == m_function_table.end());
 
   m_function_table[function_name] = function_decl;
 }
 
 const FunctionDecl *SymbolTable::lookupFunction(const std::string &name) {
-  assert(m_function_table.contains(name));
+  assert(m_function_table.find(name) == m_function_table.end());
   return m_function_table[name];
 }
 
@@ -78,7 +78,7 @@ void TrieTree::insert(const ASTBase *pos, std::string name, Type *type,
   // finally adding the element into here
   assert(traverse_trie->scope_def == pos->getScopeDeclLoc() &&
          "we must be at the location of scope def when we are inserting");
-  assert(!traverse_trie->decls.contains(name) && "duplicate definition?");
+  assert(traverse_trie->decls.find(name) == traverse_trie->decls.end() && "duplicate definition?");
   traverse_trie->decls[name] = {value, type};
 }
 

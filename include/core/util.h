@@ -1,7 +1,9 @@
 #ifndef CORE_UTIL_H
 #define CORE_UTIL_H
 
+#ifndef _WIN32
 #include <cxxabi.h>
+#endif
 #include <memory>
 #include <string>
 #include <typeinfo>
@@ -29,12 +31,16 @@ inline std::string getASTClassName(ASTBase *node) {
   if (dynamic_cast<FunctionDecl *>(node))
     return "FunctionDecl";
 
+#ifndef _WIN32
   const std::type_info &ti = typeid(*node);
   int status;
   std::unique_ptr<char, void (*)(void *)> demangled(
       abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status), std::free);
 
   return (status == 0 && demangled) ? demangled.get() : ti.name();
+#else 
+  return "windows - unknown";
+#endif
 };
 
 template <typename T, typename U> bool isa(U a) {
