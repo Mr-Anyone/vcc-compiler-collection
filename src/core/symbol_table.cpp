@@ -14,7 +14,7 @@ void SymbolTable::addFunction(const FunctionDecl *function_decl) {
 }
 
 const FunctionDecl *SymbolTable::lookupFunction(const std::string &name) {
-  assert(m_function_table.find(name) == m_function_table.end());
+  assert(m_function_table.find(name) != m_function_table.end());
   return m_function_table[name];
 }
 
