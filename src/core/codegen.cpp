@@ -131,7 +131,8 @@ void CodeGenerator::emitFunctionArgListsStatement(FunctionArgLists* args,
 void CodeGenerator::emitAssignmentStatement(AssignmentStatement* stmt,
                                             ContextHolder holder)
 {
-    assert(isa<LocatorExpression>(stmt->getRefExpression()) && "must be an locator value");
+    assert(isa<LocatorExpression>(stmt->getRefExpression()) &&
+           "must be an locator value");
     llvm::Value* expression_val = emitExpression(stmt->getExpression(), holder);
     llvm::Value* alloc_loc =
         emitRefExpression(dyncast<LocatorExpression>(stmt->getRefExpression()), holder);
@@ -308,8 +309,7 @@ void CodeGenerator::emitFunctionDeclStatement(FunctionDecl* decl, ContextHolder 
 
     holder->symbol_table.addFunction(decl);
 
-    llvm::BasicBlock* block =
-        llvm::BasicBlock::Create(holder->context, "", llvm_func);
+    llvm::BasicBlock* block = llvm::BasicBlock::Create(holder->context, "", llvm_func);
     holder->builder.SetInsertPoint(block);
 
     emitFunctionArgListsStatement(decl->getArgList(), holder);
@@ -327,7 +327,8 @@ void CodeGenerator::emitFunctionDeclStatement(FunctionDecl* decl, ContextHolder 
 llvm::Value* CodeGenerator::emitConstantExpression(ConstantExpr* expr,
                                                    ContextHolder holder)
 {
-    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context), expr->getValue());
+    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(holder->context),
+                                  expr->getValue());
 }
 
 llvm::Value* CodeGenerator::emitCallExpression(CallExpr* expr, ContextHolder holder)
@@ -587,7 +588,8 @@ llvm::Value* CodeGenerator::emitDeRefExpression(DeRefExpression* expr,
     assert(expr->getRef()->getType(holder)->isPointer());
     llvm::Value* current_value = emitExpression(expr->getRef(), holder);
     llvm::Type* base_type =
-        expr->getRef()->getType(holder)->getAs<PointerType>()->getPointee()->getType(holder);
+        expr->getRef()->getType(holder)->getAs<PointerType>()->getPointee()->getType(
+            holder);
 
     return holder->builder.CreateLoad(base_type, current_value);
 }

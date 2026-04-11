@@ -40,21 +40,60 @@ class ASTVisitor
 
    protected:
     // Statement hooks
-    virtual ReturnT visitCallStatement(CallStatement*) { return ReturnT(); }
-    virtual ReturnT visitFunctionArgLists(FunctionArgLists*) { return ReturnT(); }
-    virtual ReturnT visitFunctionDecl(FunctionDecl*) { return ReturnT(); }
-    virtual ReturnT visitAssignmentStatement(AssignmentStatement*) { return ReturnT(); }
-    virtual ReturnT visitReturnStatement(ReturnStatement*) { return ReturnT(); }
-    virtual ReturnT visitDeclarationStatement(DeclarationStatement*) { return ReturnT(); }
-    virtual ReturnT visitIfStatement(IfStatement*) { return ReturnT(); }
-    virtual ReturnT visitWhileStatement(WhileStatement*) { return ReturnT(); }
+    virtual ReturnT visitCallStatement(CallStatement*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitFunctionArgLists(FunctionArgLists*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitFunctionDecl(FunctionDecl*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitAssignmentStatement(AssignmentStatement*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitReturnStatement(ReturnStatement*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitDeclarationStatement(DeclarationStatement*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitIfStatement(IfStatement*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitWhileStatement(WhileStatement*)
+    {
+        return ReturnT();
+    }
 
     // Expression hooks
-    virtual ReturnT visitConstantExpr(ConstantExpr*) { return ReturnT(); }
-    virtual ReturnT visitCallExpr(CallExpr*) { return ReturnT(); }
-    virtual ReturnT visitBinaryExpression(BinaryExpression*) { return ReturnT(); }
-    virtual ReturnT visitCastExpression(CastExpression*) { return ReturnT(); }
-    virtual ReturnT visitIdentifierExpr(IdentifierExpr*) { return ReturnT(); }
+    virtual ReturnT visitConstantExpr(ConstantExpr*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitCallExpr(CallExpr*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitBinaryExpression(BinaryExpression*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitCastExpression(CastExpression*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitIdentifierExpr(IdentifierExpr*)
+    {
+        return ReturnT();
+    }
     virtual ReturnT visitMemberAccessExpression(MemberAccessExpression*)
     {
         return ReturnT();
@@ -63,9 +102,18 @@ class ASTVisitor
     {
         return ReturnT();
     }
-    virtual ReturnT visitDeRefExpression(DeRefExpression*) { return ReturnT(); }
-    virtual ReturnT visitRefExpression(RefExpression*) { return ReturnT(); }
-    virtual ReturnT visitStringLiteral(StringLiteral*) { return ReturnT(); }
+    virtual ReturnT visitDeRefExpression(DeRefExpression*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitRefExpression(RefExpression*)
+    {
+        return ReturnT();
+    }
+    virtual ReturnT visitStringLiteral(StringLiteral*)
+    {
+        return ReturnT();
+    }
 
    private:
     inline ReturnT visitStatement(Statement* stmt)
@@ -109,11 +157,9 @@ class ASTVisitor
             case code::IdentifierExpr:
                 return visitIdentifierExpr(dyncast<IdentifierExpr>(expr));
             case code::MemberAccessExpression:
-                return visitMemberAccessExpression(
-                    dyncast<MemberAccessExpression>(expr));
+                return visitMemberAccessExpression(dyncast<MemberAccessExpression>(expr));
             case code::ArrayAccessExpression:
-                return visitArrayAccessExpression(
-                    dyncast<ArrayAccessExpression>(expr));
+                return visitArrayAccessExpression(dyncast<ArrayAccessExpression>(expr));
             case code::DeRefExpression:
                 return visitDeRefExpression(dyncast<DeRefExpression>(expr));
             case code::RefExpression:

@@ -17,7 +17,10 @@ class ASTDumper : public ASTVisitor<std::string>
 {
    public:
     /// Format a single node's description (class name + node-specific details).
-    std::string formatNode(ASTBase* node) { return visit(node); }
+    std::string formatNode(ASTBase* node)
+    {
+        return visit(node);
+    }
 
     /// Recursively dump the entire subtree rooted at `node` to `os`.
     void debugDump(ASTBase* node, std::ostream& os, int depth = 1)
@@ -87,8 +90,8 @@ class ASTDumper : public ASTVisitor<std::string>
         if (!expr->getParentExpression())
             ss << expr->getBaseName();
 
-        ss << "." << expr->getMember()
-           << " child: " << expr->getChildPosfixExpression() << " this: " << expr;
+        ss << "." << expr->getMember() << " child: " << expr->getChildPosfixExpression()
+           << " this: " << expr;
         return ss.str();
     }
 

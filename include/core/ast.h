@@ -473,6 +473,7 @@ class StringLiteral : public Expression
     virtual Type* getType(ContextHolder holder) override;
 
     const std::string& getString() const;
+
    private:
     std::string m_string_literal;
 };
