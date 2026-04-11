@@ -1,3 +1,4 @@
+#include "core/codegen.h"
 #include "core/context.h"
 #include "core/driver.h"
 #include "core/parser.h"
@@ -42,11 +43,12 @@ int main(int argc, char *argv[]) {
   vcc::ContextHolder holder = parser.getHolder();
   vcc::Sema sema;
 
+  vcc::CodeGenerator codegen;
   for (vcc::ASTBase *tree : parser.getSyntaxTree()) {
     if (print_ast)
       tree->debugDump();
 
-    vcc::dyncast<vcc::Statement>(tree)->codegen(holder);
+    codegen.emitStatement(vcc::dyncast<vcc::Statement>(tree), holder);
   }
 
   // Create the analysis managers.

@@ -4,6 +4,7 @@ add_library(comp
   context.cpp
   symbol_table.cpp
   ast.cpp
+  codegen.cpp
   sema.cpp
   driver.cpp
   type.cpp

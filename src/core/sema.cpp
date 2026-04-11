@@ -1,7 +1,4 @@
 #include "core/sema.h"
-#include "core/util.h"
-#include <iostream>
-#include <memory>
 
 using namespace vcc;
 

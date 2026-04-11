@@ -45,6 +45,7 @@ class BuiltinType;
 class FunctionDecl;
 class Expression;
 class Statement;
+class CodeGenerator;
 
 class ASTBase {
 public:
@@ -87,16 +88,16 @@ private:
 class Statement : public ASTBase {
 public:
   Statement(const std::vector<ASTBase *> childrens, FilePos locus);
-  virtual void codegen(ContextHolder holder) = 0;
 
 private:
 };
 
 class CallStatement : public Statement {
+  friend class CodeGenerator;
+
 public:
   CallStatement(Expression *call_expression, FilePos locus);
 
-  virtual void codegen(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
 private:
@@ -104,13 +105,13 @@ private:
 };
 
 class FunctionArgLists : public Statement {
+  friend class CodeGenerator;
+
 public:
   using ArgsIter = std::vector<TypeInfo>::const_iterator;
 
   FunctionArgLists(std::vector<TypeInfo> &&args, FilePos locus);
 
-  // the first few alloc, and load instruction
-  virtual void codegen(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
   ArgsIter begin() const;
@@ -122,6 +123,8 @@ private:
 
 // FIXME: we should separate FunctionBody with FunctionDecl
 class FunctionDecl : public Statement {
+  friend class CodeGenerator;
+
 public:
   /// if `is_extern` is true, codegen only generate a declaration and assume to
   /// have no body
@@ -129,7 +132,6 @@ public:
                std::string &&name, Type *return_type, bool is_extern,
                FilePos locus);
 
-  virtual void codegen(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
   void dump() override;
@@ -143,9 +145,6 @@ public:
   const FunctionArgLists::ArgsIter getArgsEnd() const;
 
 private:
-  void buildExternalDecl(ContextHolder holder);
-  void emitAllocs(ContextHolder holder);
-
   bool m_is_extern; // is external or not?
 
   Type *m_return_type;
@@ -158,11 +157,12 @@ private:
 };
 
 class AssignmentStatement : public Statement {
+  friend class CodeGenerator;
+
 public:
   AssignmentStatement(Expression *ref_expression, Expression *expression,
                       FilePos locus);
 
-  virtual void codegen(ContextHolder holder) override;
   virtual void dump() override;
   virtual code::TreeCode getCode() const override;
   const std::string &getName();
@@ -173,11 +173,12 @@ private:
 };
 
 class ReturnStatement : public Statement {
+  friend class CodeGenerator;
+
 public:
   // returning an identifier
   ReturnStatement(Expression *expression, FilePos locus);
 
-  virtual void codegen(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
 private:
@@ -186,6 +187,8 @@ private:
 };
 
 class DeclarationStatement : public Statement {
+  friend class CodeGenerator;
+
 public:
   // if expression is nullptr, it means that we just allocate space
   // and don't assign it to the thing
@@ -193,7 +196,6 @@ public:
                        Type *type, FilePos locus);
 
   virtual void dump() override;
-  virtual void codegen(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
   Expression* getExpression();
   Type* getType();
@@ -206,11 +208,12 @@ private:
 };
 
 class IfStatement : public Statement {
+  friend class CodeGenerator;
+
 public:
   IfStatement(Expression *cond, std::vector<Statement *> &&expressions,
               FilePos locus);
   virtual void dump() override;
-  virtual void codegen(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
   std::vector<DeclarationStatement*> getDeclarationStatements() const;
@@ -222,10 +225,11 @@ private:
 };
 
 class WhileStatement : public Statement {
+  friend class CodeGenerator;
+
 public:
   WhileStatement(Expression *cond, std::vector<Statement *> &&expressions,
                  FilePos locus);
-  virtual void codegen(ContextHolder holder) override;
   virtual void dump() override;
   virtual code::TreeCode getCode() const override;
 
@@ -242,7 +246,6 @@ class Expression : public ASTBase {
 public:
   Expression(const std::vector<Expression *> childrens, FilePos locus);
   virtual Type *getType(ContextHolder holder) = 0;
-  virtual llvm::Value *getVal(ContextHolder holder) = 0;
 };
 
 /// Basically like an L value in c++,
@@ -251,20 +254,17 @@ class LocatorExpression : public Expression {
 public:
   LocatorExpression(const std::vector<Expression *> &childrens, FilePos locus);
 
-  /// recursively traverse the tree to get the reference to
-  /// the current type
-  virtual llvm::Value *getRef(ContextHolder holder);
-
 protected:
   friend class MemberAccessExpression;
   friend class ArrayAccessExpression;
 };
 
 class ConstantExpr : public Expression {
+  friend class CodeGenerator;
+
 public:
   explicit ConstantExpr(int value, FilePos locus);
   virtual void dump() override;
-  virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
@@ -275,10 +275,11 @@ private:
 };
 
 class CallExpr : public Expression {
+  friend class CodeGenerator;
+
 public:
   CallExpr(const std::string &name,
            const std::vector<Expression *> &expressions, FilePos locus);
-  llvm::Value *getVal(ContextHolder holder) override;
   void dump() override;
 
   virtual Type *getType(ContextHolder holder) override;
@@ -290,6 +291,8 @@ private:
 };
 
 class BinaryExpression : public Expression {
+  friend class CodeGenerator;
+
 public:
   enum BinaryExpressionType {
     Add,
@@ -311,14 +314,10 @@ public:
   BinaryExpression(Expression *lhs, BinaryExpressionType type, FilePos locus);
 
   virtual void dump() override;
-  virtual llvm::Value *getVal(ContextHolder holder) override;
 
   void setRHS(Expression *rhs);
 
 private:
-  llvm::Value *handleInteger(ContextHolder holder, llvm::Value *lhs,
-                             llvm::Value *rhs);
-
   Expression *m_lhs;
   Expression *m_rhs;
   BinaryExpressionType m_kind;
@@ -329,24 +328,23 @@ private:
 // float a;
 // cast<int>(a);
 class CastExpression : public Expression {
+  friend class CodeGenerator;
+
 public:
   CastExpression(Expression *cast_expression, Type *casted_to, FilePos loc);
 
-  virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
 private:
-  llvm::Value *builtinCast(BuiltinType *from, BuiltinType *to,
-                           ContextHolder holder);
-
-  void emitErrorAndExit(ContextHolder holder);
   Expression *m_to_be_casted_expression;
   Type *m_cast_to;
 };
 
 /// === START OF LocatorExpression ===
 class IdentifierExpr : public LocatorExpression {
+  friend class CodeGenerator;
+
 public:
   /// Create an identifier expression
   ///
@@ -356,9 +354,7 @@ public:
   IdentifierExpr(const std::string &name, FilePos locus);
 
   virtual void dump() override;
-  virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
-  virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
 private:
@@ -368,6 +364,8 @@ private:
 // FIXME: maybe we should do type deduction here instead!
 // The parser parse enough type so that this won't be a problem
 class MemberAccessExpression : public LocatorExpression {
+  friend class CodeGenerator;
+
 public:
   MemberAccessExpression(const std::string &name, const std::string &member,
                          FilePos locus);
@@ -377,12 +375,8 @@ public:
                          FilePos locus);
 
   virtual void dump() override;
-  virtual llvm::Value *getVal(ContextHolder holder) override;
-  virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
-
-  llvm::Value *getCurrentRef(ContextHolder holder);
 
   Type *getGEPType(ContextHolder holder);
   Type *getGEPChildType(ContextHolder holder);
@@ -399,6 +393,8 @@ private:
 
 // FIXME: maybe we should do type deduction here instead!
 class ArrayAccessExpression : public LocatorExpression {
+  friend class CodeGenerator;
+
 public:
   ArrayAccessExpression(const std::string &name, Expression *expression,
                         FilePos locus);
@@ -406,11 +402,7 @@ public:
                         FilePos locus);
 
   virtual void dump() override;
-  virtual llvm::Value *getVal(ContextHolder holder) override;
-  virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
-
-  llvm::Value *getCurrentRef(ContextHolder holder);
 
   Type *getGEPType(ContextHolder holder);
   Type *getGEPChildType(ContextHolder holder);
@@ -419,7 +411,6 @@ public:
   void setChildPosfixExpression(LocatorExpression *child);
 
 private:
-  ///=== CODEGEN Options ====
   Expression *m_index_expression; // the index number
   // either we have a m_base_name for symbol lookup or we must have a parent
   // expression
@@ -434,16 +425,15 @@ private:
 // int a = deref<b>; # `getVal` returns the value of the pointer
 // deref<a> = 10 #  `` return the address of the pointee
 class DeRefExpression : public LocatorExpression {
+  friend class CodeGenerator;
+
 public:
   DeRefExpression(Expression *ref_get, FilePos locus);
 
   virtual void dump() override;
-  virtual llvm::Value *getVal(ContextHolder holder) override;
-  virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
-  llvm::Value *getCurrentRef(ContextHolder holder);
   Type *getInnerType(ContextHolder holder);
 
   void setPosfixChildExpression(LocatorExpression *expression);
@@ -460,12 +450,12 @@ private:
 // int c = 10;
 // ptr int a = ref<c>; # this makes well form
 class RefExpression : public LocatorExpression {
+  friend class CodeGenerator;
+
 public:
   RefExpression(Expression *inner, FilePos locus);
 
   virtual void dump() override;
-  virtual llvm::Value *getVal(ContextHolder holder) override;
-  virtual llvm::Value *getRef(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
@@ -477,11 +467,12 @@ private:
 //
 // ptr char some_string = "this is my first string";
 class StringLiteral : public Expression {
+  friend class CodeGenerator;
+
 public:
   StringLiteral(std::string string, FilePos locus);
 
   virtual void dump() override;
-  virtual llvm::Value *getVal(ContextHolder holder) override;
   virtual Type *getType(ContextHolder holder) override;
   virtual code::TreeCode getCode() const override;
 
