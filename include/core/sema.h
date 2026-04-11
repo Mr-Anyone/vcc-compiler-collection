@@ -1,10 +1,8 @@
 #ifndef CORE_SEMA_H
 #define CORE_SEMA_H
 
-#include <string>
 
 #include "ast.h"
-#include "type.h"
 
 namespace vcc
 {
@@ -23,6 +21,7 @@ class Sema
     bool checkFunction(FunctionDecl* decl);
 
    private:
+    ///
 };
 
 };  // namespace vcc

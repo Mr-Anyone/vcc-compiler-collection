@@ -242,32 +242,37 @@ Statement* Parser::buildExternalDecl()
 const std::vector<Statement*>& Parser::buildSyntaxTree()
 {
     assert(m_top_level_statements.size() == 0 && "can only be called once");
-    while (m_tokenizer.getCurrentType() != lex::EndOfFile)
+    bool has_failed = false;
+    while (m_tokenizer.getCurrentType() != lex::EndOfFile && !has_failed)
     {
-        if (m_tokenizer.getCurrentType() == lex::FunctionDecl)
+        switch (m_tokenizer.getCurrentType()) 
         {
+          case lex::FunctionDecl:
+          {
             Statement* base = buildFunctionDecl();
             m_top_level_statements.push_back(base);
-            continue;
-        }
-
-        if (m_tokenizer.getCurrentType() == lex::Struct)
-        {
+            break;
+          }
+          case lex::Struct:
+          {
             addStructDefinition();
-            continue;
-        }
-
-        if (m_tokenizer.getCurrentType() == lex::External)
-        {
+            break;
+          }
+          case lex::External:
+          {
             Statement* exteran_decl = buildExternalDecl();
             m_top_level_statements.push_back(exteran_decl);
-            continue;
+            break;
+          }
+          default:
+          {
+            has_failed = true;
+            break;
+          }
         }
-
-        break;
     }
 
-    if (m_tokenizer.getCurrentType() != lex::EndOfFile)
+    if (m_tokenizer.getCurrentType() != lex::EndOfFile || has_failed)
     {
         logError("cannot parse things starting here");
     }
