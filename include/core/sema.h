@@ -23,7 +23,6 @@ class Sema
     bool checkFunction(FunctionDecl* decl);
 
    private:
-    ///
 };
 
 };  // namespace vcc

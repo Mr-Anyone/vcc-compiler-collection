@@ -1,6 +1,8 @@
 #ifndef CORE_CODEGEN_H
 #define CORE_CODEGEN_H
 
+#include <llvm/ADT/DenseMap.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
 
 #include "core/ast.h"
@@ -65,6 +67,9 @@ class CodeGenerator
                                                      ContextHolder holder);
     llvm::Value* emitCurrentRefDeRefExpression(DeRefExpression* expr,
                                                ContextHolder holder);
+
+    llvm::Function* getLLVMFunction(const FunctionDecl* decl) const;
+    llvm::DenseMap<const FunctionDecl*, llvm::Function*> m_function_map;
 };
 
 }  // namespace vcc
