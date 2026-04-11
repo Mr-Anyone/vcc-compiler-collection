@@ -123,6 +123,5 @@ int main(int argc, char *argv[]) {
 
   codeGenPasses.run(holder->module);
   dest.flush();
-
   return 0;
 }
