@@ -5,65 +5,76 @@
 #include "core/context.h"
 #include "core/lex.h"
 #include "core/sema.h"
-
 #include "core/type.h"
 
-namespace vcc {
-class Parser {
-public:
-  Parser(ContextHolder context);
+namespace vcc
+{
+class Parser
+{
+   public:
+    Parser(ContextHolder context);
 
-  void start();
-  const std::vector<Statement *> &getSyntaxTree();
-  ContextHolder getHolder();
-  bool haveError() const;
+    void start();
+    const std::vector<Statement*>& getSyntaxTree();
+    ContextHolder getHolder();
+    bool haveError() const;
 
-private:
-  const std::vector<Statement *> &buildSyntaxTree();
+   private:
+    const std::vector<Statement*>& buildSyntaxTree();
 
-  // Types, kind of like statements but not necessary
-  // return a pointer when success, nullptr otherwise
-  Type *buildTypeQualification();
-  void addStructDefinition();
+    // Types, kind of like statements but not necessary
+    // return a pointer when success, nullptr otherwise
+    Type* buildTypeQualification();
+    void addStructDefinition();
 
-  // building the function decl
-  Statement *buildFunctionDecl();
-  FunctionArgLists *buildFunctionArgList();
+    // building the function decl
+    Statement* buildFunctionDecl();
+    FunctionArgLists* buildFunctionArgList();
 
-  // Statements
-  Statement *buildAssignmentStatement();
-  Statement *buildReturnStatement();
-  Statement *buildStatement();
-  Statement *buildIfStatement();
-  Statement *buildWhileStatement();
-  Statement *buildDeclarationStatement();
-  Statement *buildExternalDecl();
-  Statement *buildCallStatement();
+    // Statements
+    Statement* buildAssignmentStatement();
+    Statement* buildReturnStatement();
+    Statement* buildStatement();
+    Statement* buildIfStatement();
+    Statement* buildWhileStatement();
+    Statement* buildDeclarationStatement();
+    Statement* buildExternalDecl();
+    Statement* buildCallStatement();
 
-  // Expressions
-  Expression *buildExpression();
-  Expression *buildRefExpression();
-  Expression *buildCastExpression();
-  Expression *buildBinaryExpression(int min_precedence);
-  Expression *buildTrivialExpression();
-  Expression *buildDerefExpression();
-  Expression *buildCallExpr();
-  LocatorExpression *buildPosfixExpression(LocatorExpression *lhs = nullptr);
-  LocatorExpression *
-  buildTailPosfixExpression(LocatorExpression *lhs); // helper for above
+    // Expressions
+    Expression* buildExpression();
+    Expression* buildRefExpression();
+    Expression* buildCastExpression();
+    Expression* buildBinaryExpression(int min_precedence);
+    Expression* buildTrivialExpression();
+    Expression* buildDerefExpression();
+    Expression* buildCallExpr();
+    LocatorExpression* buildPosfixExpression(LocatorExpression* lhs = nullptr);
+    LocatorExpression* buildTailPosfixExpression(
+        LocatorExpression* lhs);  // helper for above
 
-  /// This is a way so that we can use one interface to log all the error
-  /// The problem we are trying to solve is that logError have to return a type
-  /// that is compatible to Expression , Type*, and Statement*.
-  struct ErrorResult {
-    inline operator Expression *() { return nullptr; }
-    inline operator Statement *() { return nullptr; }
-    inline operator Type *() { return nullptr; }
-  };
-  inline ErrorResult logError(const std::string &message);
+    /// This is a way so that we can use one interface to log all the error
+    /// The problem we are trying to solve is that logError have to return a
+    /// type that is compatible to Expression , Type*, and Statement*.
+    struct ErrorResult
+    {
+        inline operator Expression*()
+        {
+            return nullptr;
+        }
+        inline operator Statement*()
+        {
+            return nullptr;
+        }
+        inline operator Type*()
+        {
+            return nullptr;
+        }
+    };
+    inline ErrorResult logError(const std::string& message);
 
-  // for binary expression
-  // clang-format off
+    // for binary expression
+    // clang-format off
   const static inline std::unordered_map<lex::TokenType, int> precedence_level={
           // eq, ne, gt, ge, lt, le
           {lex::EqualKeyword, 1},
@@ -79,16 +90,16 @@ private:
           {lex::Multiply, 3},
           {lex::Divide, 3},
   };
-  // clang-format on
+    // clang-format on
 
-  ContextHolder m_context;
-  lex::Tokenizer m_tokenizer;
-  Sema m_actions;
+    ContextHolder m_context;
+    lex::Tokenizer m_tokenizer;
+    Sema m_actions;
 
-  // Store the computation results
-  std::vector<Statement *> m_top_level_statements;
-  std::unordered_map<std::string, StructType *> m_struct_defs;
+    // Store the computation results
+    std::vector<Statement*> m_top_level_statements;
+    std::unordered_map<std::string, StructType*> m_struct_defs;
 };
-}; // namespace vcc
+};  // namespace vcc
 
 #endif

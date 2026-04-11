@@ -6,23 +6,25 @@
 #include "ast.h"
 #include "type.h"
 
-namespace vcc {
+namespace vcc
+{
 class Parser;
 
 /// This entire idea is horrible for performance!
 /// In a perfect world, this should be during parser
 /// And not need to duplicate so much unnecessary code.
-class Sema {
-public:
-  Sema();
+class Sema
+{
+   public:
+    Sema();
 
-  /// Perform a list of checks applies to function
-  /// returns ture if passes, false otherwise
-  bool checkFunction(FunctionDecl *decl);
+    /// Perform a list of checks applies to function
+    /// returns ture if passes, false otherwise
+    bool checkFunction(FunctionDecl* decl);
 
-private:
-  ///
+   private:
+    ///
 };
 
-}; // namespace vcc
+};  // namespace vcc
 #endif
