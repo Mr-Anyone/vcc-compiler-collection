@@ -17,8 +17,9 @@ static void printSpaceBasedOnDepth(int depth) {
 
 const FilePos &ASTBase::getPos() const { return m_locus; }
 
-Statement::Statement(const std::vector<ASTBase *> childrens, FilePos locus)
-    : ASTBase(std::vector<Statement *>(), locus) {
+Statement::Statement(code::TreeCode code,
+                     const std::vector<ASTBase *> childrens, FilePos locus)
+    : ASTBase(code, std::vector<Statement *>(), locus) {
   for (ASTBase *child : childrens) {
     addChildren(child);
   }
@@ -37,8 +38,9 @@ void ASTBase::debugDump(int depth) {
   }
 }
 
-ASTBase::ASTBase(const std::vector<Expression *> childrens, FilePos locus)
-    : m_parent(nullptr), m_childrens(), m_locus(locus) {
+ASTBase::ASTBase(code::TreeCode code,
+                 const std::vector<Expression *> childrens, FilePos locus)
+    : m_code(code), m_parent(nullptr), m_childrens(), m_locus(locus) {
 
   for (ASTBase *children : childrens) {
     addChildren(children);
@@ -46,8 +48,9 @@ ASTBase::ASTBase(const std::vector<Expression *> childrens, FilePos locus)
   }
 }
 
-ASTBase::ASTBase(const std::vector<Statement *> childrens, FilePos locus)
-    : m_parent(nullptr), m_childrens(), m_locus(locus) {
+ASTBase::ASTBase(code::TreeCode code,
+                 const std::vector<Statement *> childrens, FilePos locus)
+    : m_code(code), m_parent(nullptr), m_childrens(), m_locus(locus) {
 
   for (ASTBase *children : childrens) {
     addChildren(children);
@@ -89,7 +92,7 @@ llvm::Function *FunctionDecl::getLLVMFunction() const { return m_function; }
 FunctionDecl::FunctionDecl(std::vector<Statement *> &statements,
                            FunctionArgLists *arg_list, std::string &&name,
                            Type *ret, bool is_extern, FilePos locus)
-    : Statement({arg_list}, locus), m_statements(statements),
+    : Statement(code::FunctionDecl, {arg_list}, locus), m_statements(statements),
       m_arg_list(arg_list), m_name(name), m_return_type(ret),
       m_is_extern(is_extern) {
   // making sure that arg_list is always the first in the syntax tree!
@@ -107,7 +110,7 @@ const FunctionArgLists::ArgsIter FunctionDecl::getArgsEnd() const {
 }
 
 FunctionArgLists::FunctionArgLists(std::vector<TypeInfo> &&args, FilePos locus)
-    : Statement({}, locus), m_args(args) {}
+    : Statement(code::FunctionArgLists, {}, locus), m_args(args) {}
 
 FunctionArgLists::ArgsIter FunctionArgLists::begin() const {
   return m_args.cbegin();
@@ -119,7 +122,7 @@ FunctionArgLists::ArgsIter FunctionArgLists::end() const {
 
 AssignmentStatement::AssignmentStatement(Expression *ref_expr,
                                          Expression *expression, FilePos locus)
-    : Statement({ref_expr, expression}, locus), m_ref_expr(ref_expr),
+    : Statement(code::AssignmentStatement, {ref_expr, expression}, locus), m_ref_expr(ref_expr),
       m_expression(expression) {}
 
 void FunctionDecl::dump() {
@@ -130,23 +133,24 @@ void FunctionDecl::dump() {
 }
 
 ReturnStatement::ReturnStatement(Expression *expression, FilePos locus)
-    : Statement({}, locus), m_expression(expression) {
+    : Statement(code::ReturnStatement, {}, locus), m_expression(expression) {
   // it is possible that expression is null
   if (expression)
     addChildren(expression);
 }
 
 IdentifierExpr::IdentifierExpr(const std::string &name, FilePos locus)
-    : LocatorExpression({}, locus), m_name(name) {}
+    : LocatorExpression(code::IdentifierExpr, {}, locus), m_name(name) {}
 
 ConstantExpr::ConstantExpr(int value, FilePos locus)
-    : Expression({}, locus), m_value(value) {}
+    : Expression(code::ConstantExpr, {}, locus), m_value(value) {}
 
 int ConstantExpr::getValue() { return m_value; }
 
 BinaryExpression::BinaryExpression(Expression *lhs, BinaryExpressionType type,
                                    FilePos locus)
-    : Expression({lhs}, locus), m_lhs(lhs), m_rhs(nullptr), m_kind(type) {}
+    : Expression(code::BinaryExpression, {lhs}, locus), m_lhs(lhs),
+      m_rhs(nullptr), m_kind(type) {}
 
 BinaryExpression::BinaryExpressionType
 BinaryExpression::getFromLexType(lex::Token token) {
@@ -237,14 +241,15 @@ const FunctionDecl *ASTBase::getFirstFunctionDecl() const {
 
 CallExpr::CallExpr(const std::string &name,
                    const std::vector<Expression *> &expression, FilePos locus)
-    : Expression(expression, locus), m_func_name(name),
+    : Expression(code::CallExpr, expression, locus), m_func_name(name),
       m_expressions(expression) {}
 
 void CallExpr::dump() { std::cout << "name: " << m_func_name; }
 
 IfStatement::IfStatement(Expression *cond,
                          std::vector<Statement *> &&expressions, FilePos locus)
-    : Statement({cond}, locus), m_cond(cond), m_statements(expressions) {
+    : Statement(code::IfStatement, {cond}, locus), m_cond(cond),
+      m_statements(expressions) {
   for (ASTBase *expression : expressions) {
     addChildren(expression);
   }
@@ -255,7 +260,8 @@ void IfStatement::dump() {}
 DeclarationStatement::DeclarationStatement(const std::string &name,
                                            Expression *base, Type *type,
                                            FilePos locus)
-    : Statement({}, locus), m_expression(base), m_name(name), m_type(type) {
+    : Statement(code::DeclarationStatement, {}, locus), m_expression(base),
+      m_name(name), m_type(type) {
   // it is possible that the child is a nullptr, meaning we only have to
   // allocate space
   if (base)
@@ -271,7 +277,8 @@ void DeclarationStatement::dump() { std::cout << "name: " << m_name; }
 WhileStatement::WhileStatement(Expression *cond,
                                std::vector<Statement *> &&expression,
                                FilePos locus)
-    : Statement({cond}, locus), m_cond(cond), m_statements(expression) {
+    : Statement(code::WhileStatement, {cond}, locus), m_cond(cond),
+      m_statements(expression) {
   for (ASTBase *base : m_statements) {
     addChildren(base);
   }
@@ -282,12 +289,14 @@ void WhileStatement::dump() { return; }
 MemberAccessExpression::MemberAccessExpression(const std::string &name,
                                                const std::string &member,
                                                FilePos locus)
-    : m_base_name(name), m_member(member), LocatorExpression({}, locus) {}
+    : LocatorExpression(code::MemberAccessExpression, {}, locus),
+      m_base_name(name), m_member(member) {}
 
 MemberAccessExpression::MemberAccessExpression(LocatorExpression *parent,
                                                const std::string &member,
                                                FilePos locus)
-    : m_member(member), LocatorExpression({}, locus), m_parent(parent) {
+    : LocatorExpression(code::MemberAccessExpression, {}, locus),
+      m_member(member), m_parent(parent) {
   parent->addChildren(this);
 }
 
@@ -303,13 +312,13 @@ void MemberAccessExpression::dump() {
 ArrayAccessExpression::ArrayAccessExpression(const std::string &name,
                                              Expression *expression,
                                              FilePos locus)
-    : LocatorExpression({expression}, locus), m_index_expression(expression),
-      m_base_name(name) {}
+    : LocatorExpression(code::ArrayAccessExpression, {expression}, locus),
+      m_index_expression(expression), m_base_name(name) {}
 
 ArrayAccessExpression::ArrayAccessExpression(LocatorExpression *parent,
                                              Expression *index_expression,
                                              FilePos locus)
-    : LocatorExpression({index_expression}, locus),
+    : LocatorExpression(code::ArrayAccessExpression, {index_expression}, locus),
       m_index_expression(index_expression), m_parent_expression(parent) {
   parent->addChildren(this);
 }
@@ -319,9 +328,10 @@ void ArrayAccessExpression::dump() {
             << " child*: " << m_child_posfix_expression << " this: " << this;
 }
 
-LocatorExpression::LocatorExpression(const std::vector<Expression *> &childrens,
+LocatorExpression::LocatorExpression(code::TreeCode code,
+                                     const std::vector<Expression *> &childrens,
                                      FilePos locus)
-    : Expression(childrens, locus) {}
+    : Expression(code, childrens, locus) {}
 
 Type *ArrayAccessExpression::getGEPChildType(ContextHolder holder) {
   Type *current_type = getGEPType(holder);
@@ -359,16 +369,19 @@ void MemberAccessExpression::setChildPosfixExpression(
 
 Type *FunctionDecl::getReturnType() const { return m_return_type; }
 
-Expression::Expression(const std::vector<Expression *> children, FilePos locus)
-    : ASTBase(children, locus) {}
+Expression::Expression(code::TreeCode code,
+                       const std::vector<Expression *> children, FilePos locus)
+    : ASTBase(code, children, locus) {}
 
 DeRefExpression::DeRefExpression(Expression *ref_get, FilePos locus)
-    : LocatorExpression({ref_get}, locus), m_ref(ref_get) {}
+    : LocatorExpression(code::DeRefExpression, {ref_get}, locus),
+      m_ref(ref_get) {}
 
 void DeRefExpression::dump() {}
 
 RefExpression::RefExpression(Expression *inner, FilePos locus)
-    : LocatorExpression({inner}, locus), m_inner_expression(inner) {}
+    : LocatorExpression(code::RefExpression, {inner}, locus),
+      m_inner_expression(inner) {}
 
 void RefExpression::dump() {}
 
@@ -384,16 +397,18 @@ llvm::FunctionType *FunctionDecl::getFunctionType(ContextHolder holder) const {
 }
 
 CallStatement::CallStatement(Expression *call_expression, FilePos locus)
-    : Statement({call_expression}, locus), m_call_expr(call_expression) {}
+    : Statement(code::CallStatement, {call_expression}, locus),
+      m_call_expr(call_expression) {}
 
 StringLiteral::StringLiteral(std::string string, FilePos locus)
-    : Expression({}, locus), m_string_literal(string) {}
+    : Expression(code::StringLiteral, {}, locus), m_string_literal(string) {}
 
 void StringLiteral::dump() {}
 
 CastExpression::CastExpression(Expression *cast_expression, Type *casted_to,
                                FilePos loc)
-    : Expression({cast_expression}, loc), m_cast_to(casted_to),
+    : Expression(code::CastExpression, {cast_expression}, loc),
+      m_cast_to(casted_to),
       m_to_be_casted_expression(cast_expression) {}
 
 static std::vector<DeclarationStatement *>
@@ -590,57 +605,3 @@ Type *ArrayAccessExpression::getGEPType(ContextHolder holder) {
   return parent->getGEPChildType(holder);
 }
 
-// ==========================================
-// TreeCode Implementation
-//
-code::TreeCode FunctionArgLists::getCode() const {
-  return code::FunctionArgLists;
-}
-
-code::TreeCode CallStatement::getCode() const { return code::CallStatement; }
-
-code::TreeCode FunctionDecl::getCode() const { return code::FunctionDecl; }
-
-code::TreeCode AssignmentStatement::getCode() const {
-  return code::AssignmentStatement;
-}
-
-code::TreeCode ReturnStatement::getCode() const {
-  return code::ReturnStatement;
-}
-
-code::TreeCode IfStatement::getCode() const { return code::IfStatement; }
-
-code::TreeCode WhileStatement::getCode() const { return code::WhileStatement; }
-
-code::TreeCode ConstantExpr::getCode() const { return code::ConstantExpr; }
-
-code::TreeCode CallExpr::getCode() const { return code::CallExpr; }
-
-code::TreeCode BinaryExpression::getCode() const {
-  return code::BinaryExpression;
-}
-
-code::TreeCode CastExpression::getCode() const { return code::CastExpression; }
-
-code::TreeCode IdentifierExpr::getCode() const { return code::IdentifierExpr; }
-
-code::TreeCode MemberAccessExpression::getCode() const {
-  return code::MemberAccessExpression;
-}
-
-code::TreeCode ArrayAccessExpression::getCode() const {
-  return code::ArrayAccessExpression;
-}
-
-code::TreeCode DeRefExpression::getCode() const {
-  return code::DeRefExpression;
-}
-
-code::TreeCode RefExpression::getCode() const { return code::RefExpression; }
-
-code::TreeCode StringLiteral::getCode() const { return code::StringLiteral; }
-
-code::TreeCode DeclarationStatement::getCode() const {
-  return code::DeclarationStatement;
-}
