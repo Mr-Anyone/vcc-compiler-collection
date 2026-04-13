@@ -19,7 +19,7 @@ Tokenizer::Tokenizer(FileStream& stream) : m_file(stream)
     m_current_token = readOneToken();
 }
 
-const Token Tokenizer::next(int n)
+const Token Tokenizer::peek(int n)
 {
     int pos = m_file.tellg();
 

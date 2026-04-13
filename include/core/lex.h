@@ -121,10 +121,10 @@ class Tokenizer
 
     // consume token
     const Token next();
-    const Token next(int n);
 
     // don't consume token
     const Token peek();
+    const Token peek(int n);
     const Token& current();
 
     // consume the token
@@ -211,7 +211,6 @@ class Tokenizer
 
     /// FIXME: this really is a trust me, I am always valid lifetime
     FileStream& m_file;
-
     Token m_current_token;
 };
 };  // namespace lex

@@ -98,8 +98,8 @@ class ASTDumper : public ASTVisitor<std::string>
     std::string visitArrayAccessExpression(ArrayAccessExpression* expr) override
     {
         std::ostringstream ss;
-        ss << "[]"
-           << " child*: " << expr->getChildPosfixExpression() << " this: " << expr;
+        ss << "[]" << " child*: " << expr->getChildPosfixExpression()
+           << " this: " << expr;
         return ss.str();
     }
 

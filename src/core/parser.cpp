@@ -1,39 +1,23 @@
 #include "core/parser.h"
 
 #include <cassert>
-#include <iostream>
 
 #include "core/ast.h"
 
 using namespace vcc;
 using vcc::lex::Token;
 
-Parser::Parser(ContextHolder context) : m_tokenizer(context->stream), m_context(context)
-{
-}
-
-void Parser::start()
-{
-    static bool started_before = false;
-    if (!started_before)
-    {
-        buildSyntaxTree();
-        started_before = true;
-    }
-}
-
 /// if the next token is either '.' or '[' we have another posfix expression
 inline static bool isFullstopOrLeftBracket(const Token& next)
 {
-    if (next.getType() == lex::Fullstop || next.getType() == lex::LeftBracket)
-        return true;
-
-    return false;
-}
-
-const std::vector<Statement*>& Parser::getSyntaxTree()
-{
-    return m_top_level_statements;
+    switch (next.getType())
+    {
+        case lex::LeftBracket:
+        case lex::Fullstop:
+            return true;
+        default:
+            return false;
+    }
 }
 
 // type_qualification :== 'int' | 'struct', <identifier> |
@@ -42,104 +26,68 @@ const std::vector<Statement*>& Parser::getSyntaxTree()
 //                     'float' | 'void' | 'char' | 'bool' | 'long' | 'short'
 Type* Parser::buildTypeQualification()
 {
-    // we have a boolean type here
-    if (m_tokenizer.getCurrentType() == lex::Bool)
+    auto tryParseOneToOne = [&]() -> Type*
     {
-        m_tokenizer.consume();
-        return new BuiltinType(BuiltinType::Bool);
-    }
+        static std::unordered_map<lex::TokenType, BuiltinType> oneToOneMap{
+            {lex::Bool, BuiltinType::Bool},   {lex::Long, BuiltinType::Long},
+            {lex::Short, BuiltinType::Short}, {lex::Bool, BuiltinType::Bool},
+            {lex::Char, BuiltinType::Char},   {lex::Int, BuiltinType::Int},
+            {lex::Float, BuiltinType::Float},
+        };
 
-    if (m_tokenizer.getCurrentType() == lex::Long)
-    {
-        m_tokenizer.consume();
-        return new BuiltinType(BuiltinType::Long);
-    }
-
-    if (m_tokenizer.getCurrentType() == lex::Short)
-    {
-        m_tokenizer.consume();
-        return new BuiltinType(BuiltinType::Long);
-    }
-
-    // we have void type 'void'
-    if (m_tokenizer.getCurrentType() == lex::Void)
-    {
-        m_tokenizer.consume();
-        return new VoidType();
-    }
-
-    // 'char'
-    if (m_tokenizer.getCurrentType() == lex::Char)
-    {
-        m_tokenizer.consume();
-        return new BuiltinType(BuiltinType::Char);
-    }
-
-    // we have an array type
-    // 'array', '(', <integer_literal>, ')', <type_qualification>
-    if (m_tokenizer.getCurrentType() == lex::Array)
-    {
-        if (m_tokenizer.getNextType() != lex::LeftParentheses)
+        auto it = oneToOneMap.find(tok());
+        if (it != oneToOneMap.end())
         {
-            return logError("expectex (");
-        }
-        m_tokenizer.consume();
-
-        if (m_tokenizer.getCurrentType() != lex::IntegerLiteral)
-        {
-            return logError("expected integer");
-        }
-        int count = m_tokenizer.current().getIntegerLiteral();
-        m_tokenizer.consume();
-
-        if (m_tokenizer.getCurrentType() != lex::RightParentheses)
-        {
-            return logError("expected )");
-        }
-        m_tokenizer.consume();
-
-        Type* base = buildTypeQualification();
-        return new ArrayType(base, count);
-    }
-
-    // 'ptr', <type_qualification>
-    if (m_tokenizer.getCurrentType() == lex::Ptr)
-    {
-        m_tokenizer.consume();
-        Type* pointee = buildTypeQualification();
-        return new PointerType(pointee);
-    }
-
-    // we have builtin
-    if (m_tokenizer.getCurrentType() == lex::Int)
-    {
-        m_tokenizer.consume();
-
-        return new BuiltinType(BuiltinType::Int);
-    }
-
-    // we have float builtin
-    if (m_tokenizer.getCurrentType() == lex::Float)
-    {
-        m_tokenizer.consume();
-
-        return new BuiltinType(BuiltinType::Float);
-    }
-    // we have a structure
-    if (m_tokenizer.getCurrentType() == lex::Struct)
-    {
-        m_tokenizer.consume();
-        if (m_tokenizer.getCurrentType() != lex::Identifier)
-        {
-            return logError("expected identifier");
+            consume();
+            return new BuiltinType(it->second);
         }
 
-        std::string struct_name = m_tokenizer.current().getStringLiteral();
-        m_tokenizer.consume();
+        return nullptr;
+    };
 
-        assert(m_struct_defs.find(struct_name) != m_struct_defs.end() &&
-               "undefined reference to struct");
-        return m_struct_defs[struct_name];
+    // First we try to parse type that has one to one conversions
+    Type* result = tryParseOneToOne();
+    if (result)
+        return result;
+
+    switch (tok())
+    {
+        case lex::Void:
+        {
+            consume();
+            return new VoidType();
+        }
+        case lex::Array:
+        {
+            if (!at({lex::Array, lex::LeftParentheses, lex::IntegerLiteral}))
+                return logError("expected (");
+
+            int count = getIntegerLiteral();
+            if (!at({lex::IntegerLiteral, lex::RightParentheses}, /*consume_last=*/true))
+                return logError("expected )");
+
+            Type* base = buildTypeQualification();
+            return new ArrayType(base, count);
+        }
+        case lex::Ptr:
+        {
+            consume();
+            Type* pointee = buildTypeQualification();
+            return new PointerType(pointee);
+        }
+        case lex::Struct:
+        {
+            if (!at({lex::Struct, lex::Identifier}))
+                return logError("syntax error");
+
+            std::string struct_name = getTokenString();
+            consume();
+            assert(m_struct_defs.find(struct_name) != m_struct_defs.end() &&
+                   "undefined reference to struct");
+            return m_struct_defs[struct_name];
+        }
+        default:
+            break;
     }
 
     return nullptr;
@@ -149,57 +97,46 @@ Type* Parser::buildTypeQualification()
 //                  , {<type_qualification> <identifier>}+, '}'
 void Parser::addStructDefinition()
 {
-    if (m_tokenizer.getCurrentType() != lex::Struct)
+    if (!at({lex::Struct, lex::Identifier}))
     {
-        logError("expected struct");
+        logError("invalid syntax");
         return;
     }
+    std::string name = getTokenString();
 
-    if (m_tokenizer.getNextType() != lex::Identifier)
+    if (!at({lex::Identifier, lex::LeftBrace}, /*consume_last=*/true))
     {
-        logError("expected identifier");
-        return;
+        logError("invalid syntax");
     }
-    std::string name = m_tokenizer.current().getStringLiteral();
-
-    if (m_tokenizer.getNextType() != lex::LeftBrace)
-    {
-        logError("expected {");
-        return;
-    }
-    m_tokenizer.consume();
 
     // parsing the struct
     std::vector<StructType::Element> elements;
     int element_count = 0;
     while (Type* current = buildTypeQualification())
     {
-        if (m_tokenizer.getCurrentType() != lex::Identifier)
+        if (!is(lex::Identifier))
         {
             logError("expected identifier");
             return;
         }
 
         // FIXME: we need to check that there are no duplicated name
-        std::string name = m_tokenizer.current().getStringLiteral();
+        std::string name = getTokenString();
         elements.push_back({element_count, name, current});
-        if (m_tokenizer.getNextType() != lex::Comma)
+        if (!at({lex::Identifier, lex::Comma}, /*consume_last=*/true))
         {
-            logError("expected ,");
+            logError("invalid syntax");
             return;
         }
-        m_tokenizer.consume();
 
         ++element_count;
     }
 
-    if (m_tokenizer.getCurrentType() != lex::RightBrace)
+    if (!at(lex::RightBrace))
     {
         logError("expected }");
         return;
     }
-
-    m_tokenizer.consume();
 
     // Finally, inserting the element into the table
     assert(m_struct_defs.find(name) == m_struct_defs.end() &&
@@ -211,29 +148,21 @@ void Parser::addStructDefinition()
 //     'gives', <type_qualification>, '[', <functin_args_list>, ']';
 Statement* Parser::buildExternalDecl()
 {
-    if (m_tokenizer.getCurrentType() != lex::External)
-        return logError("expected extern");
     FilePos locus = m_tokenizer.getPos();
-    m_tokenizer.consume();
+    if (!at(lex::External))
+        return logError("expected extern");
 
-    if (m_tokenizer.getCurrentType() != lex::FunctionDecl)
+    if (!at({lex::FunctionDecl, lex::Identifier}))
         return logError("expected function");
-    m_tokenizer.consume();
+    std::string name = getTokenString();
 
-    if (m_tokenizer.getCurrentType() != lex::Identifier)
-        return logError("expected identifier");
-    std::string name = m_tokenizer.current().getStringLiteral();
-    m_tokenizer.consume();
-
-    if (m_tokenizer.getCurrentType() != lex::Gives)
+    if (!at({lex::Identifier, lex::Gives}, /*consume_last=*/true))
         return logError("expected gives");
-    m_tokenizer.consume();
 
     Type* return_type          = buildTypeQualification();
     ASTBase* function_arg_list = buildFunctionArgList();
 
     std::vector<Statement*> statements{};
-
     return new FunctionDecl(statements, dyncast<FunctionArgLists>(function_arg_list),
                             std::move(name), return_type, /*is_extern*/ true, locus);
 }
@@ -243,36 +172,36 @@ const std::vector<Statement*>& Parser::buildSyntaxTree()
 {
     assert(m_top_level_statements.size() == 0 && "can only be called once");
     bool has_failed = false;
-    while (m_tokenizer.getCurrentType() != lex::EndOfFile && !has_failed)
+    while (!is(lex::EndOfFile) && !has_failed)
     {
-        switch (m_tokenizer.getCurrentType()) 
+        switch (tok())
         {
-          case lex::FunctionDecl:
-          {
-            Statement* base = buildFunctionDecl();
-            m_top_level_statements.push_back(base);
-            break;
-          }
-          case lex::Struct:
-          {
-            addStructDefinition();
-            break;
-          }
-          case lex::External:
-          {
-            Statement* exteran_decl = buildExternalDecl();
-            m_top_level_statements.push_back(exteran_decl);
-            break;
-          }
-          default:
-          {
-            has_failed = true;
-            break;
-          }
+            case lex::FunctionDecl:
+            {
+                Statement* base = buildFunctionDecl();
+                m_top_level_statements.push_back(base);
+                break;
+            }
+            case lex::Struct:
+            {
+                addStructDefinition();
+                break;
+            }
+            case lex::External:
+            {
+                Statement* exteran_decl = buildExternalDecl();
+                m_top_level_statements.push_back(exteran_decl);
+                break;
+            }
+            default:
+            {
+                has_failed = true;
+                break;
+            }
         }
     }
 
-    if (m_tokenizer.getCurrentType() != lex::EndOfFile || has_failed)
+    if (!is(lex::EndOfFile) || has_failed)
     {
         logError("cannot parse things starting here");
     }
@@ -289,27 +218,21 @@ inline Parser::ErrorResult Parser::logError(const std::string& message)
 // if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 Statement* Parser::buildIfStatement()
 {
-    if (m_tokenizer.getCurrentType() != lex::If)
-        return logError("expected if");
-
     FilePos locus = m_tokenizer.getPos();
-    m_tokenizer.consume();
+    if (!at(lex::If))
+        return logError("expected if");
 
     Expression* cond = buildExpression();
 
-    if (m_tokenizer.getCurrentType() != lex::Then)
+    if (!at(lex::Then))
         return logError("expected then");
-    m_tokenizer.consume();
 
     std::vector<Statement*> expressions;
     while (Statement* expression = buildStatement())
-    {
         expressions.push_back(expression);
-    }
 
-    if (m_tokenizer.getCurrentType() != lex::End)
+    if (!at(lex::End))
         return logError("expected end");
-    m_tokenizer.consume();
 
     return new IfStatement(cond, std::move(expressions), locus);
 }
@@ -317,24 +240,21 @@ Statement* Parser::buildIfStatement()
 // while_statement :== 'while', <expression> 'then', <statements>+,'end'
 Statement* Parser::buildWhileStatement()
 {
-    if (m_tokenizer.getCurrentType() != lex::While)
-        return logError("expected while");
-    m_tokenizer.consume();
     FilePos locus = m_tokenizer.getPos();
+    if (!at(lex::While))
+        return logError("expected while");
 
     Expression* cond = buildExpression();
 
-    if (m_tokenizer.getCurrentType() != lex::Then)
+    if (!at(lex::Then))
         return logError("expected then");
-    m_tokenizer.consume();
 
     std::vector<Statement*> expressions{};
     while (Statement* statement = buildStatement())
         expressions.push_back(statement);
 
-    if (m_tokenizer.getCurrentType() != lex::End)
+    if (!at(lex::End))
         return logError("expected end");
-    m_tokenizer.consume();
 
     return new WhileStatement(cond, std::move(expressions), locus);
 }
@@ -344,11 +264,8 @@ Statement* Parser::buildCallStatement()
 {
     FilePos locus              = m_tokenizer.getPos();
     Expression* call_expresion = buildCallExpr();
-    if (m_tokenizer.getCurrentType() != lex::SemiColon)
-    {
+    if (!at(lex::SemiColon))
         return logError("expected semi colon");
-    }
-    m_tokenizer.consume();
 
     return new CallStatement(call_expresion, locus);
 }
@@ -358,28 +275,28 @@ Statement* Parser::buildCallStatement()
 //         | <declaration_statement> | <call_statement>
 Statement* Parser::buildStatement()
 {
-    if (m_tokenizer.getCurrentType() == lex::RightBrace)
-        return nullptr;
-
-    if (m_tokenizer.getCurrentType() == lex::If)
-        return buildIfStatement();
-
-    if (m_tokenizer.getCurrentType() == lex::Ret)
-        return buildReturnStatement();
-
-    if (m_tokenizer.current().isTypeQualification())
-        return buildDeclarationStatement();
-
-    if (m_tokenizer.getCurrentType() == lex::Identifier &&
-        m_tokenizer.peek().getType() == lex::LeftParentheses)
+    switch (tok())
     {
-        return buildCallStatement();
+        case lex::RightBrace:
+            return nullptr;
+        case lex::If:
+            return buildIfStatement();
+        case lex::Ret:
+            return buildReturnStatement();
+        case lex::While:
+            return buildWhileStatement();
+        default:
+        {
+            if (is(lex::Identifier) &&
+                m_tokenizer.peek().getType() == lex::LeftParentheses)
+                return buildCallStatement();
+
+            if (m_tokenizer.current().isTypeQualification())
+                return buildDeclarationStatement();
+
+            return buildAssignmentStatement();
+        }
     }
-
-    if (m_tokenizer.getCurrentType() == lex::While)
-        return buildWhileStatement();
-
-    return buildAssignmentStatement();
 }
 
 // function_decl :== 'function', <identifier>, 'gives', <type_qualification>,
@@ -994,4 +911,91 @@ Expression* Parser::buildDerefExpression()
     }
 
     return deref_expression;
+}
+
+Parser::Parser(ContextHolder context) : m_tokenizer(context->stream), m_context(context)
+{
+}
+
+void Parser::start()
+{
+    static bool started_before = false;
+    if (!started_before)
+    {
+        buildSyntaxTree();
+        started_before = true;
+    }
+}
+
+lex::TokenType Parser::tok()
+{
+    return m_tokenizer.getCurrentType();
+}
+
+bool Parser::is(lex::TokenType type)
+{
+    return tok() == type;
+}
+
+bool Parser::at(lex::TokenType type)
+{
+    if (tok() != type)
+        return false;
+
+    consume();
+    return true;
+}
+
+bool Parser::at(std::initializer_list<lex::TokenType> list, bool consume_last)
+{
+    if (list.size() == 0)
+        return true;
+
+    // First we check the current, and peak into the remaining
+    auto it = list.begin();
+    if (tok() != *it)
+        return false;
+    ++it;
+
+    for (int i = 1; i < list.size() - 1; ++i)
+    {
+        if (*it != m_tokenizer.peek(i).getType())
+        {
+            return false;
+        }
+    }
+
+    // consume the remaining
+    for (int i = 0; i < list.size() - 1; ++i)
+    {
+        m_tokenizer.consume();
+    }
+
+    if (consume_last)
+    {
+        m_tokenizer.consume();
+    }
+    return true;
+}
+
+void Parser::consume()
+{
+    m_tokenizer.consume();
+}
+
+std::string Parser::getTokenString()
+{
+    assert(tok() == lex::Identifier || tok() == lex::String);
+    return m_tokenizer.current().getStringLiteral();
+}
+
+int Parser::getIntegerLiteral()
+{
+    assert(tok() == lex::IntegerLiteral);
+    return m_tokenizer.current().getIntegerLiteral();
+}
+
+const std::vector<Statement*>& Parser::getSyntaxTree()
+{
+    return m_top_level_statements;
 }
