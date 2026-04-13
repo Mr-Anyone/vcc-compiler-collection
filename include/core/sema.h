@@ -1,7 +1,6 @@
 #ifndef CORE_SEMA_H
 #define CORE_SEMA_H
 
-
 #include "ast.h"
 
 namespace vcc
