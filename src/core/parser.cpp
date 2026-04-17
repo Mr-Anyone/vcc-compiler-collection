@@ -683,60 +683,56 @@ Expression* Parser::buildCastExpression()
 Expression* Parser::buildTrivialExpression()
 {
     FilePos locus = m_tokenizer.getPos();
-    // <integer_literal>
-    if (is(lex::IntegerLiteral))
+    switch (tok())
     {
-        Expression* value = new ConstantExpr(getIntegerLiteral(), locus);
-        consume();
-        return value;
-    }
-
-    if (is(lex::Cast))
-        return buildCastExpression();
-
-    // FIXME: maybe we should move this into it's own function?
-    if (is(lex::String))
-    {
-        StringLiteral* string_node = new StringLiteral(getTokenString(), locus);
-        consume();
-        return string_node;
-    }
-
-    // <identifier>
-    if (is(lex::Identifier))
-    {
+      case lex::IntegerLiteral:
+      {
+          Expression* value = new ConstantExpr(getIntegerLiteral(), locus);
+          consume();
+          return value;
+      }
+      case lex::Cast:
+          return buildCastExpression();
+      case lex::String:
+      {
+          StringLiteral* string_node = new StringLiteral(getTokenString(), locus);
+          consume();
+          return string_node;
+      }
+      // <identifier>
+      case lex::Identifier:
+      {
         // <identifier>  + '(' means call expr
         if (m_tokenizer.peek().getType() == lex::LeftParentheses)
-            return buildCallExpr();
+          return buildCallExpr();
 
         if (isFullstopOrLeftBracket(m_tokenizer.peek()))
-            return buildPosfixExpression();
+          return buildPosfixExpression();
 
         Expression* value = new IdentifierExpr(getTokenString(), locus);
         consume();
 
         return value;
-    }
+      }
+      case lex::LeftParentheses:
+      {
+          consume();
+          Expression* value = buildExpression();
 
-    // '(', <expression> , ')'
-    if (at(lex::LeftParentheses))
-    {
-        Expression* value = buildExpression();
-
-        if (!at(lex::RightParentheses))
-        {
-            logError("expected )");
+          if (!at(lex::RightParentheses))
+          {
+              logError("expected )");
+              return nullptr;
+          }
+          return value;
+      }
+      case lex::Ref:
+          return buildRefExpression();
+      case lex::Deref:
+            return buildDerefExpression();
+      default:
             return nullptr;
-        }
-
-        return value;
     }
-
-    if (is(lex::Ref))
-        return buildRefExpression();
-
-    if (is(lex::Deref))
-        return buildDerefExpression();
 
     return nullptr;
 }
