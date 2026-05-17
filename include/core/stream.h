@@ -29,7 +29,7 @@ class FileStream
    public:
     FileStream(const char* filename);
 
-    // Remove copy constructor, because this is unsafe
+    /// Remove copy constructor, because this is unsafe
     FileStream(const FileStream& other)            = delete;
     FileStream& operator=(const FileStream& other) = delete;
 
@@ -52,27 +52,25 @@ class FileStream
 
     FilePos getPos();
 
-    /// is the file open?
-    bool is_open();
-
     std::string getLine(long pos);
 
    private:
+    void setAtEOF();
+
+    /// The content of the file
+    std::string m_content;
+
     /// check if we are at the end of file
     bool m_is_end_of_file = false;
 
-    /// check for if a file is open or not
-    bool m_open;
+    // keeping track of locations
+    long m_current_loc, m_restore_loc;
+    FilePos m_pos = {1, 1, 0}, m_restore_pos = m_pos;
 
-    // save and restore state
-    long m_restore_loc;
-    FilePos m_restore_pos{1, 1, 0};
+    // keeping track of save and restore states
     bool m_is_in_save_state = false;
     void saveState();
     void restoreState();
-
-    std::FILE* m_file;
-    FilePos m_pos = {1, 1, 0};
 };
 
 };  // namespace vcc

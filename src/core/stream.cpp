@@ -4,51 +4,66 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
+#include <sstream>
 
 using namespace vcc;
 
-FileStream::FileStream(const char* filename)
+static std::optional<std::string> readFile(std::string path)
 {
-    m_file = std::fopen(filename, "rb");
-    m_open = true;
+    std::ifstream file(path);
+    std::stringstream buf;
 
-    if (!m_file)
-        m_open = false;
+    buf << file.rdbuf();
+    return buf.str();
+}
 
-    if (!is_open())
+bool FileStream::good(){
+    /// FIXME: the constructor returns a std::exit when the file stream is
+    /// no good. If we have constructed this class, it means that the 
+    /// Filestream is good. We should deprecate this class
+    return true;
+}
+FileStream::FileStream(const char* filename)
+    : m_is_end_of_file(false),
+      m_current_loc(0),
+      m_restore_loc(0),
+      m_restore_pos(1, 1, 0),
+      m_is_in_save_state(false)
+{
+    std::optional<std::string> maybe_content = readFile(filename);
+    if (!maybe_content.has_value())
     {
-        std::cerr << "cannot open file:" << filename << "\n";
+        std::cerr << "cannot read file: " << filename << "\n";
         std::exit(-1);
     }
+
+    m_content = maybe_content.value();
 }
 
 char FileStream::get()
 {
-    char c;
-    const int count = std::fread(&c, sizeof(char), 1, m_file);
-
-    // setting the end of file state
+    // return 0 if we are at the end of file
     m_is_end_of_file = false;
-    if (count == 0)
+    if (m_current_loc == m_content.size())
     {
-        assert(!ferror(m_file) && "not sure how to handle this case");
-        if (std::feof(m_file))
-            m_is_end_of_file = true;
-
+        m_is_end_of_file = true;
         return 0;
     }
 
+    char c = m_content[m_current_loc];
+    m_current_loc += 1;
     if (c == '\n')
     {
         // -1 from the side effect of fread
         m_pos.row++;
-        m_pos.col = 1;
+        m_pos.col = 0;
     }
     else
     {
         m_pos.col++;
     }
-    m_pos.loc++;
+    m_pos.loc = m_current_loc;
 
     return c;
 }
@@ -67,25 +82,19 @@ char FileStream::get(char& c)
     return c;
 }
 
-bool FileStream::good()
-{
-    return std::ferror(m_file) == 0;
-}
-
 long FileStream::tellg()
 {
     // the byte offset
-    return std::ftell(m_file);
+    return m_current_loc;
 }
 
 void FileStream::seekg(long pos)
 {
     // update the current position
-    std::fseek(m_file, 0, SEEK_SET);
     FilePos new_pos(1, 1, pos);
     for (int i = 0; i < pos; ++i)
     {
-        char c = std::fgetc(m_file);
+        char c = m_content[pos];
         if (c == '\n')
         {
             new_pos.row += 1;
@@ -98,6 +107,7 @@ void FileStream::seekg(long pos)
     }
 
     // update the position
+    m_current_loc = pos;
     m_pos = new_pos;
     assert(tellg() == pos && "must be true if we have seekg");
 }
@@ -140,37 +150,27 @@ std::ostream& vcc::operator<<(std::ostream& os, const FilePos& pos)
     return os;
 }
 
-bool FileStream::is_open()
-{
-    return m_open;
-}
-
 std::string FileStream::getLine(long pos)
 {
-    saveState();
     long begin_line_start = -1;
-    std::fseek(m_file, 0, SEEK_SET);
     for (int i = 0; i < pos; ++i)
     {
-        char c = std::fgetc(m_file);
+        char c = m_content[i];
         if (c == '\n')
             begin_line_start = i;
     }
     // the loop above returns the last location of a '\n'
     // adding one gives the new line
-    begin_line_start += 1;  //
+    begin_line_start += 1;
 
-    std::fseek(m_file, begin_line_start, SEEK_SET);
     std::string line = "";
     char c;
-    while ((c = std::fgetc(m_file)) != EOF)
+    while (begin_line_start < m_content.size() && m_content[begin_line_start] != '\n')
     {
-        if (c == '\n')
-            break;
-        else
-            line += c;
-    }
+        c = m_content[begin_line_start];
+        begin_line_start++;
 
-    restoreState();
+        line += c;
+    }
     return line;
 }
