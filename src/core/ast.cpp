@@ -432,19 +432,19 @@ static std::vector<DeclarationStatement*> getDeclarationStatementImpl(
     std::vector<DeclarationStatement*> result;
     for (Statement* s : statement)
     {
-        if (ASTBase::doesDefineScope(s->getCode()))
+        if (s->doesDefineScope(s->getCode()))
         {
             switch (s->getCode())
             {
                 case vcc::code::WhileStatement:
                 {
-                    auto other = dyncast<WhileStatement>(s)->getDeclarationStatements();
+                    auto other = s->getAs<WhileStatement>()->getDeclarationStatements();
                     result.insert(result.begin(), other.begin(), other.end());
                     break;
                 }
                 case vcc::code::IfStatement:
                 {
-                    auto other = dyncast<IfStatement>(s)->getDeclarationStatements();
+                    auto other = s->getAs<IfStatement>()->getDeclarationStatements();
                     result.insert(result.begin(), other.begin(), other.end());
                     break;
                 }
@@ -453,8 +453,9 @@ static std::vector<DeclarationStatement*> getDeclarationStatementImpl(
                     std::exit(-1);
             }
         }
+
         if (s->getCode() == code::DeclarationStatement)
-            result.push_back(dyncast<DeclarationStatement>(s));
+            result.push_back(s->getAs<DeclarationStatement>());
     }
 
     return result;

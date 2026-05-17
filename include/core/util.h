@@ -9,6 +9,7 @@
 #include <typeinfo>
 
 #include "core/ast.h"
+#include "core/rtti.h"
 
 namespace vcc
 {
@@ -44,25 +45,6 @@ inline std::string getASTClassName(ASTBase* node)
     return "windows - unknown";
 #endif
 };
-
-template <typename T, typename U>
-bool isa(U a)
-{
-    if (dynamic_cast<T*>(a))
-        return true;
-
-    return false;
-}
-
-template <typename T, typename U>
-T* dyncast(U a)
-{
-    if (T* casted = dynamic_cast<T*>(a))
-        return casted;
-
-    return nullptr;
-}
-
-};  // namespace vcc
+};
 
 #endif

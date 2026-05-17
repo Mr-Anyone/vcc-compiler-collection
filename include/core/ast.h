@@ -10,6 +10,7 @@
 
 #include "core/context.h"
 #include "core/lex.h"
+#include "core/rtti.h"
 
 namespace llvm
 {
@@ -81,6 +82,14 @@ class ASTBase
 
     static bool doesDefineScope(const ASTBase* at);
     static bool doesDefineScope(code::TreeCode code);
+
+    /// A nice helper to improve upon style. Instead of doing, dyncast<...>(variable),
+    /// we can do this->getAs<someType>();
+    template<typename T>
+    T* getAs()
+    {
+        return dyncast<T>(this);
+    }
 
    protected:
     void setParent(ASTBase* parent);

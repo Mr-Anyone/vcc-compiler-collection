@@ -20,9 +20,9 @@ void CodeGenerator::emitStatement(Statement* stmt, ContextHolder holder)
     switch (stmt->getCode())
     {
         case code::CallStatement:
-            return emitCallStatement(dyncast<CallStatement>(stmt), holder);
+            return emitCallStatement(stmt->getAs<CallStatement>(), holder);
         case code::FunctionArgLists:
-            return emitFunctionArgListsStatement(dyncast<FunctionArgLists>(stmt), holder);
+            return emitFunctionArgListsStatement(stmt->getAs<FunctionArgLists>(), holder);
         case code::FunctionDecl:
             return emitFunctionDeclStatement(dyncast<FunctionDecl>(stmt), holder);
         case code::AssignmentStatement:
