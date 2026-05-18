@@ -56,7 +56,7 @@ CGTypeInfo TrieTree::lookup(const ASTBase* at, std::string name) const
 TrieTree::TrieTree::TrieNode::TrieNode(const ASTBase* decl)
     : scope_def(decl), decls(), child()
 {
-    assert(ASTBase::doesDefineScope(decl) && "decl must define a scope");
+    assert(decl->doesDefineScope() && "decl must define a scope");
 }
 
 TrieTree::TrieTree(const FunctionDecl* decl) : head(std::make_unique<TrieNode>(decl)) {}

@@ -80,8 +80,7 @@ class ASTBase
         return m_code;
     }
 
-    static bool doesDefineScope(const ASTBase* at);
-    static bool doesDefineScope(code::TreeCode code);
+    bool doesDefineScope() const;
 
     /// A nice helper to improve upon style. Instead of doing, dyncast<...>(variable),
     /// we can do this->getAs<someType>();

@@ -215,7 +215,7 @@ void BinaryExpression::setRHS(Expression* rhs)
 const ASTBase* ASTBase::getScopeDeclLoc() const
 {
     const ASTBase* parent = getParent();
-    while (parent && !doesDefineScope(parent))
+    while (parent && !parent->doesDefineScope())
     {
         parent = parent->getParent();
     }
@@ -223,15 +223,11 @@ const ASTBase* ASTBase::getScopeDeclLoc() const
     return parent;
 }
 
-bool ASTBase::doesDefineScope(const ASTBase* at)
+bool ASTBase::doesDefineScope() const
 {
-    return doesDefineScope(at->getCode());
-}
-
-bool ASTBase::doesDefineScope(code::TreeCode code)
-{
+    code::TreeCode code = getCode();
     return code == code::FunctionDecl || code == code::IfStatement ||
-           code == code::WhileStatement;
+        code == code::WhileStatement;
 }
 
 const FunctionDecl* ASTBase::getFirstFunctionDecl() const
@@ -432,7 +428,7 @@ static std::vector<DeclarationStatement*> getDeclarationStatementImpl(
     std::vector<DeclarationStatement*> result;
     for (Statement* s : statement)
     {
-        if (s->doesDefineScope(s->getCode()))
+        if (s->doesDefineScope())
         {
             switch (s->getCode())
             {
