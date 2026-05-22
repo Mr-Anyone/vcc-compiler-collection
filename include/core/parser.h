@@ -4,6 +4,7 @@
 #include "core/ast.h"
 #include "core/context.h"
 #include "core/lex.h"
+#include "core/scope.h"
 #include "core/sema.h"
 #include "core/type.h"
 
@@ -75,6 +76,21 @@ class Parser
     LocatorExpression* buildPosfixExpression(LocatorExpression* lhs = nullptr);
     LocatorExpression* buildTailPosfixExpression(
         LocatorExpression* lhs);  // helper for above
+
+
+    Scope *m_root_scope, *m_current_scope;
+    Scope* getCurScope();
+    /// Scope RAIL is a nice wrapper behind function that defines a
+    /// scope. The user of the parser class can now just call getScope
+    /// which returns the scope class which is needed to add symbol into
+    /// the symbol table
+    struct ScopeRAIL
+    {
+        ScopeRAIL(Parser& parser);
+        ~ScopeRAIL();
+
+        Parser& parser;
+    };
 
     /// This is a way so that we can use one interface to log all the error
     /// The problem we are trying to solve is that logError have to return a

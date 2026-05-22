@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "core/lex.h"
+
 namespace vcc
 {
 enum class ScopeType
@@ -37,6 +39,7 @@ class Scope
    public:
     /// Create scope for the child.
     static Scope* createScope(ScopeType type, Scope* parent = nullptr);
+    static Scope* createScope(lex::TokenType type, Scope* parent = nullptr);
 
     ScopeType getScope();
     void dump();

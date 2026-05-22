@@ -16,6 +16,7 @@
 - [X] Add the following type short, long, and void*
 - [X] Adding a cast expression
 - [X] The C FFI problem with SDL
+- [ ] Delete the default constructor in parser
 - [ ] Add the following operations and, and or.
 - [ ] The Heap allocation problem with ASTBase and Type
 - [ ] CallExpr error with no matching function

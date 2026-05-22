@@ -1,6 +1,7 @@
 #include "core/scope.h"
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 
 using namespace vcc;
@@ -52,6 +53,8 @@ void Scope::dumpWithDepth(int depth, std::string& buffer)
                 return "WhileStatement";
             case ScopeType::IfStatement:
                 return "IfStatement";
+            case ScopeType::FunctionDecl:
+                return "FunctionDecl";
             default:
                 return "UnknownScopeType";
         }
@@ -86,4 +89,24 @@ void Scope::addChild(Scope* child)
 ScopeType Scope::getScope()
 {
     return m_type;
+}
+
+Scope* Scope::createScope(lex::TokenType type, Scope* parent)
+{
+    auto lexTypeToScopeType = [&](lex::TokenType type) -> ScopeType
+    {
+        switch (type)
+        {
+            case lex::TokenType::FunctionDecl:
+                return ScopeType::FunctionDecl;
+            case lex::TokenType::If:
+                return ScopeType::IfStatement;
+            case lex::TokenType::While:
+                return ScopeType::WhileStatement;
+            default:
+                assert(false && "this should crash here!");
+        }
+    };
+
+    return createScope(lexTypeToScopeType(type), parent);
 }

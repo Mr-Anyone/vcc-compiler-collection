@@ -224,6 +224,8 @@ inline Parser::ErrorResult Parser::logError(const std::string& message)
 // if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 Statement* Parser::buildIfStatement()
 {
+    ScopeRAIL rail(*this);
+
     FilePos locus = m_tokenizer.getPos();
     if (!at(lex::If))
         return logError("expected if");
@@ -246,6 +248,7 @@ Statement* Parser::buildIfStatement()
 // while_statement :== 'while', <expression> 'then', <statements>+,'end'
 Statement* Parser::buildWhileStatement()
 {
+    ScopeRAIL rail(*this);
     FilePos locus = m_tokenizer.getPos();
     if (!at(lex::While))
         return logError("expected while");
@@ -309,6 +312,7 @@ Statement* Parser::buildStatement()
 //                     <function_args_list>, '{', <expression>+, ''}'
 Statement* Parser::buildFunctionDecl()
 {
+    ScopeRAIL rail(*this);
     FilePos locus = m_tokenizer.getPos();
     if (!at({lex::FunctionDecl, lex::Identifier}))
         return logError("function declaration must begin with keyword function");
@@ -832,6 +836,8 @@ Expression* Parser::buildDerefExpression()
 
 Parser::Parser(ContextHolder context) : m_tokenizer(context->stream), m_context(context)
 {
+    m_root_scope    = Scope::createScope(ScopeType::TranslationUnit);
+    m_current_scope = m_root_scope;
 }
 
 void Parser::start()
@@ -915,4 +921,21 @@ int Parser::getIntegerLiteral()
 const std::vector<Statement*>& Parser::getSyntaxTree()
 {
     return m_top_level_statements;
+}
+
+/// For Scope
+Parser::ScopeRAIL::ScopeRAIL(Parser& other) : parser(other)
+{
+    parser.m_current_scope = Scope::createScope(parser.tok(), parser.m_current_scope);
+}
+
+Parser::ScopeRAIL::~ScopeRAIL()
+{
+    parser.m_current_scope = parser.m_current_scope->parent();
+    assert(parser.m_current_scope && "scope can never be a null pointer");
+}
+
+Scope* Parser::getCurScope()
+{
+    return m_current_scope;
 }
