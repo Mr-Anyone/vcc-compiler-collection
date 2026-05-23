@@ -1,11 +1,10 @@
 #include "core/lex.h"
 
-#include <assert.h>
-
 #include <cstdlib>
 #include <iostream>
-#include <istream>
 #include <string>
+
+#include "core/util.h"
 
 using namespace vcc::lex;
 
@@ -23,7 +22,7 @@ const Token Tokenizer::peek(int n)
 {
     int pos = m_file.tellg();
 
-    assert(n >= 1 && "makes no sense otherwise");
+    VCC_ASSERT(n >= 1 && "makes no sense otherwise");
     Token current = readOneToken();
     for (int i = 0; i < n - 1; ++i)
     {
@@ -192,8 +191,8 @@ const Token Tokenizer::next()
 TokenType Tokenizer::getKeyword(const std::string& keyword)
 {
     TokenType result = keyword_map.at(keyword);
-    assert(TokenType::KeywordStart < result && TokenType::KeywordEnd > result &&
-           "this is the invarient");
+    VCC_ASSERT(TokenType::KeywordStart < result && TokenType::KeywordEnd > result &&
+               "this is the invarient");
 
     return result;
 }
@@ -265,9 +264,9 @@ void Token::dump() const
 
 Token::Token(TokenType type, FilePos pos) : type(type), pos(pos)
 {
-    assert((type == LeftParentheses || type == RightParentheses || type == EndOfFile ||
-            (type > KeywordStart && type < KeywordEnd)) &&
-           "it must be parenthesis type style or keyword!");
+    VCC_ASSERT((type == LeftParentheses || type == RightParentheses ||
+                type == EndOfFile || (type > KeywordStart && type < KeywordEnd)) &&
+               "it must be parenthesis type style or keyword!");
 }
 
 Token::Token(std::string&& string, FilePos pos)
@@ -278,18 +277,18 @@ Token::Token(std::string&& string, FilePos pos)
 Token::Token(TokenType type, std::string& string, FilePos pos)
     : type(type), string_literal(string), pos(pos)
 {
-    assert(type == Identifier || type == String);
+    VCC_ASSERT(type == Identifier || type == String);
 }
 
 const std::string& Token::getStringLiteral() const
 {
-    assert(type == Identifier || type == String);
+    VCC_ASSERT(type == Identifier || type == String);
     return string_literal;
 }
 
 long long Token::getIntegerLiteral() const
 {
-    assert(type == IntegerLiteral);
+    VCC_ASSERT(type == IntegerLiteral);
     return integer_literal;
 }
 

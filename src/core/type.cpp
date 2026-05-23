@@ -41,7 +41,7 @@ bool Type::isVoidPtr() const
 
 llvm::Type* Type::getType(ContextHolder holder)
 {
-    assert(false && "please implement getType");
+    VCC_UNREACHABLE("please implement getType");
     return nullptr;
 }
 
@@ -66,7 +66,7 @@ BuiltinType::BuiltinType(Builtin builtin) : m_builtin(builtin)
             m_bits_size = 64;
             break;
         default:
-            assert(false && "how did we get here?");
+            VCC_UNREACHABLE("how did we get here?");
     }
 }
 
@@ -93,7 +93,7 @@ llvm::Type* BuiltinType::getType(ContextHolder holder)
             m_llvm_type = llvm::Type::getFloatTy(holder->context);
             return m_llvm_type;
         default:
-            assert(false && "should be not possible");
+            VCC_UNREACHABLE("should be not possible");
             return nullptr;
     }
 }
@@ -104,7 +104,7 @@ StructType::StructType(const std::vector<Element>& element, const std::string& n
 #ifdef NDEBUG
     for (int i = 0; i < m_elements.size(); ++i)
     {
-        assert(m_elements[i].field_num == i && "The array makes no sense otherwise");
+        VCC_ASSERT(m_elements[i].field_num == i && "The array makes no sense otherwise");
     }
 #endif
 }
@@ -203,7 +203,7 @@ void BuiltinType::dump()
             std::cout << "float";
             break;
         default:
-            assert(false && "don't know how to print type");
+            VCC_UNREACHABLE("don't know how to print type");
     }
 }
 
@@ -256,8 +256,8 @@ bool Type::isSame(Type* lhs, Type* rhs)
 
         for (int i = 0; i < lhs_elements.size(); ++i)
         {
-            assert(lhs_elements[i].field_num == rhs_elements[i].field_num &&
-                   "invariant check");
+            VCC_ASSERT(lhs_elements[i].field_num == rhs_elements[i].field_num &&
+                       "invariant check");
             if (lhs_elements[i].name != rhs_elements[i].name)
                 return false;
 

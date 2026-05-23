@@ -10,14 +10,14 @@ SymbolTable::SymbolTable() : m_local_variable_table(), m_function_table() {}
 void SymbolTable::addFunction(const FunctionDecl* function_decl)
 {
     std::string function_name = function_decl->getName();
-    assert(m_function_table.find(function_name) == m_function_table.end());
+    VCC_ASSERT(m_function_table.find(function_name) == m_function_table.end());
 
     m_function_table[function_name] = function_decl;
 }
 
 const FunctionDecl* SymbolTable::lookupFunction(const std::string& name)
 {
-    assert(m_function_table.find(name) != m_function_table.end());
+    VCC_ASSERT(m_function_table.find(name) != m_function_table.end());
     return m_function_table[name];
 }
 
@@ -49,14 +49,14 @@ CGTypeInfo TrieTree::lookup(const ASTBase* at, std::string name) const
             return it->second;
     }
 
-    assert(false && "failed name lookup. undefined reference?");
+    VCC_UNREACHABLE("failed name lookup. undefined reference?");
     return {nullptr, nullptr};
 }
 
 TrieTree::TrieTree::TrieNode::TrieNode(const ASTBase* decl)
     : scope_def(decl), decls(), child()
 {
-    assert(decl->doesDefineScope() && "decl must define a scope");
+    VCC_ASSERT(decl->doesDefineScope() && "decl must define a scope");
 }
 
 TrieTree::TrieTree(const FunctionDecl* decl) : head(std::make_unique<TrieNode>(decl)) {}
@@ -87,17 +87,17 @@ void TrieTree::insert(const ASTBase* pos, std::string name, Type* type,
     }
 
     // finally adding the element into here
-    assert(traverse_trie->scope_def == pos->getScopeDeclLoc() &&
-           "we must be at the location of scope def when we are inserting");
-    assert(traverse_trie->decls.find(name) == traverse_trie->decls.end() &&
-           "duplicate definition?");
+    VCC_ASSERT(traverse_trie->scope_def == pos->getScopeDeclLoc() &&
+               "we must be at the location of scope def when we are inserting");
+    VCC_ASSERT(traverse_trie->decls.find(name) == traverse_trie->decls.end() &&
+               "duplicate definition?");
     traverse_trie->decls[name] = {value, type};
 }
 
 void TrieTree::getTrieOrder(const ASTBase* start,
                             std::vector<const ASTBase*>& trie_order) const
 {
-    assert(start && "must be true" && trie_order.size() == 0 && "must also be empty");
+    VCC_ASSERT(start && "must be true" && trie_order.size() == 0 && "must also be empty");
     start = start->getScopeDeclLoc();
     while (start)
     {

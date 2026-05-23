@@ -3,7 +3,6 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 
-#include <cassert>
 #include <iostream>
 
 #include "core/ast_dumper.h"
@@ -62,8 +61,8 @@ const std::set<ASTBase*>& ASTBase::getChildren() const
 
 void ASTBase::removeChildren(ASTBase* children)
 {
-    assert(m_childrens.find(children) != m_childrens.end() &&
-           "must contain element to begin with");
+    VCC_ASSERT(m_childrens.find(children) != m_childrens.end() &&
+               "must contain element to begin with");
 
     // FIXME: we may have just leaked memory here!
     children->setParent(nullptr);
@@ -199,14 +198,14 @@ BinaryExpression::BinaryExpressionType BinaryExpression::getFromLexType(lex::Tok
         case lex::Divide:
             return Divide;
         default:
-            assert(false && "invalid token type");
+            VCC_UNREACHABLE("invalid token type");
             return Add;
     }
 }
 
 void BinaryExpression::setRHS(Expression* rhs)
 {
-    assert(!m_rhs && "expected it to be a null pointer");
+    VCC_ASSERT(!m_rhs && "expected it to be a null pointer");
     addChildren(rhs);
 
     m_rhs = rhs;
@@ -339,8 +338,8 @@ LocatorExpression::LocatorExpression(code::TreeCode code,
 Type* ArrayAccessExpression::getGEPChildType(ContextHolder holder)
 {
     Type* current_type = getGEPType(holder);
-    assert((current_type->isArray() || current_type->isPointer()) &&
-           "array access expression must have valid type!");
+    VCC_ASSERT((current_type->isArray() || current_type->isPointer()) &&
+               "array access expression must have valid type!");
 
     if (PointerType* type = dyncast<PointerType>(current_type))
     {
@@ -508,7 +507,7 @@ Type* MemberAccessExpression::getGEPType(ContextHolder holder)
         return expression->getInnerType(holder);
     }
 
-    assert(isa<MemberAccessExpression>(m_parent));
+    VCC_ASSERT(isa<MemberAccessExpression>(m_parent));
     MemberAccessExpression* parent = dyncast<MemberAccessExpression>(m_parent);
     return parent->getGEPChildType(holder);
 }
@@ -570,7 +569,7 @@ Type* CallExpr::getType(ContextHolder holder)
 
 static Type* getIntWithMoreBits(BuiltinType* lhs, BuiltinType* rhs)
 {
-    assert(lhs->isIntegerKind() && rhs->isIntegerKind());
+    VCC_ASSERT(lhs->isIntegerKind() && rhs->isIntegerKind());
     return lhs->getBitSize() > rhs->getBitSize() ? lhs : rhs;
 }
 
@@ -594,9 +593,9 @@ Type* BinaryExpression::getType(ContextHolder holder)
 
     if (m_lhs->getType(holder)->isPointer() || m_rhs->getType(holder)->isPointer())
     {
-        assert(false &&
-               "please emit error here. pointer type in binary expression "
-               "is illform for now!");
+        VCC_UNREACHABLE(
+            "please emit error here. pointer type in binary expression "
+            "is illform for now!");
         return nullptr;
     }
 
@@ -615,7 +614,7 @@ Type* BinaryExpression::getType(ContextHolder holder)
         return getIntWithMoreBits(casted_lhs, casted_rhs);
     }
 
-    assert(false && "don't know what to do here!");
+    VCC_UNREACHABLE("don't know what to do here!");
     return nullptr;
 }
 
@@ -640,8 +639,8 @@ Type* ArrayAccessExpression::getGEPType(ContextHolder holder)
         return parent->getGEPChildType(holder);
     }
 
-    assert(isa<MemberAccessExpression>(m_parent_expression) &&
-           "must be member expresion beacuse we have no options left!");
+    VCC_ASSERT(isa<MemberAccessExpression>(m_parent_expression) &&
+               "must be member expresion beacuse we have no options left!");
     MemberAccessExpression* parent = dyncast<MemberAccessExpression>(m_parent_expression);
     return parent->getGEPChildType(holder);
 }

@@ -81,10 +81,10 @@ void printAsCompType(Context *context) {
   // cast the type
   for (auto it = context->module->begin(), ie = context->module->end();
        it != ie; ++it) {
-    assert(llvm::isa<llvm::Function>(it) &&
-           "we assume that they are all function for now");
-    llvm::Function *function = llvm::cast<llvm::Function>(it);
-    printCompDecl(function);
+      VCC_ASSERT(llvm::isa<llvm::Function>(it) &&
+                 "we assume that they are all function for now");
+      llvm::Function* function = llvm::cast<llvm::Function>(it);
+      printCompDecl(function);
   }
 }
 

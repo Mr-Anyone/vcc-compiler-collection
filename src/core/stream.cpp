@@ -1,11 +1,12 @@
 #include "core/stream.h"
 
-#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
 #include <sstream>
+
+#include "core/util.h"
 
 using namespace vcc;
 
@@ -109,7 +110,7 @@ void FileStream::seekg(long pos)
     // update the position
     m_current_loc = pos;
     m_pos = new_pos;
-    assert(tellg() == pos && "must be true if we have seekg");
+    VCC_ASSERT(tellg() == pos && "must be true if we have seekg");
 }
 
 bool FileStream::eof()
@@ -119,7 +120,7 @@ bool FileStream::eof()
 
 void FileStream::saveState()
 {
-    assert(!m_is_in_save_state);
+    VCC_ASSERT(!m_is_in_save_state);
     m_restore_loc      = tellg();
     m_restore_pos      = m_pos;
     m_is_in_save_state = true;
@@ -127,7 +128,7 @@ void FileStream::saveState()
 
 void FileStream::restoreState()
 {
-    assert(m_is_in_save_state);
+    VCC_ASSERT(m_is_in_save_state);
 
     seekg(m_restore_loc);
     m_pos              = m_restore_pos;

@@ -8,6 +8,7 @@ add_library(comp
   sema.cpp
   driver.cpp
   type.cpp
+  util.cpp
 
   # FIXME: maybe add this into a different standard library
   stream.cpp

@@ -3,7 +3,6 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DerivedTypes.h>
 
-#include <cassert>
 #include <iostream>
 
 #include "core/ast.h"
@@ -36,7 +35,7 @@ void CodeGenerator::emitStatement(Statement* stmt, ContextHolder holder)
         case code::WhileStatement:
             return emitWhileStatement(dyncast<WhileStatement>(stmt), holder);
         default:
-            assert(false && "unhandled statement kind in CodeGenerator::emitStatement");
+            VCC_UNREACHABLE("unhandled statement kind in CodeGenerator::emitStatement");
     }
 }
 
@@ -67,9 +66,9 @@ llvm::Value* CodeGenerator::emitExpression(Expression* expr, ContextHolder holde
         case code::StringLiteral:
             return emitStringLiteralExpression(dyncast<StringLiteral>(expr), holder);
         default:
-            assert(false &&
-                   "unhandled expression kind in "
-                   "CodeGenerator::emitExpression");
+            VCC_UNREACHABLE(
+                "unhandled expression kind in "
+                "CodeGenerator::emitExpression");
             return nullptr;
     }
 }
@@ -92,9 +91,9 @@ llvm::Value* CodeGenerator::emitRefExpression(LocatorExpression* expr,
         case code::RefExpression:
             return emitRefRefExpression(dyncast<RefExpression>(expr), holder);
         default:
-            assert(false &&
-                   "unhandled locator expression in "
-                   "CodeGenerator::emitRefExpression");
+            VCC_UNREACHABLE(
+                "unhandled locator expression in "
+                "CodeGenerator::emitRefExpression");
             return nullptr;
     }
 }
@@ -131,8 +130,8 @@ void CodeGenerator::emitFunctionArgListsStatement(FunctionArgLists* args,
 void CodeGenerator::emitAssignmentStatement(AssignmentStatement* stmt,
                                             ContextHolder holder)
 {
-    assert(isa<LocatorExpression>(stmt->getRefExpression()) &&
-           "must be an locator value");
+    VCC_ASSERT(isa<LocatorExpression>(stmt->getRefExpression()) &&
+               "must be an locator value");
     llvm::Value* expression_val = emitExpression(stmt->getExpression(), holder);
     llvm::Value* alloc_loc =
         emitRefExpression(dyncast<LocatorExpression>(stmt->getRefExpression()), holder);
@@ -145,7 +144,7 @@ void CodeGenerator::emitAssignmentStatement(AssignmentStatement* stmt,
         return;
     }
 
-    assert(expression_val && alloc_loc);
+    VCC_ASSERT(expression_val && alloc_loc);
     holder->builder.CreateStore(expression_val, alloc_loc);
 }
 
@@ -158,8 +157,8 @@ void CodeGenerator::emitReturnStatement(ReturnStatement* stmt, ContextHolder hol
     }
     else
     {
-        assert(stmt->getFirstFunctionDecl()->getReturnType()->isVoid() &&
-               "must be void for this to make sense");
+        VCC_ASSERT(stmt->getFirstFunctionDecl()->getReturnType()->isVoid() &&
+                   "must be void for this to make sense");
         holder->builder.CreateRetVoid();
     }
 }
@@ -193,7 +192,7 @@ void CodeGenerator::emitIfStatement(IfStatement* stmt, ContextHolder holder)
         llvm::BasicBlock::Create(holder->context, "", function);
 
     llvm::Value* cond = emitExpression(stmt->getCondition(), holder);
-    assert(cond->getType()->isIntegerTy() && "must be integer type");
+    VCC_ASSERT(cond->getType()->isIntegerTy() && "must be integer type");
     cond = holder->builder.CreateICmpNE(cond, llvm::ConstantInt::get(cond->getType(), 0));
 
     holder->builder.CreateCondBr(cond, true_if_block, fallthrough_block);
@@ -204,7 +203,7 @@ void CodeGenerator::emitIfStatement(IfStatement* stmt, ContextHolder holder)
         emitStatement(statement, holder);
     }
 
-    assert(stmt->getStatements().size() >= 1 && "must be true for now");
+    VCC_ASSERT(stmt->getStatements().size() >= 1 && "must be true for now");
     ASTBase* last_expression = stmt->getStatements()[stmt->getStatements().size() - 1];
     if (dynamic_cast<ReturnStatement*>(last_expression) == nullptr)
         holder->builder.CreateBr(fallthrough_block);
@@ -226,7 +225,7 @@ void CodeGenerator::emitWhileStatement(WhileStatement* stmt, ContextHolder holde
 
     holder->builder.SetInsertPoint(cond_block);
     llvm::Value* cond = emitExpression(stmt->getCondition(), holder);
-    assert(cond->getType()->isIntegerTy() && "must be integer");
+    VCC_ASSERT(cond->getType()->isIntegerTy() && "must be integer");
     cond = holder->builder.CreateICmpNE(cond, llvm::ConstantInt::get(cond->getType(), 0));
     holder->builder.CreateCondBr(cond, while_true_block, fallthrough);
 
@@ -236,7 +235,7 @@ void CodeGenerator::emitWhileStatement(WhileStatement* stmt, ContextHolder holde
         emitStatement(statement, holder);
     }
 
-    assert(stmt->getStatements().size() >= 1 && "must be true for now");
+    VCC_ASSERT(stmt->getStatements().size() >= 1 && "must be true for now");
     Statement* last_statement = stmt->getStatements()[stmt->getStatements().size() - 1];
     if (!isa<ReturnStatement>(last_statement))
         holder->builder.CreateBr(cond_block);
@@ -336,10 +335,10 @@ llvm::Value* CodeGenerator::emitCallExpression(CallExpr* expr, ContextHolder hol
     const FunctionDecl* function_decl =
         holder->symbol_table.lookupFunction(expr->getFuncName());
 
-    assert(function_decl && "this must exist for codegen!");
-    assert(function_decl->getFunctionType(holder)->getNumParams() ==
-               expr->getExpressions().size() &&
-           "expected the same number of argument");
+    VCC_ASSERT(function_decl && "this must exist for codegen!");
+    VCC_ASSERT(function_decl->getFunctionType(holder)->getNumParams() ==
+                   expr->getExpressions().size() &&
+               "expected the same number of argument");
 
     std::vector<llvm::Value*> args;
     int count = 0;
@@ -373,9 +372,9 @@ llvm::Value* CodeGenerator::emitIntegerBinaryExpression(BinaryExpression* expr,
                                                         llvm::Value* left_hand_side,
                                                         llvm::Value* right_hand_side)
 {
-    assert(right_hand_side->getType()->isIntegerTy() &&
-           left_hand_side->getType()->isIntegerTy() &&
-           "both side most be integer for now");
+    VCC_ASSERT(right_hand_side->getType()->isIntegerTy() &&
+               left_hand_side->getType()->isIntegerTy() &&
+               "both side most be integer for now");
 
     if (right_hand_side->getType()->getPrimitiveSizeInBits() >
         left_hand_side->getType()->getPrimitiveSizeInBits())
@@ -390,8 +389,8 @@ llvm::Value* CodeGenerator::emitIntegerBinaryExpression(BinaryExpression* expr,
             holder->builder.CreateSExt(right_hand_side, left_hand_side->getType());
     }
 
-    assert(right_hand_side && left_hand_side && "cannot be null");
-    assert(left_hand_side->getType() == right_hand_side->getType());
+    VCC_ASSERT(right_hand_side && left_hand_side && "cannot be null");
+    VCC_ASSERT(left_hand_side->getType() == right_hand_side->getType());
     switch (expr->getKind())
     {
         case BinaryExpression::Add:
@@ -413,11 +412,11 @@ llvm::Value* CodeGenerator::emitIntegerBinaryExpression(BinaryExpression* expr,
         case BinaryExpression::LT:
             return holder->builder.CreateICmpSLT(left_hand_side, right_hand_side);
         case BinaryExpression::Divide:
-            assert(left_hand_side->getType()->isIntegerTy() &&
-                   right_hand_side->getType()->isIntegerTy());
+            VCC_ASSERT(left_hand_side->getType()->isIntegerTy() &&
+                       right_hand_side->getType()->isIntegerTy());
             return holder->builder.CreateUDiv(left_hand_side, right_hand_side);
         default:
-            assert(false && "cannot get here");
+            VCC_UNREACHABLE("cannot get here");
             return nullptr;
     }
 }
@@ -432,9 +431,9 @@ llvm::Value* CodeGenerator::emitBinaryExpression(BinaryExpression* expr,
         left_hand_side->getType()->isIntegerTy())
         return emitIntegerBinaryExpression(expr, holder, left_hand_side, right_hand_side);
 
-    assert((right_hand_side->getType()->isFloatingPointTy() ||
-            left_hand_side->getType()->isFloatingPointTy()) &&
-           "either side must be a floating point");
+    VCC_ASSERT((right_hand_side->getType()->isFloatingPointTy() ||
+                left_hand_side->getType()->isFloatingPointTy()) &&
+               "either side must be a floating point");
 
     if (!right_hand_side->getType()->isFloatingPointTy())
     {
@@ -443,13 +442,13 @@ llvm::Value* CodeGenerator::emitBinaryExpression(BinaryExpression* expr,
     }
     else if (!left_hand_side->getType()->isFloatingPointTy())
     {
-        assert(left_hand_side->getType()->isIntegerTy());
+        VCC_ASSERT(left_hand_side->getType()->isIntegerTy());
         left_hand_side =
             holder->builder.CreateSIToFP(left_hand_side, right_hand_side->getType());
     }
 
-    assert(right_hand_side && left_hand_side && "cannot be null");
-    assert(left_hand_side->getType() == right_hand_side->getType());
+    VCC_ASSERT(right_hand_side && left_hand_side && "cannot be null");
+    VCC_ASSERT(left_hand_side->getType() == right_hand_side->getType());
     switch (expr->getKind())
     {
         case BinaryExpression::Add:
@@ -473,7 +472,7 @@ llvm::Value* CodeGenerator::emitBinaryExpression(BinaryExpression* expr,
         case BinaryExpression::Divide:
             return holder->builder.CreateFDiv(left_hand_side, right_hand_side);
         default:
-            assert(false && "cannot get here");
+            VCC_UNREACHABLE("cannot get here");
             return nullptr;
     }
 }
@@ -548,7 +547,7 @@ llvm::Value* CodeGenerator::emitCurrentRefArrayAccessExpression(
 llvm::Value* CodeGenerator::emitCurrentRefDeRefExpression(DeRefExpression* expr,
                                                           ContextHolder holder)
 {
-    assert(expr->getRef()->getType(holder)->isPointer());
+    VCC_ASSERT(expr->getRef()->getType(holder)->isPointer());
     return emitExpression(expr->getRef(), holder);
 }
 
@@ -585,7 +584,7 @@ llvm::Value* CodeGenerator::emitDeRefExpression(DeRefExpression* expr,
     if (expr->getPosfixChild())
         return emitExpression(expr->getPosfixChild(), holder);
 
-    assert(expr->getRef()->getType(holder)->isPointer());
+    VCC_ASSERT(expr->getRef()->getType(holder)->isPointer());
     llvm::Value* current_value = emitExpression(expr->getRef(), holder);
     llvm::Type* base_type =
         expr->getRef()->getType(holder)->getAs<PointerType>()->getPointee()->getType(
@@ -610,8 +609,8 @@ llvm::Value* CodeGenerator::emitBuiltinCastExpression(CastExpression* expr,
                                                       BuiltinType* from, BuiltinType* to,
                                                       ContextHolder holder)
 {
-    assert(from && to);
-    assert(!Type::isSame(from, to));
+    VCC_ASSERT(from && to);
+    VCC_ASSERT(!Type::isSame(from, to));
 
     if (from->isIntegerKind() && to->isFloat())
     {
@@ -625,8 +624,8 @@ llvm::Value* CodeGenerator::emitBuiltinCastExpression(CastExpression* expr,
         return holder->builder.CreateFPToSI(value, to->getType(holder));
     }
 
-    assert(from->isIntegerKind() && to->isIntegerKind());
-    assert(from->getBitSize() != to->getBitSize());
+    VCC_ASSERT(from->isIntegerKind() && to->isIntegerKind());
+    VCC_ASSERT(from->getBitSize() != to->getBitSize());
 
     if (from->isBool())
     {
@@ -703,14 +702,14 @@ llvm::Value* CodeGenerator::emitRefDeRefExpression(DeRefExpression* expr,
     if (expr->getPosfixChild())
         return emitRefExpression(expr->getPosfixChild(), holder);
 
-    assert(expr->getRef()->getType(holder)->isPointer());
+    VCC_ASSERT(expr->getRef()->getType(holder)->isPointer());
     return emitExpression(expr->getRef(), holder);
 }
 
 llvm::Value* CodeGenerator::emitRefRefExpression(RefExpression* expr,
                                                  ContextHolder holder)
 {
-    assert(false && "this is ill form");
+    VCC_UNREACHABLE("this is ill form");
     return emitRefExpression(dyncast<LocatorExpression>(expr->getInnerExpression()),
                              holder);
 }
@@ -718,6 +717,6 @@ llvm::Value* CodeGenerator::emitRefRefExpression(RefExpression* expr,
 llvm::Function* CodeGenerator::getLLVMFunction(const FunctionDecl* decl) const
 {
     auto it = m_function_map.find(decl);
-    assert(it != m_function_map.end() && "function not registered in codegen");
+    VCC_ASSERT(it != m_function_map.end() && "function not registered in codegen");
     return it->second;
 }

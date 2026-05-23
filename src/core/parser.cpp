@@ -1,7 +1,5 @@
 #include "core/parser.h"
 
-#include <cassert>
-
 #include "core/ast.h"
 
 using namespace vcc;
@@ -88,8 +86,8 @@ Type* Parser::buildTypeQualification()
 
             std::string struct_name = getTokenString();
             consume();
-            assert(m_struct_defs.find(struct_name) != m_struct_defs.end() &&
-                   "undefined reference to struct");
+            VCC_ASSERT(m_struct_defs.find(struct_name) != m_struct_defs.end() &&
+                       "undefined reference to struct");
             return m_struct_defs[struct_name];
         }
         default:
@@ -145,8 +143,8 @@ void Parser::addStructDefinition()
     }
 
     // Finally, inserting the element into the table
-    assert(m_struct_defs.find(name) == m_struct_defs.end() &&
-           "we have duplicated definition of the same struct");
+    VCC_ASSERT(m_struct_defs.find(name) == m_struct_defs.end() &&
+               "we have duplicated definition of the same struct");
     m_struct_defs[name] = new StructType(elements, name);
 }
 
@@ -176,7 +174,7 @@ Statement* Parser::buildExternalDecl()
 // top_level :== <function_decl> | <struct_definition> | <external_decl>
 const std::vector<Statement*>& Parser::buildSyntaxTree()
 {
-    assert(m_top_level_statements.size() == 0 && "can only be called once");
+    VCC_ASSERT(m_top_level_statements.size() == 0 && "can only be called once");
     bool has_failed = false;
     while (!is(lex::EndOfFile) && !has_failed)
     {
@@ -333,7 +331,7 @@ Statement* Parser::buildFunctionDecl()
     std::vector<Statement*> expressions;
     while ((exp = buildStatement()))
     {
-        assert(exp && "expression must be non nullptr");
+        VCC_ASSERT(exp && "expression must be non nullptr");
         expressions.push_back(exp);
     }
 
@@ -452,7 +450,7 @@ Expression* Parser::buildBinaryExpression(int min_precendence)
     // return result
 
     Expression* result = buildTrivialExpression();
-    assert(result && "not sure how can this be false?");
+    VCC_ASSERT(result && "not sure how can this be false?");
 
     // this is just a trivial expression case
     Token current_operator_token = m_tokenizer.current();
@@ -503,7 +501,7 @@ static void appendChild(LocatorExpression* expression, LocatorExpression* child)
         return;
     }
 
-    assert(isa<MemberAccessExpression>(expression));
+    VCC_ASSERT(isa<MemberAccessExpression>(expression));
     MemberAccessExpression* member_access = dyncast<MemberAccessExpression>(expression);
     member_access->setChildPosfixExpression(child);
 }
@@ -513,8 +511,8 @@ static void appendChild(LocatorExpression* expression, LocatorExpression* child)
 LocatorExpression* Parser::buildTailPosfixExpression(LocatorExpression* lhs)
 {
     FilePos locus = m_tokenizer.getPos();
-    assert(lhs && "we must have a parent if we made it here");
-    assert(isFullstopOrLeftBracket(m_tokenizer.current()));
+    VCC_ASSERT(lhs && "we must have a parent if we made it here");
+    VCC_ASSERT(isFullstopOrLeftBracket(m_tokenizer.current()));
     if (is(lex::Fullstop))
     {
         consume();
@@ -539,7 +537,7 @@ LocatorExpression* Parser::buildTailPosfixExpression(LocatorExpression* lhs)
 
     // parsing the following:
     //     <postfix_expression>, '[', <expression>, ']'
-    assert(is(lex::LeftBracket) && "we are parsing []");
+    VCC_ASSERT(is(lex::LeftBracket) && "we are parsing []");
     if (!at(lex::LeftBracket))
     {
         logError("expected identifier");
@@ -615,8 +613,8 @@ LocatorExpression* Parser::buildPosfixExpression(LocatorExpression* lhs)
         return array_access;
     }
 
-    assert(is(lex::Fullstop) &&
-           "must be . since we are parsing member lookup expressoin");
+    VCC_ASSERT(is(lex::Fullstop) &&
+               "must be . since we are parsing member lookup expressoin");
     consume();
 
     if (!is(lex::Identifier))
@@ -908,13 +906,13 @@ void Parser::consume()
 
 std::string Parser::getTokenString()
 {
-    assert(tok() == lex::Identifier || tok() == lex::String);
+    VCC_ASSERT(tok() == lex::Identifier || tok() == lex::String);
     return m_tokenizer.current().getStringLiteral();
 }
 
 int Parser::getIntegerLiteral()
 {
-    assert(tok() == lex::IntegerLiteral);
+    VCC_ASSERT(tok() == lex::IntegerLiteral);
     return m_tokenizer.current().getIntegerLiteral();
 }
 

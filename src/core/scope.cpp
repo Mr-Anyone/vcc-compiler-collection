@@ -1,8 +1,9 @@
 #include "core/scope.h"
 
 #include <algorithm>
-#include <cassert>
 #include <iostream>
+
+#include "core/util.h"
 
 using namespace vcc;
 
@@ -104,7 +105,7 @@ Scope* Scope::createScope(lex::TokenType type, Scope* parent)
             case lex::TokenType::While:
                 return ScopeType::WhileStatement;
             default:
-                assert(false && "this should crash here!");
+                VCC_UNREACHABLE("this should crash here!");
         }
     };
 
