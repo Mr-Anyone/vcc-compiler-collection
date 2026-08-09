@@ -5,96 +5,109 @@
 
 #include <iostream>
 
+#include "adt/optional.h"
+#include "core/ast_base.h"
+#include "core/scope.h"
+
 namespace vcc
 {
 class FunctionDecl;
-class ASTBase;
 class Type;
 
-// Each TrieTrie insert and stores the following
 struct CGTypeInfo
 {
-    llvm::Value* value;  // the allocated location on the stack
+    llvm::Value* value;
     Type* type;
 };
 
-/// There is only one TrieTree for every
-/// FunctionDecl
-///
-/// Stores scope information used for
-/// name lookup
-/// function testing gives int [
-///     int a,
-///     int b,
-/// ]{
-///     if a eq b then
-///         int c = 10;
-///         ret a - b + c;
-///     end
-///     ret a + b;
-/// }
-/// FunctionDecl--(symbols a, b)
-///      |-- If statement (symbols c)
-class TrieTree
+struct SymbolTableKey
 {
-   public:
-    TrieTree();
-    TrieTree(const FunctionDecl* decl);
+    Scope* scope;
+    std::string name;
 
-    /// insert a name with code gen value at a position pos
-    void insert(const ASTBase* pos, std::string name, Type* type, llvm::Value* value);
-
-    /// looking up a variable name named name at pos
-    CGTypeInfo lookup(const ASTBase* pos, std::string name) const;
-
-   private:
-    /// Given an empty array, put something like {FunctionDecl, IfStatement,
-    /// WhileStatement} into trie_order
-    void getTrieOrder(const ASTBase* start,
-                      std::vector<const ASTBase*>& trie_order) const;
-
-    struct TrieNode
+    inline bool operator==(const SymbolTableKey& other) const
     {
-        // FIXME: maybe adding a static method for heap allocation is a good
-        // idea? so then we can make this private
-        TrieNode(const ASTBase* scope_decl);
-
-        void dump();
-        // name to value
-        const ASTBase* scope_def;  // must either be a scope specifier
-        std::unordered_map<std::string, CGTypeInfo> decls;  // data that is being stored
-        std::unordered_map<const ASTBase*, std::shared_ptr<TrieNode>>
-            child;  // child[inner scope] = next;
-    };
-    using node_t = std::shared_ptr<TrieNode>;
-
-    // The head of the TrieTree is not like a conventional. This
-    // is always the function decl
-    node_t head;
+        return other.scope == this->scope && other.name == this->name;
+    }
 };
 
-// Basically just like a hash table
+template <typename InsertType>
 class SymbolTable
 {
    public:
-    SymbolTable();
+    SymbolTable() {}
+    SymbolTable(const SymbolTable& other) = delete;
 
-    void addFunction(const FunctionDecl* function_decl);
-    const FunctionDecl* lookupFunction(const std::string& name);
+    /// Returns true on success, false otherwise
+    bool insert(ASTBase* loc, std::string name, InsertType value)
+    {
+        return insert(loc->getScope(), name, value);
+    }
 
-    /// Adding a name named name at loc with value value
-    void addLocalVariable(ASTBase* loc, std::string name, Type* type, llvm::Value* value);
-    // FIXME: it may be better to just return a struct that contains a bit
-    // more type information
-    CGTypeInfo lookupLocalVariable(ASTBase* at, std::string name);
+    /// Returns true on success, false otherwise
+    bool insert(Scope* loc, std::string name, InsertType value)
+    {
+        SymbolTableKey key{.scope = loc, .name = name};
+        if (m_table.find(key) != m_table.end())
+        {
+            return false;
+        }
+
+        m_table[key] = value;
+        return true;
+    }
+
+    /// exist traverse the entire scope tree to find if a
+    /// ancestor has a name
+    void exist(ASTBase* loc, std::string name)
+    {
+        return exist(loc->getScope(), name);
+    }
+
+    void exist(Scope* loc, std::string name)
+    {
+        return !lookup(loc, name).isEmtpy();
+    }
+
+    Optional<InsertType> lookup(ASTBase* at, std::string name)
+    {
+        return lookup(at->getScope(), name);
+    }
+
+    Optional<InsertType> lookup(Scope* at, std::string name)
+    {
+        // Lookup is a bit more complicated since we have to
+        while (at)
+        {
+            SymbolTableKey key{.scope = at, .name = name};
+
+            if (m_table.find(key) != m_table.end())
+            {
+                return Optional(m_table[key]);
+            }
+
+            at = at->parent();
+        }
+
+        return Optional<InsertType>();
+    }
 
    private:
-    std::unordered_map<std::string, TrieTree>
-        m_local_variable_table;  // m_local_variable_table[function name] = the
-                                 // corresponding TrieTree.
-    std::unordered_map<std::string, const FunctionDecl*> m_function_table;
+    std::unordered_map<SymbolTableKey, InsertType> m_table;
 };
 
+using LocalVariableTable = SymbolTable<Type*>;
+using FunctionDeclTable  = SymbolTable<FunctionDecl*>;
 };  // namespace vcc
 
+// provide hash function to the symbol table
+template <>
+struct std::hash<vcc::SymbolTableKey>
+{
+    std::size_t operator()(const vcc::SymbolTableKey& k) const
+    {
+        return hash<vcc::Scope*>{}(k.scope) ^ (hash<std::string>{}(k.name) << 1);
+    }
+};
+// provide local variable to the hash table
 #endif

@@ -47,6 +47,7 @@ class Scope
 
     const std::vector<Scope*>& children();
     Scope* parent() const;
+    Scope* getTopMostScope();
 
    private:
     void addChild(Scope* child);

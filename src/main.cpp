@@ -43,12 +43,12 @@ int main(int argc, char *argv[]) {
   vcc::ContextHolder holder = parser.getHolder();
   vcc::Sema sema;
 
-  vcc::CodeGenerator codegen;
+  vcc::CodeGenerator codegen(holder);
   for (vcc::ASTBase *tree : parser.getSyntaxTree()) {
     if (print_ast)
       tree->debugDump();
 
-    codegen.emitStatement(vcc::dyncast<vcc::Statement>(tree), holder);
+    codegen.emitStatement(vcc::dyncast<vcc::Statement>(tree));
   }
 
   // Create the analysis managers.
@@ -69,12 +69,13 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  llvm::Module& module = holder->getModule();
   llvm::TargetOptions options;
   std::optional<llvm::Reloc::Model> relocModel = std::make_optional(llvm::Reloc::Model::PIC_);
   llvm::TargetMachine *targetMachine = target->createTargetMachine(
       theRealTriple, "generic", "", options, relocModel);
 
-  holder->module.setDataLayout(targetMachine->createDataLayout());
+  module.setDataLayout(targetMachine->createDataLayout());
   if (!targetMachine) {
     llvm::errs() << "cannot get target machine";
     return 1;
@@ -99,10 +100,10 @@ int main(int argc, char *argv[]) {
 
   // Optimize the IR!
   if (O3)
-    MPM.run(holder->module, MAM);
+      MPM.run(module, MAM);
 
   if (print_llvm)
-    holder->module.print(llvm::outs(), nullptr);
+      module.print(llvm::outs(), nullptr);
 
   // === Emit object/assembly file ===
   std::error_code ec;
@@ -121,7 +122,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  codeGenPasses.run(holder->module);
+  codeGenPasses.run(module);
   dest.flush();
   return 0;
 }

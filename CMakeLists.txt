@@ -3,6 +3,7 @@ project(compiler)
 
 # LLVM currently only supporting c++17
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Enable testing and gtest related settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

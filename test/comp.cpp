@@ -7,10 +7,10 @@
 TEST(CompTest, TestCompile)
 {
     vcc::Parser parser = vcc::parseFile("resource/comp.vcc");
-    vcc::CodeGenerator codegen;
+    vcc::CodeGenerator codegen(parser.getHolder());
     for (vcc::Statement* base : parser.getSyntaxTree())
     {
-        codegen.emitStatement(base, parser.getHolder());
+        codegen.emitStatement(base);
     }
 
     EXPECT_EQ(parser.haveError(), false);

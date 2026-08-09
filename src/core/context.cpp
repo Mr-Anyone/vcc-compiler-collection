@@ -7,14 +7,53 @@
 using namespace vcc;
 
 GlobalContext::GlobalContext(const char* path_to_file)
-    : context(),
-      builder(context),
-      module("my module", context),
-      symbol_table(),
-      diagnostics(),
-      stream(path_to_file)
+    : m_context(),
+      m_builder(m_context),
+      m_module("my module", m_context),
+      m_symbol_table(),
+      m_function_decl_table(),
+      m_diag_driver(),
+      m_stream(path_to_file)
 {
 }
+
+llvm::IRBuilder<>& GlobalContext::getBuilder()
+{
+    return m_builder;
+}
+
+llvm::Module& GlobalContext::getModule()
+{
+    return m_module;
+}
+
+llvm::LLVMContext& GlobalContext::getContext()
+{
+    return m_context;
+}
+
+FileStream& GlobalContext::getStream()
+{
+    return m_stream;
+}
+
+LocalVariableTable& GlobalContext::getLocalVariableTable()
+{
+    return m_symbol_table;
+}
+
+FunctionDeclTable& GlobalContext::getFunctionDeclTable()
+{
+    return m_function_decl_table;
+}
+
+DiagnosticDriver& GlobalContext::getDiagnosticsDriver()
+{
+    return m_diag_driver;
+}
+
+/// ================= Start of DiagnosticDriver =================
+///
 
 void DiagnosticDriver::diag(const std::string& message)
 {

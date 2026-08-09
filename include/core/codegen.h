@@ -7,69 +7,69 @@
 
 #include "core/ast.h"
 #include "core/context.h"
+#include "core/symbol_table.h"
 
 namespace vcc
 {
+using CGSymbolTable = SymbolTable<llvm::Value*>;
+
 class CodeGenerator
 {
    public:
-    void emitStatement(Statement* stmt, ContextHolder holder);
+    CodeGenerator(ContextHolder holder);
+    void emitStatement(Statement* stmt);
 
    private:
-    llvm::Value* emitExpression(Expression* expr, ContextHolder holder);
-    llvm::Value* emitRefExpression(LocatorExpression* expr, ContextHolder holder);
+    llvm::Value* emitExpression(Expression* expr);
+    llvm::Value* emitRefExpression(LocatorExpression* expr);
     // Statement emitters
-    void emitCallStatement(CallStatement* stmt, ContextHolder holder);
-    void emitFunctionArgListsStatement(FunctionArgLists* args, ContextHolder holder);
-    void emitFunctionDeclStatement(FunctionDecl* decl, ContextHolder holder);
-    void emitAssignmentStatement(AssignmentStatement* stmt, ContextHolder holder);
-    void emitReturnStatement(ReturnStatement* stmt, ContextHolder holder);
-    void emitDeclarationStatement(DeclarationStatement* stmt, ContextHolder holder);
-    void emitIfStatement(IfStatement* stmt, ContextHolder holder);
-    void emitWhileStatement(WhileStatement* stmt, ContextHolder holder);
-    void emitExternalDeclStatement(FunctionDecl* decl, ContextHolder holder);
-    void emitAllocsStatement(FunctionDecl* decl, ContextHolder holder);
+    void emitCallStatement(CallStatement* stmt);
+    void emitFunctionArgListsStatement(FunctionArgLists* args);
+    void emitFunctionDeclStatement(FunctionDecl* decl);
+    void emitAssignmentStatement(AssignmentStatement* stmt);
+    void emitReturnStatement(ReturnStatement* stmt);
+    void emitDeclarationStatement(DeclarationStatement* stmt);
+    void emitIfStatement(IfStatement* stmt);
+    void emitWhileStatement(WhileStatement* stmt);
+    void emitExternalDeclStatement(FunctionDecl* decl);
+    void emitAllocsStatement(FunctionDecl* decl);
 
-    // Expression emitters (getVal equivalents)
-    llvm::Value* emitConstantExpression(ConstantExpr* expr, ContextHolder holder);
-    llvm::Value* emitCallExpression(CallExpr* expr, ContextHolder holder);
-    llvm::Value* emitBinaryExpression(BinaryExpression* expr, ContextHolder holder);
-    llvm::Value* emitCastExpression(CastExpression* expr, ContextHolder holder);
-    llvm::Value* emitIdentifierExpression(IdentifierExpr* expr, ContextHolder holder);
-    llvm::Value* emitMemberAccessExpression(MemberAccessExpression* expr,
-                                            ContextHolder holder);
-    llvm::Value* emitArrayAccessExpression(ArrayAccessExpression* expr,
-                                           ContextHolder holder);
-    llvm::Value* emitDeRefExpression(DeRefExpression* expr, ContextHolder holder);
-    llvm::Value* emitRefExpression(RefExpression* expr, ContextHolder holder);
-    llvm::Value* emitStringLiteralExpression(StringLiteral* expr, ContextHolder holder);
+    llvm::Value* emitConstantExpression(ConstantExpr* expr);
+    llvm::Value* emitCallExpression(CallExpr* expr);
+    llvm::Value* emitBinaryExpression(BinaryExpression* expr);
+    llvm::Value* emitCastExpression(CastExpression* expr);
+    llvm::Value* emitIdentifierExpression(IdentifierExpr* expr);
+    llvm::Value* emitMemberAccessExpression(MemberAccessExpression* expr);
+    llvm::Value* emitArrayAccessExpression(ArrayAccessExpression* expr);
+    llvm::Value* emitDeRefExpression(DeRefExpression* expr);
+    llvm::Value* emitRefExpression(RefExpression* expr);
+    llvm::Value* emitStringLiteralExpression(StringLiteral* expr);
 
-    // Ref expression emitters (getRef equivalents)
-    llvm::Value* emitRefIdentifierExpression(IdentifierExpr* expr, ContextHolder holder);
-    llvm::Value* emitRefMemberAccessExpression(MemberAccessExpression* expr,
-                                               ContextHolder holder);
-    llvm::Value* emitRefArrayAccessExpression(ArrayAccessExpression* expr,
-                                              ContextHolder holder);
-    llvm::Value* emitRefDeRefExpression(DeRefExpression* expr, ContextHolder holder);
-    llvm::Value* emitRefRefExpression(RefExpression* expr, ContextHolder holder);
+    llvm::Value* emitRefIdentifierExpression(IdentifierExpr* expr);
+    llvm::Value* emitRefMemberAccessExpression(MemberAccessExpression* expr);
+    llvm::Value* emitRefArrayAccessExpression(ArrayAccessExpression* expr);
+    llvm::Value* emitRefDeRefExpression(DeRefExpression* expr);
+    llvm::Value* emitRefRefExpression(RefExpression* expr);
 
-    // Expression helpers
-    llvm::Value* emitIntegerBinaryExpression(BinaryExpression* expr, ContextHolder holder,
-                                             llvm::Value* lhs, llvm::Value* rhs);
+    llvm::Value* emitIntegerBinaryExpression(BinaryExpression* expr, llvm::Value* lhs,
+                                             llvm::Value* rhs);
     llvm::Value* emitBuiltinCastExpression(CastExpression* expr, BuiltinType* from,
-                                           BuiltinType* to, ContextHolder holder);
-    void emitCastErrorAndExitExpression(CastExpression* expr, ContextHolder holder);
-    llvm::Value* emitStartOfPointerFromParentExpression(Expression* expr,
-                                                        ContextHolder holder);
-    llvm::Value* emitCurrentRefMemberAccessExpression(MemberAccessExpression* expr,
-                                                      ContextHolder holder);
-    llvm::Value* emitCurrentRefArrayAccessExpression(ArrayAccessExpression* expr,
-                                                     ContextHolder holder);
-    llvm::Value* emitCurrentRefDeRefExpression(DeRefExpression* expr,
-                                               ContextHolder holder);
+                                           BuiltinType* to);
+    llvm::Value* emitStartOfPointerFromParentExpression(Expression* expr);
+    llvm::Value* emitCurrentRefMemberAccessExpression(MemberAccessExpression* expr);
+    llvm::Value* emitCurrentRefArrayAccessExpression(ArrayAccessExpression* expr);
+    llvm::Value* emitCurrentRefDeRefExpression(DeRefExpression* expr);
 
     llvm::Function* getLLVMFunction(const FunctionDecl* decl) const;
+
+    llvm::LLVMContext& llvmContext();
+    ContextHolder context();
+    llvm::IRBuilder<>& builder();
+    CGSymbolTable& symbolTable();
+
     llvm::DenseMap<const FunctionDecl*, llvm::Function*> m_function_map;
+    ContextHolder m_context;
+    CGSymbolTable m_symbol_table;
 };
 
 }  // namespace vcc

@@ -167,8 +167,12 @@ Statement* Parser::buildExternalDecl()
     ASTBase* function_arg_list = buildFunctionArgList();
 
     std::vector<Statement*> statements{};
-    return new FunctionDecl(statements, dyncast<FunctionArgLists>(function_arg_list),
-                            std::move(name), return_type, /*is_extern*/ true, locus);
+    FunctionDecl* decl = new FunctionDecl(
+        statements, dyncast<FunctionArgLists>(function_arg_list), std::move(name),
+        return_type, /*is_extern*/ true, locus, getCurScope());
+    getHolder()->getFunctionDeclTable().insert(decl->getScope()->getTopMostScope(), name,
+                                               decl);
+    return decl;
 }
 
 // top_level :== <function_decl> | <struct_definition> | <external_decl>
@@ -213,12 +217,6 @@ const std::vector<Statement*>& Parser::buildSyntaxTree()
     return m_top_level_statements;
 }
 
-inline Parser::ErrorResult Parser::logError(const std::string& message)
-{
-    m_context->diagnostics.diag(m_tokenizer, message);
-    return ErrorResult();
-}
-
 // if_statement :== 'if', <expression>, 'then', <statements>+, 'end'
 Statement* Parser::buildIfStatement()
 {
@@ -240,7 +238,7 @@ Statement* Parser::buildIfStatement()
     if (!at(lex::End))
         return logError("expected end");
 
-    return new IfStatement(cond, std::move(expressions), locus);
+    return new IfStatement(cond, std::move(expressions), locus, getCurScope());
 }
 
 // while_statement :== 'while', <expression> 'then', <statements>+,'end'
@@ -263,7 +261,7 @@ Statement* Parser::buildWhileStatement()
     if (!at(lex::End))
         return logError("expected end");
 
-    return new WhileStatement(cond, std::move(expressions), locus);
+    return new WhileStatement(cond, std::move(expressions), locus, getCurScope());
 }
 
 // call_statement :== <call_expression>, ';'
@@ -274,7 +272,7 @@ Statement* Parser::buildCallStatement()
     if (!at(lex::SemiColon))
         return logError("expected semi colon");
 
-    return new CallStatement(call_expresion, locus);
+    return new CallStatement(call_expresion, locus, getCurScope());
 }
 
 // statements :== <assignment_statement> | <return_statement> | <if_statement>
@@ -338,8 +336,12 @@ Statement* Parser::buildFunctionDecl()
     if (!at(lex::RightBrace))
         return logError("expected }");
 
-    return new FunctionDecl(expressions, arg_list,
-                            std::move(name), return_type, /*is_extern*/ false, locus);
+    FunctionDecl* decl =
+        new FunctionDecl(expressions, arg_list, std::move(name), return_type,
+                         /*is_extern*/ false, locus, getCurScope());
+    getHolder()->getFunctionDeclTable().insert(decl->getScope()->getTopMostScope(), name,
+                                               decl);
+    return decl;
 }
 
 // assignment_statement :== <trivial_expression> ,'=' <expression>, ';'
@@ -358,7 +360,7 @@ Statement* Parser::buildAssignmentStatement()
     if (!at(lex::SemiColon))
         return logError("expected semi colon");
 
-    return new AssignmentStatement(lhs, expression, locus);
+    return new AssignmentStatement(lhs, expression, locus, getCurScope());
 }
 
 // FIXME: maybe put arg_declaration into its own function?
@@ -401,7 +403,11 @@ FunctionArgLists* Parser::buildFunctionArgList()
         return nullptr;
     }
 
-    return new FunctionArgLists(std::move(args), locus);
+    FunctionArgLists* stmt = new FunctionArgLists(std::move(args), locus, getCurScope());
+    std::for_each(
+        args.begin(), args.end(), [&](TypeInfo& info)
+        { getHolder()->getLocalVariableTable().insert(stmt, info.name, info.type); });
+    return stmt;
 }
 
 // return_statement :== 'ret', {<expression>} ';'
@@ -420,7 +426,7 @@ Statement* Parser::buildReturnStatement()
     if (!at(lex::SemiColon))
         return logError("expected ;");
 
-    return new ReturnStatement(expression, locus);
+    return new ReturnStatement(expression, locus, getCurScope());
 }
 
 // expression :==  <binary_expression>
@@ -475,7 +481,7 @@ Expression* Parser::buildBinaryExpression(int min_precendence)
 
         result = new BinaryExpression(
             result, BinaryExpression::getFromLexType(current_operator_token),
-            current_operator_token.getPos());
+            current_operator_token.getPos(), getCurScope());
         consume();
 
         int next_precedence_level = current_precedence_level + 1;
@@ -526,7 +532,7 @@ LocatorExpression* Parser::buildTailPosfixExpression(LocatorExpression* lhs)
         consume();
 
         MemberAccessExpression* expression =
-            new MemberAccessExpression(lhs, member, locus);
+            new MemberAccessExpression(lhs, member, locus, getCurScope());
         appendChild(lhs, expression);
 
         if (isFullstopOrLeftBracket(m_tokenizer.current()))
@@ -551,7 +557,7 @@ LocatorExpression* Parser::buildTailPosfixExpression(LocatorExpression* lhs)
         return nullptr;
     }
     ArrayAccessExpression* new_expression =
-        new ArrayAccessExpression(lhs, expression, locus);
+        new ArrayAccessExpression(lhs, expression, locus, getCurScope());
     appendChild(lhs, new_expression);
     if (isFullstopOrLeftBracket(m_tokenizer.current()))
         buildPosfixExpression(new_expression);
@@ -607,7 +613,7 @@ LocatorExpression* Parser::buildPosfixExpression(LocatorExpression* lhs)
         }
 
         ArrayAccessExpression* array_access =
-            new ArrayAccessExpression(name, expresion, filepos);
+            new ArrayAccessExpression(name, expresion, filepos, getCurScope());
         if (isFullstopOrLeftBracket(m_tokenizer.current()))
             buildPosfixExpression(array_access);
         return array_access;
@@ -626,7 +632,8 @@ LocatorExpression* Parser::buildPosfixExpression(LocatorExpression* lhs)
     std::string literal = getTokenString();
     consume();
 
-    MemberAccessExpression* access = new MemberAccessExpression(name, literal, filepos);
+    MemberAccessExpression* access =
+        new MemberAccessExpression(name, literal, filepos, getCurScope());
     if (isFullstopOrLeftBracket(m_tokenizer.current()))
         buildPosfixExpression(access);
     return access;
@@ -650,7 +657,7 @@ Expression* Parser::buildRefExpression()
         return nullptr;
     }
 
-    return new RefExpression(expression, locus);
+    return new RefExpression(expression, locus, getCurScope());
 }
 
 // cast_expression :== 'cast', '<', <type_qualification> '>', '(',
@@ -674,7 +681,7 @@ Expression* Parser::buildCastExpression()
     if (!at(lex::RightParentheses))
         return logError("expected )");
 
-    return new CastExpression(expression, type, loc);
+    return new CastExpression(expression, type, loc, getCurScope());
 }
 
 // trivial_expression :== <identifier> | <call_expression> |
@@ -689,7 +696,7 @@ Expression* Parser::buildTrivialExpression()
     {
       case lex::IntegerLiteral:
       {
-          Expression* value = new ConstantExpr(getIntegerLiteral(), locus);
+          Expression* value = new ConstantExpr(getIntegerLiteral(), locus, getCurScope());
           consume();
           return value;
       }
@@ -697,7 +704,8 @@ Expression* Parser::buildTrivialExpression()
           return buildCastExpression();
       case lex::String:
       {
-          StringLiteral* string_node = new StringLiteral(getTokenString(), locus);
+          StringLiteral* string_node =
+              new StringLiteral(getTokenString(), locus, getCurScope());
           consume();
           return string_node;
       }
@@ -711,7 +719,7 @@ Expression* Parser::buildTrivialExpression()
         if (isFullstopOrLeftBracket(m_tokenizer.peek()))
           return buildPosfixExpression();
 
-        Expression* value = new IdentifierExpr(getTokenString(), locus);
+        Expression* value = new IdentifierExpr(getTokenString(), locus, getCurScope());
         consume();
 
         return value;
@@ -766,7 +774,7 @@ Expression* Parser::buildCallExpr()
     if (!at(lex::RightParentheses))
         return logError("expected )");
 
-    return new CallExpr(function_name, expressions, locus);
+    return new CallExpr(function_name, expressions, locus, getCurScope());
 }
 
 ContextHolder Parser::getHolder()
@@ -776,7 +784,7 @@ ContextHolder Parser::getHolder()
 
 bool Parser::haveError() const
 {
-    return m_context->diagnostics.hasError();
+    return m_context->getDiagnosticsDriver().hasError();
 }
 
 // declaration_statement :== <type_qualification>, <identifier>, {'=',
@@ -795,7 +803,12 @@ Statement* Parser::buildDeclarationStatement()
     //  we have this case
     // <type_qualification>, <identifier>, ';'
     if (at(lex::SemiColon))
-        return new DeclarationStatement(name, nullptr, parsed_type, locus);
+    {
+        DeclarationStatement* statement =
+            new DeclarationStatement(name, nullptr, parsed_type, locus, getCurScope());
+        getHolder()->getLocalVariableTable().insert(statement, name, parsed_type);
+        return statement;
+    }
 
     if (!at(lex::Equal))
         return logError("expected =");
@@ -805,7 +818,10 @@ Statement* Parser::buildDeclarationStatement()
     if (!at(lex::SemiColon))
         return logError("expected ;");
 
-    return new DeclarationStatement(name, expression, parsed_type, locus);
+    DeclarationStatement* statement =
+        new DeclarationStatement(name, expression, parsed_type, locus, getCurScope());
+    getHolder()->getLocalVariableTable().insert(statement, name, parsed_type);
+    return statement;
 }
 
 // deref_expression :== 'deref', '<', <trivial_expression>, '>'
@@ -820,7 +836,8 @@ Expression* Parser::buildDerefExpression()
     if (!at(lex::GreaterSign))
         return logError("expected >");
 
-    LocatorExpression* deref_expression = new DeRefExpression(ref_get, locus);
+    LocatorExpression* deref_expression =
+        new DeRefExpression(ref_get, locus, getCurScope());
     // FIXME: this is kind of a jank hack to get posfix expression to work
     // with deref expression
     if (isFullstopOrLeftBracket(m_tokenizer.current()))
@@ -832,7 +849,8 @@ Expression* Parser::buildDerefExpression()
     return deref_expression;
 }
 
-Parser::Parser(ContextHolder context) : m_tokenizer(context->stream), m_context(context)
+Parser::Parser(ContextHolder context)
+    : m_tokenizer(context->getStream()), m_context(context)
 {
     m_root_scope    = Scope::createScope(ScopeType::TranslationUnit);
     m_current_scope = m_root_scope;
@@ -936,4 +954,10 @@ Parser::ScopeRAIL::~ScopeRAIL()
 Scope* Parser::getCurScope()
 {
     return m_current_scope;
+}
+
+inline Parser::ErrorResult Parser::logError(const std::string& message)
+{
+    m_context->getDiagnosticsDriver().diag(m_tokenizer, message);
+    return ErrorResult();
 }

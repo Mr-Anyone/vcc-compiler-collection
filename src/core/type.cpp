@@ -87,10 +87,10 @@ llvm::Type* BuiltinType::getType(ContextHolder holder)
         case Bool:
         case Char:
         case Int:
-            m_llvm_type = llvm::Type::getIntNTy(holder->context, m_bits_size);
+            m_llvm_type = llvm::Type::getIntNTy(holder->getContext(), m_bits_size);
             return m_llvm_type;
         case Float:
-            m_llvm_type = llvm::Type::getFloatTy(holder->context);
+            m_llvm_type = llvm::Type::getFloatTy(holder->getContext());
             return m_llvm_type;
         default:
             VCC_UNREACHABLE("should be not possible");
@@ -299,7 +299,7 @@ bool Type::isSame(Type* lhs, Type* rhs)
 
 llvm::Type* VoidType::getType(ContextHolder holder)
 {
-    return llvm::Type::getVoidTy(holder->context);
+    return llvm::Type::getVoidTy(holder->getContext());
 }
 
 void VoidType::dump()

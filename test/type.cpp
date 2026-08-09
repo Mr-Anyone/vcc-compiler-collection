@@ -14,19 +14,19 @@ TEST(Type, BasicTest)
 
     EXPECT_TRUE(a.isBuiltin());
     EXPECT_FALSE(a.isStruct());
-    EXPECT_EQ(a.getType(holder), llvm::Type::getIntNTy(holder->context, 32));
+    EXPECT_EQ(a.getType(holder), llvm::Type::getIntNTy(holder->getContext(), 32));
 
     // struct Outer{
     //     int a, int b, int c,
     // }
     vcc::StructType outer({{0, "a", &a}, {1, "b", &b}, {2, "c", &c}}, "asfdas");
-    llvm::Type* interger = llvm::Type::getInt32Ty(holder->context);
+    llvm::Type* interger = llvm::Type::getInt32Ty(holder->getContext());
     // the struct name for codegen has a struct prefix
     EXPECT_EQ(outer.getType(holder)->getStructName(), "struct.asfdas");
     EXPECT_EQ(outer.getElement("c").value().name, "c");
     EXPECT_EQ(outer.getElement("c").value().field_num, 2);
     EXPECT_EQ(outer.getElement("c").value().type->getType(holder),
-              llvm::Type::getInt32Ty(holder->context));
+              llvm::Type::getInt32Ty(holder->getContext()));
 
     // Pointer test
     EXPECT_FALSE(outer.getElement("c").value().type->isPointer());
@@ -36,9 +36,9 @@ TEST(Type, BasicTest)
     EXPECT_FALSE(pointer_to_a.isBuiltin());
     EXPECT_FALSE(pointer_to_a.isStruct());
     EXPECT_EQ(pointer_to_a.getPointee(), &a);
-    EXPECT_EQ(pointer_to_a.getType(holder),
-              llvm::PointerType::get(
-                  llvm::IntegerType::getInt32Ty(holder->context)->getContext(), 0));
+    EXPECT_EQ(
+        pointer_to_a.getType(holder),
+        llvm::PointerType::get(llvm::IntegerType::getInt32Ty(holder->getContext()), 0));
 
     // array (10) array (20) int
     vcc::ArrayType base(&a, 20);
@@ -49,16 +49,18 @@ TEST(Type, BasicTest)
     EXPECT_FALSE(array.isPointer());
     EXPECT_TRUE(array.getBase()->isArray());
     EXPECT_TRUE(array.getBase()->getAs<vcc::ArrayType>()->getBase()->isBuiltin());
-    EXPECT_EQ(array.getType(holder),
-              llvm::ArrayType::get(
-                  llvm::ArrayType::get(llvm::Type::getInt32Ty(holder->context), 20), 10));
+    EXPECT_EQ(
+        array.getType(holder),
+        llvm::ArrayType::get(
+            llvm::ArrayType::get(llvm::Type::getInt32Ty(holder->getContext()), 20), 10));
 
     vcc::VoidType some_void_type;
     EXPECT_TRUE(some_void_type.isVoid());
     EXPECT_FALSE(some_void_type.isArray());
     EXPECT_FALSE(some_void_type.isBuiltin());
     EXPECT_FALSE(some_void_type.isStruct());
-    EXPECT_EQ(llvm::Type::getVoidTy(holder->context), some_void_type.getType(holder));
+    EXPECT_EQ(llvm::Type::getVoidTy(holder->getContext()),
+              some_void_type.getType(holder));
 
     vcc::BuiltinType char_type(vcc::BuiltinType::Char);
     EXPECT_TRUE(char_type.isBuiltin());
@@ -66,11 +68,11 @@ TEST(Type, BasicTest)
     EXPECT_FALSE(char_type.isInt());
     EXPECT_FALSE(char_type.isArray());
     EXPECT_FALSE(char_type.isVoid());
-    EXPECT_EQ(char_type.getType(holder), llvm::Type::getInt8Ty(holder->context));
+    EXPECT_EQ(char_type.getType(holder), llvm::Type::getInt8Ty(holder->getContext()));
 
     vcc::BuiltinType bool_type(vcc::BuiltinType::Bool);
     EXPECT_TRUE(bool_type.isBuiltin());
     EXPECT_FALSE(bool_type.isFloat());
     EXPECT_FALSE(bool_type.isInt());
-    EXPECT_EQ(bool_type.getType(holder), llvm::Type::getInt1Ty(holder->context));
+    EXPECT_EQ(bool_type.getType(holder), llvm::Type::getInt1Ty(holder->getContext()));
 }

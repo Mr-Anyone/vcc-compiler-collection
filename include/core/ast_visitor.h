@@ -11,6 +11,7 @@
 #include <type_traits>
 
 #include "core/ast.h"
+#include "core/context.h"
 #include "core/util.h"
 
 namespace vcc
@@ -34,7 +35,7 @@ class ASTVisitor
         if (auto* expr = dyncast<Expression>(node))
             return visitExpression(expr);
 
-        assert(false && "node is neither Statement nor Expression");
+        VCC_UNREACHABLE("cannot visit node");
         return ReturnT();
     }
 
@@ -137,7 +138,7 @@ class ASTVisitor
             case code::WhileStatement:
                 return visitWhileStatement(dyncast<WhileStatement>(stmt));
             default:
-                assert(false && "unhandled statement kind in ASTVisitor::visitStatement");
+                VCC_UNREACHABLE("unhandled statement kind in ASTVisitor::visitStatement");
                 return ReturnT();
         }
     }
@@ -167,8 +168,8 @@ class ASTVisitor
             case code::StringLiteral:
                 return visitStringLiteral(dyncast<StringLiteral>(expr));
             default:
-                assert(false &&
-                       "unhandled expression kind in ASTVisitor::visitExpression");
+                VCC_UNREACHABLE(
+                    "unhandled expression kind in ASTVisitor::visitExpression");
                 return ReturnT();
         }
     }

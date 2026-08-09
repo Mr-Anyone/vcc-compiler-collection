@@ -23,10 +23,7 @@ class DiagnosticDriver
 {
    public:
     void diag(const std::string& message);
-    /// FIXME: this is terrible style, maybe we should just pass the line to be
-    /// printed, or just a format. This is because there could be
-    /// mutability form tokenizer
-    ///
+
     /// Diagnose with a message at the current token of the tokenizer
     void diag(lex::Tokenizer& tokenizer, const std::string& message);
     void diag(const ASTBase* node, const std::string& line_in_file,
@@ -44,27 +41,34 @@ class DiagnosticDriver
     bool m_error = false;
 };
 
-// FIXME: this really should be a class
-struct GlobalContext
+
+class GlobalContext
 {
+   public:
     GlobalContext(const char* path_to_file);
 
-    llvm::LLVMContext context;
-    llvm::IRBuilder<> builder;
-    llvm::Module module;
+    // LLVM related context / variable
+    llvm::IRBuilder<>& getBuilder();
+    llvm::Module& getModule();
+    llvm::LLVMContext& getContext();
+
+    FileStream& getStream();
+    LocalVariableTable& getLocalVariableTable();
+    DiagnosticDriver& getDiagnosticsDriver();
+    FunctionDeclTable& getFunctionDeclTable();
+
+   private:
+    llvm::LLVMContext m_context;
+    llvm::IRBuilder<> m_builder;
+    llvm::Module m_module;
 
     // symbol table
-    SymbolTable symbol_table;
-    DiagnosticDriver diagnostics;
-    FileStream stream;
-
-    inline std::string getLine(const FilePos& pos)
-    {
-        return stream.getLine(pos.loc);
-    }
+    LocalVariableTable m_symbol_table;
+    FunctionDeclTable m_function_decl_table;
+    DiagnosticDriver m_diag_driver;
+    FileStream m_stream;
 };
 
 using ContextHolder = std::shared_ptr<GlobalContext>;
-
 };  // namespace vcc
 #endif

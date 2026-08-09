@@ -111,3 +111,14 @@ Scope* Scope::createScope(lex::TokenType type, Scope* parent)
 
     return createScope(lexTypeToScopeType(type), parent);
 }
+
+Scope* Scope::getTopMostScope()
+{
+    Scope* current = this;
+    while (current->parent())
+    {
+        current = current->parent();
+    }
+
+    return current;
+}

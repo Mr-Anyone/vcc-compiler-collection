@@ -8,9 +8,9 @@
 #include <string>
 #include <vector>
 
+#include "core/ast_base.h"
 #include "core/context.h"
 #include "core/lex.h"
-#include "core/rtti.h"
 
 namespace llvm
 {
@@ -19,34 +19,6 @@ class FunctionType;
 
 namespace vcc
 {
-namespace code
-{
-enum TreeCode
-{
-    // Statements
-    FunctionArgLists,
-    CallStatement,
-    FunctionDecl,
-    AssignmentStatement,
-    ReturnStatement,
-    DeclarationStatement,
-    IfStatement,
-    WhileStatement,
-
-    // Expression
-    ConstantExpr,
-    CallExpr,
-    BinaryExpression,
-    CastExpression,
-    IdentifierExpr,
-    MemberAccessExpression,
-    ArrayAccessExpression,
-    DeRefExpression,
-    RefExpression,
-    StringLiteral
-};
-};
-
 struct TypeInfo;
 class BuiltinType;
 
@@ -54,60 +26,13 @@ class FunctionDecl;
 class Expression;
 class Statement;
 
-class ASTBase
-{
-   public:
-    virtual ~ASTBase() = default;
-
-    ASTBase(code::TreeCode code, const std::vector<Expression*> childrens, FilePos pos);
-    ASTBase(code::TreeCode code, const std::vector<Statement*> childrens, FilePos pos);
-
-    // nullptr on failure
-    const FunctionDecl* getFirstFunctionDecl() const;
-
-    // gets the first ASTBase that defines a scope
-    // nullptr on failure, get the first ASTBase that represents a scope
-    const ASTBase* getScopeDeclLoc() const;
-
-    const ASTBase* getParent() const;
-    const std::set<ASTBase*>& getChildren() const;
-    const FilePos& getPos() const;
-
-    void debugDump(int depth = 1);
-
-    inline code::TreeCode getCode() const
-    {
-        return m_code;
-    }
-
-    bool doesDefineScope() const;
-
-    /// A nice helper to improve upon style. Instead of doing, dyncast<...>(variable),
-    /// we can do this->getAs<someType>();
-    template<typename T>
-    T* getAs()
-    {
-        return dyncast<T>(this);
-    }
-
-   protected:
-    void setParent(ASTBase* parent);
-    void addChildren(ASTBase* children);
-    void removeChildren(ASTBase* children);
-
-   private:
-    code::TreeCode m_code;
-    FilePos m_locus;
-    ASTBase* m_parent;
-    std::string m_name;
-    std::set<ASTBase*> m_childrens;
-};
 
 //============================== Statements ==============================
 class Statement : public ASTBase
 {
    public:
-    Statement(code::TreeCode code, const std::vector<ASTBase*> childrens, FilePos locus);
+    Statement(code::TreeCode code, const std::vector<ASTBase*> childrens, FilePos locus,
+              Scope* scope);
 
    private:
 };
@@ -115,7 +40,7 @@ class Statement : public ASTBase
 class CallStatement : public Statement
 {
    public:
-    CallStatement(Expression* call_expression, FilePos locus);
+    CallStatement(Expression* call_expression, FilePos locus, Scope* scope);
 
     Expression* getCallExpression() const;
 
@@ -128,7 +53,7 @@ class FunctionArgLists : public Statement
    public:
     using ArgsIter = std::vector<TypeInfo>::const_iterator;
 
-    FunctionArgLists(std::vector<TypeInfo>&& args, FilePos locus);
+    FunctionArgLists(std::vector<TypeInfo>&& args, FilePos locus, Scope* scope);
 
     ArgsIter begin() const;
     ArgsIter end() const;
@@ -138,14 +63,14 @@ class FunctionArgLists : public Statement
     std::vector<TypeInfo> m_args;
 };
 
-// FIXME: we should separate FunctionBody with FunctionDecl
 class FunctionDecl : public Statement
 {
    public:
     /// if `is_extern` is true, codegen only generate a declaration and assume
     /// to have no body
     FunctionDecl(std::vector<Statement*>& expression, FunctionArgLists* arg_list,
-                 std::string&& name, Type* return_type, bool is_extern, FilePos locus);
+                 std::string&& name, Type* return_type, bool is_extern, FilePos locus,
+                 Scope* scope);
 
     const std::string& getName() const;
     Type* getReturnType() const;
@@ -170,8 +95,8 @@ class FunctionDecl : public Statement
 class AssignmentStatement : public Statement
 {
    public:
-    AssignmentStatement(Expression* ref_expression, Expression* expression,
-                        FilePos locus);
+    AssignmentStatement(Expression* ref_expression, Expression* expression, FilePos locus,
+                        Scope* scope);
 
     const std::string& getName();
 
@@ -187,7 +112,7 @@ class ReturnStatement : public Statement
 {
    public:
     // returning an identifier
-    ReturnStatement(Expression* expression, FilePos locus);
+    ReturnStatement(Expression* expression, FilePos locus, Scope* scope);
 
     Expression* getExpression() const;
 
@@ -202,7 +127,7 @@ class DeclarationStatement : public Statement
     // if expression is nullptr, it means that we just allocate space
     // and don't assign it to the thing
     DeclarationStatement(const std::string& name, Expression* expression, Type* type,
-                         FilePos locus);
+                         FilePos locus, Scope* scope);
 
     Expression* getExpression();
     Type* getType();
@@ -217,7 +142,8 @@ class DeclarationStatement : public Statement
 class IfStatement : public Statement
 {
    public:
-    IfStatement(Expression* cond, std::vector<Statement*>&& expressions, FilePos locus);
+    IfStatement(Expression* cond, std::vector<Statement*>&& expressions, FilePos locus,
+                Scope* scope);
 
     std::vector<DeclarationStatement*> getDeclarationStatements() const;
     Expression* getCondition() const;
@@ -233,8 +159,8 @@ class IfStatement : public Statement
 class WhileStatement : public Statement
 {
    public:
-    WhileStatement(Expression* cond, std::vector<Statement*>&& expressions,
-                   FilePos locus);
+    WhileStatement(Expression* cond, std::vector<Statement*>&& expressions, FilePos locus,
+                   Scope* scope);
 
     std::vector<DeclarationStatement*> getDeclarationStatements() const;
     Expression* getCondition() const;
@@ -251,7 +177,7 @@ class Expression : public ASTBase
 {
    public:
     Expression(code::TreeCode code, const std::vector<Expression*> childrens,
-               FilePos locus);
+               FilePos locus, Scope* scope);
     virtual Type* getType(ContextHolder holder) = 0;
 };
 
@@ -261,7 +187,7 @@ class LocatorExpression : public Expression
 {
    public:
     LocatorExpression(code::TreeCode code, const std::vector<Expression*>& childrens,
-                      FilePos locus);
+                      FilePos locus, Scope* scope);
 
    protected:
     friend class MemberAccessExpression;
@@ -271,7 +197,7 @@ class LocatorExpression : public Expression
 class ConstantExpr : public Expression
 {
    public:
-    explicit ConstantExpr(int value, FilePos locus);
+    explicit ConstantExpr(int value, FilePos locus, Scope* scope);
     virtual Type* getType(ContextHolder holder) override;
 
     int getValue();
@@ -284,7 +210,7 @@ class CallExpr : public Expression
 {
    public:
     CallExpr(const std::string& name, const std::vector<Expression*>& expressions,
-             FilePos locus);
+             FilePos locus, Scope* scope);
 
     virtual Type* getType(ContextHolder holder) override;
 
@@ -315,7 +241,8 @@ class BinaryExpression : public Expression
     static BinaryExpressionType getFromLexType(lex::Token lex_type);
     virtual Type* getType(ContextHolder holder) override;
 
-    BinaryExpression(Expression* lhs, BinaryExpressionType type, FilePos locus);
+    BinaryExpression(Expression* lhs, BinaryExpressionType type, FilePos locus,
+                     Scope* scope);
 
     void setRHS(Expression* rhs);
 
@@ -336,7 +263,8 @@ class BinaryExpression : public Expression
 class CastExpression : public Expression
 {
    public:
-    CastExpression(Expression* cast_expression, Type* casted_to, FilePos loc);
+    CastExpression(Expression* cast_expression, Type* casted_to, FilePos loc,
+                   Scope* scope);
 
     virtual Type* getType(ContextHolder holder) override;
 
@@ -357,7 +285,7 @@ class IdentifierExpr : public LocatorExpression
     /// name - the name of the identifier/variable
     /// compute_ref - true if codegen returns an address, otherwise returns the
     /// value to the identifier
-    IdentifierExpr(const std::string& name, FilePos locus);
+    IdentifierExpr(const std::string& name, FilePos locus, Scope* scope);
 
     virtual Type* getType(ContextHolder holder) override;
 
@@ -373,11 +301,11 @@ class MemberAccessExpression : public LocatorExpression
 {
    public:
     MemberAccessExpression(const std::string& name, const std::string& member,
-                           FilePos locus);
+                           FilePos locus, Scope* scope);
 
     // from nested postfix-expression
     MemberAccessExpression(LocatorExpression* parent, const std::string& member,
-                           FilePos locus);
+                           FilePos locus, Scope* scope);
 
     virtual Type* getType(ContextHolder holder) override;
 
@@ -403,9 +331,10 @@ class MemberAccessExpression : public LocatorExpression
 class ArrayAccessExpression : public LocatorExpression
 {
    public:
-    ArrayAccessExpression(const std::string& name, Expression* expression, FilePos locus);
+    ArrayAccessExpression(const std::string& name, Expression* expression, FilePos locus,
+                          Scope* scope);
     ArrayAccessExpression(LocatorExpression* parent, Expression* expression,
-                          FilePos locus);
+                          FilePos locus, Scope* scope);
 
     Type* getGEPType(ContextHolder holder);
     Type* getGEPChildType(ContextHolder holder);
@@ -435,7 +364,7 @@ class ArrayAccessExpression : public LocatorExpression
 class DeRefExpression : public LocatorExpression
 {
    public:
-    DeRefExpression(Expression* ref_get, FilePos locus);
+    DeRefExpression(Expression* ref_get, FilePos locus, Scope* scope);
 
     virtual Type* getType(ContextHolder holder) override;
 
@@ -460,7 +389,7 @@ class DeRefExpression : public LocatorExpression
 class RefExpression : public LocatorExpression
 {
    public:
-    RefExpression(Expression* inner, FilePos locus);
+    RefExpression(Expression* inner, FilePos locus, Scope* scope);
 
     virtual Type* getType(ContextHolder holder) override;
 
@@ -476,7 +405,7 @@ class RefExpression : public LocatorExpression
 class StringLiteral : public Expression
 {
    public:
-    StringLiteral(std::string string, FilePos locus);
+    StringLiteral(std::string string, FilePos locus, Scope* scope);
 
     virtual Type* getType(ContextHolder holder) override;
 
