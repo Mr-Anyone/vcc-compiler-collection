@@ -90,6 +90,11 @@ Token Tokenizer::readOneToken()
     removeWhiteSpace();
 
     FilePos pos = m_file.getPos();
+    if (pos.row == 1 && pos.col == 161)
+    {
+        VCC_UNREACHABLE("this is game over");
+    }
+
     if (m_file.eof())
     {
         return Token(EndOfFile, pos);

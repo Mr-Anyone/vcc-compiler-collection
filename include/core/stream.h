@@ -1,15 +1,11 @@
 #ifndef CORE_STREAM_H
 #define CORE_STREAM_H
 
-#include <cstdio>
-#include <fstream>
 #include <iostream>
-#include <vector>
+#include <string>
 
 namespace vcc
 {
-/// 0 means we are at \n character
-/// therefore it is impossible to have row=1, and col=0
 struct FilePos
 {
     FilePos(int row, int col, long loc) : row(row), col(col), loc(loc) {}
@@ -23,7 +19,6 @@ std::ostream& operator<<(std::ostream& os, const FilePos& filepos);
 
 bool operator==(const FilePos& lhs, const FilePos& rhs);
 
-/// abstractions above std::ifstream
 class FileStream
 {
    public:

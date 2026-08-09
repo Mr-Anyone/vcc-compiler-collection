@@ -1,7 +1,7 @@
 #include "core/stream.h"
 
-#include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <optional>
 #include <sstream>
@@ -58,7 +58,7 @@ char FileStream::get()
     {
         // -1 from the side effect of fread
         m_pos.row++;
-        m_pos.col = 0;
+        m_pos.col = 1;
     }
     else
     {
@@ -91,15 +91,21 @@ long FileStream::tellg()
 
 void FileStream::seekg(long pos)
 {
+    VCC_ASSERT("pos must be less than the size of the file" && pos <= m_content.size());
+
+    // special case: We have to handle EOF. Currently, EOF and the last character of
+    // the file shares the FilePos row and column
+    int iterate_count = (pos == m_content.size()) ? pos - 1 : pos;
+
     // update the current position
-    FilePos new_pos(1, 1, pos);
-    for (int i = 0; i < pos; ++i)
+    FilePos new_pos(1, 0, pos);
+    for (int i = 0; i <= iterate_count; ++i)
     {
-        char c = m_content[pos];
+        char c = m_content[i];
         if (c == '\n')
         {
             new_pos.row += 1;
-            new_pos.col = 0;
+            new_pos.col = 1;
         }
         else
         {

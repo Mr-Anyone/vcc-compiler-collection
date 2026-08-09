@@ -63,16 +63,18 @@ bool Sema::checkCallExpr(CallExpr* expr)
     }
 
     // Check if all the types are the same
+    bool has_type_error = false;
     for (auto [index, expr, type_info] :
          llvm::enumerate(expr->getExpressions(), callee_args))
     {
         if (!Type::isSame(expr->getType(context()), type_info.type))
         {
-            return diag(expr, "mismatch type between caller and callee");
+            diag(expr, "mismatch type between caller and callee");
+            has_type_error = true;
         }
     }
 
-    return true;
+    return !has_type_error;
 }
 
 /// ============ Start of sema helpers ============
