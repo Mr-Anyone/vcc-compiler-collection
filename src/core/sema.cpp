@@ -56,7 +56,7 @@ bool Sema::checkCallExpr(CallExpr* expr)
     // Second check if the number of expression matches the number of parameters
     int input_parameter_count = expr->getExpressions().size();
     const std::vector<vcc::TypeInfo> callee_args =
-        callee_decl.value()->getArgList()->getArgs();
+        callee_decl->getArgList()->getArgs();
     if (input_parameter_count != callee_args.size())
     {
         return diag(expr, "parameter count mismatch");

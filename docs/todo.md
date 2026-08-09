@@ -1,11 +1,11 @@
 # TODO
+- [X] Give an overload for `->` in Optional ADT class
 - [ ] Add the following operations and, and or.
 - [ ] The Heap allocation problem with ASTBase and Type
 - [ ] Undefined variable better message
 - [ ] Posfix Expression validity with existence of member
 - [ ] Fix ordering of print-ast in driver
 - [ ] Fix weird ending with `,` syntax (emit an warning message for those case), Also update grammar with that
-- [ ] Give an overload for `->` in Optional ADT class
 - [ ] Add a module class instead of std::vector<ASTBase*> for top level
 - [ ] FilePos bug index mismatches
 

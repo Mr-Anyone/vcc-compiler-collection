@@ -26,6 +26,12 @@ class Optional
         return m_is_empty;
     }
 
+    T operator->()
+    {
+        VCC_ASSERT((!this->m_is_empty && "Option<T>::value() must not be empty"));
+        return m_value;
+    }
+
    private:
     bool m_is_empty;
     T m_value;
