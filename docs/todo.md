@@ -1,27 +1,13 @@
 # TODO
-- [X] Name lookup problem
-- [X] Trie like Symbol Table
-- [X] Implicit casting for integer
-- [X] Better error handling and printing
-- [X] Add support for aggregate type
-- [X] Parse command line
-- [X] Array Type
-- [X] Pointer Type
-- [X] Floating point support
-- [X] Add comments
-- [X] String Type  
-- [X] Bool type with problem BinaryExpression::getType() 
-- [X] Diagnostics Driver
-- [X] Add source location 
-- [X] Add the following type short, long, and void*
-- [X] Adding a cast expression
-- [X] The C FFI problem with SDL
-- [ ] Delete the default constructor in parser
 - [ ] Add the following operations and, and or.
 - [ ] The Heap allocation problem with ASTBase and Type
-- [ ] CallExpr error with no matching function
-- [ ] undefined variable better message
-- [ ] Posfix Expression validity with existence of member  
+- [ ] Undefined variable better message
+- [ ] Posfix Expression validity with existence of member
+- [ ] Fix ordering of print-ast in driver
+- [ ] Fix weird ending with `,` syntax (emit an warning message for those case), Also update grammar with that
+- [ ] Give an overload for `->` in Optional ADT class
+- [ ] Add a module class instead of std::vector<ASTBase*> for top level
+- [ ] FilePos bug index mismatches
 
 ## Known Problems 
 

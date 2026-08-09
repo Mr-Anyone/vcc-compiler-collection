@@ -12,8 +12,8 @@ GlobalContext::GlobalContext(const char* path_to_file)
       m_module("my module", m_context),
       m_symbol_table(),
       m_function_decl_table(),
-      m_diag_driver(),
-      m_stream(path_to_file)
+      m_stream(path_to_file),
+      m_diag_driver(m_stream)
 {
 }
 
@@ -54,6 +54,9 @@ DiagnosticDriver& GlobalContext::getDiagnosticsDriver()
 
 /// ================= Start of DiagnosticDriver =================
 ///
+DiagnosticDriver::DiagnosticDriver(FileStream& stream) : m_stream(stream), m_error(false)
+{
+}
 
 void DiagnosticDriver::diag(const std::string& message)
 {
@@ -72,10 +75,11 @@ void DiagnosticDriver::diag(lex::Tokenizer& tokenizer, const std::string& messag
     printSeeHere(tokenizer.getPos());
 }
 
-void DiagnosticDriver::diag(const ASTBase* node, const std::string& line_in_file,
-                            const std::string& message)
+void DiagnosticDriver::diag(const ASTBase* node, const std::string& message)
 {
     setError();
+
+    std::string line_in_file = m_stream.getLine(node->getPos().loc);
     printFilePos(node->getPos(), message);
     std::cerr << line_in_file << "\n";
     printSeeHere(node->getPos());

@@ -21,108 +21,119 @@
 
 llvm::cl::opt<bool> print_ast("print-ast",
                               llvm::cl::desc("Whether to print syntax tree"));
-llvm::cl::opt<bool> print_llvm("print-llvm",
-                               llvm::cl::desc("Whether to print llvm"));
+llvm::cl::opt<bool> print_llvm("print-llvm", llvm::cl::desc("Whether to print llvm"));
 llvm::cl::opt<bool> O3("O3", llvm::cl::desc("Optimization Level"));
-llvm::cl::opt<bool> S("S", llvm::cl::desc("Emit Assembly"),
-                      llvm::cl::init(false));
-llvm::cl::opt<std::string> output_filename("o",
-                                           llvm::cl::desc("Output filename"),
+llvm::cl::opt<bool> S("S", llvm::cl::desc("Emit Assembly"), llvm::cl::init(false));
+llvm::cl::opt<std::string> output_filename("o", llvm::cl::desc("Output filename"),
                                            llvm::cl::init("output.o"));
-llvm::cl::opt<std::string> input_filename(llvm::cl::Positional,
-                                          llvm::cl::Required,
+llvm::cl::opt<std::string> input_filename(llvm::cl::Positional, llvm::cl::Required,
                                           llvm::cl::desc("<input filename>"));
 
 int main(int argc, char *argv[]) {
-  // FIXME: code cleanup
-  llvm::cl::ParseCommandLineOptions(argc, argv);
-  llvm::InitializeNativeTarget();
-  llvm::InitializeNativeTargetAsmPrinter();
+    // FIXME: code cleanup
+    llvm::cl::ParseCommandLineOptions(argc, argv);
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
 
-  vcc::Parser parser = vcc::parseFile(input_filename.c_str());
-  vcc::ContextHolder holder = parser.getHolder();
-  vcc::Sema sema;
+    vcc::Parser parser        = vcc::parseFile(input_filename.c_str());
+    vcc::ContextHolder holder = parser.getHolder();
 
-  vcc::CodeGenerator codegen(holder);
-  for (vcc::ASTBase *tree : parser.getSyntaxTree()) {
-    if (print_ast)
-      tree->debugDump();
+    // Semantic Analysis
+    vcc::Sema sema(holder);
+    for (vcc::ASTBase* tree : parser.getSyntaxTree())
+    {
+        if (!sema.check(vcc::dyncast<vcc::Statement>(tree)))
+        {
+            llvm::errs() << "vcc has exited with code -1\n";
+            return -1;
+        }
+    }
 
-    codegen.emitStatement(vcc::dyncast<vcc::Statement>(tree));
-  }
+    // Code Generation
+    vcc::CodeGenerator codegen(holder);
+    for (vcc::ASTBase* tree : parser.getSyntaxTree())
+    {
+        if (print_ast)
+            tree->debugDump();
 
-  // Create the analysis managers.
-  // These must be declared in this order so that they are destroyed in the
-  // correct order due to inter-analysis-manager references.
-  llvm::LoopAnalysisManager LAM;
-  llvm::FunctionAnalysisManager FAM;
-  llvm::CGSCCAnalysisManager CGAM;
-  llvm::ModuleAnalysisManager MAM;
+        codegen.emitStatement(vcc::dyncast<vcc::Statement>(tree));
+    }
 
-  std::string targetTriple = llvm::sys::getDefaultTargetTriple();
-  llvm::Triple theRealTriple = llvm::Triple(targetTriple);
-  std::string error;
-  const llvm::Target *target =
-      llvm::TargetRegistry::lookupTarget(targetTriple, error);
-  if (!target) {
-    llvm::errs() << error;
-    return 1;
-  }
+    // Create the analysis managers.
+    // These must be declared in this order so that they are destroyed in the
+    // correct order due to inter-analysis-manager references.
+    llvm::LoopAnalysisManager LAM;
+    llvm::FunctionAnalysisManager FAM;
+    llvm::CGSCCAnalysisManager CGAM;
+    llvm::ModuleAnalysisManager MAM;
 
-  llvm::Module& module = holder->getModule();
-  llvm::TargetOptions options;
-  std::optional<llvm::Reloc::Model> relocModel = std::make_optional(llvm::Reloc::Model::PIC_);
-  llvm::TargetMachine *targetMachine = target->createTargetMachine(
-      theRealTriple, "generic", "", options, relocModel);
+    std::string targetTriple   = llvm::sys::getDefaultTargetTriple();
+    llvm::Triple theRealTriple = llvm::Triple(targetTriple);
+    std::string error;
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
+    if (!target)
+    {
+        llvm::errs() << error;
+        return 1;
+    }
 
-  module.setDataLayout(targetMachine->createDataLayout());
-  if (!targetMachine) {
-    llvm::errs() << "cannot get target machine";
-    return 1;
-  }
+    llvm::Module& module = holder->getModule();
+    llvm::TargetOptions options;
+    std::optional<llvm::Reloc::Model> relocModel =
+        std::make_optional(llvm::Reloc::Model::PIC_);
+    llvm::TargetMachine* targetMachine =
+        target->createTargetMachine(theRealTriple, "generic", "", options, relocModel);
 
-  // Create the new pass manager builder.
-  // Take a look at the PassBuilder constructor parameters for more
-  // customization, e.g. specifying a TargetMachine or various debugging
-  // options. std::string error; //
-  // TheModule->setDataLayout(TheTargetMachine->createDataLayout());
-  llvm::PassBuilder PB;
+    module.setDataLayout(targetMachine->createDataLayout());
+    if (!targetMachine)
+    {
+        llvm::errs() << "cannot get target machine";
+        return 1;
+    }
 
-  // Register all the basic analyses with the managers.
-  PB.registerModuleAnalyses(MAM);
-  PB.registerCGSCCAnalyses(CGAM);
-  PB.registerFunctionAnalyses(FAM);
-  PB.registerLoopAnalyses(LAM);
-  PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+    // Create the new pass manager builder.
+    // Take a look at the PassBuilder constructor parameters for more
+    // customization, e.g. specifying a TargetMachine or various debugging
+    // options. std::string error; //
+    // TheModule->setDataLayout(TheTargetMachine->createDataLayout());
+    llvm::PassBuilder PB;
 
-  llvm::ModulePassManager MPM =
-      PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O3);
+    // Register all the basic analyses with the managers.
+    PB.registerModuleAnalyses(MAM);
+    PB.registerCGSCCAnalyses(CGAM);
+    PB.registerFunctionAnalyses(FAM);
+    PB.registerLoopAnalyses(LAM);
+    PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
-  // Optimize the IR!
-  if (O3)
-      MPM.run(module, MAM);
+    llvm::ModulePassManager MPM =
+        PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O3);
 
-  if (print_llvm)
-      module.print(llvm::outs(), nullptr);
+    // Optimize the IR!
+    if (O3)
+        MPM.run(module, MAM);
 
-  // === Emit object/assembly file ===
-  std::error_code ec;
-  llvm::raw_fd_ostream dest(output_filename, ec, llvm::sys::fs::OF_None);
-  if (ec) {
-    llvm::errs() << "Could not open file: " << ec.message() << "\n";
-    return 1;
-  }
+    if (print_llvm)
+        module.print(llvm::outs(), nullptr);
 
-  llvm::legacy::PassManager codeGenPasses;
-  llvm::CodeGenFileType FileType = S ? llvm::CodeGenFileType::AssemblyFile
-                                     : llvm::CodeGenFileType::ObjectFile;
-  if (targetMachine->addPassesToEmitFile(codeGenPasses, dest, nullptr,
-                                         FileType)) {
-    llvm::errs() << "TargetMachine can't emit an object file.\n";
-    return 1;
-  }
+    // === Emit object/assembly file ===
+    std::error_code ec;
+    llvm::raw_fd_ostream dest(output_filename, ec, llvm::sys::fs::OF_None);
+    if (ec)
+    {
+        llvm::errs() << "Could not open file: " << ec.message() << "\n";
+        return 1;
+    }
 
-  codeGenPasses.run(module);
-  dest.flush();
-  return 0;
+    llvm::legacy::PassManager codeGenPasses;
+    llvm::CodeGenFileType FileType =
+        S ? llvm::CodeGenFileType::AssemblyFile : llvm::CodeGenFileType::ObjectFile;
+    if (targetMachine->addPassesToEmitFile(codeGenPasses, dest, nullptr, FileType))
+    {
+        llvm::errs() << "TargetMachine can't emit an object file.\n";
+        return 1;
+    }
+
+    codeGenPasses.run(module);
+    dest.flush();
+    return 0;
 }

@@ -2,25 +2,37 @@
 #define CORE_SEMA_H
 
 #include "ast.h"
+#include "context.h"
 
 namespace vcc
 {
 class Parser;
 
-/// This entire idea is horrible for performance!
-/// In a perfect world, this should be during parser
-/// And not need to duplicate so much unnecessary code.
 class Sema
 {
    public:
-    Sema();
-
-    /// Perform a list of checks applies to function
-    /// returns ture if passes, false otherwise
-    bool checkFunction(FunctionDecl* decl);
+    Sema(ContextHolder context);
+    bool check(ASTBase* node);
 
    private:
-    ///
+    /// Semantics analysis on functions
+    bool checkFunctionDecl(FunctionDecl* decl);
+    bool checkCallStatement(CallStatement* stmt);
+    bool checkCallExpr(CallExpr* expr);
+
+    /// Diagnostics helper
+    struct DiagnosticResult
+    {
+        // The sema class return a bool value
+        inline operator bool()
+        {
+            return false;
+        }
+    };
+    DiagnosticResult diag(ASTBase* base, std::string message);
+
+    ContextHolder context();
+    ContextHolder m_context;
 };
 
 };  // namespace vcc

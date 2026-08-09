@@ -22,12 +22,12 @@ struct Token;
 class DiagnosticDriver
 {
    public:
+    DiagnosticDriver(FileStream& stream);
     void diag(const std::string& message);
 
     /// Diagnose with a message at the current token of the tokenizer
     void diag(lex::Tokenizer& tokenizer, const std::string& message);
-    void diag(const ASTBase* node, const std::string& line_in_file,
-              const std::string& message);
+    void diag(const ASTBase* node, const std::string& message);
 
     /// True if there was as error being diagnose, a.k.a diag is Called
     bool hasError() const;
@@ -37,8 +37,10 @@ class DiagnosticDriver
     void printSeeHere(const FilePos& pos);
 
     void setError();
+
     /// True if diag was called!
     bool m_error = false;
+    FileStream& m_stream;
 };
 
 
@@ -47,7 +49,7 @@ class GlobalContext
    public:
     GlobalContext(const char* path_to_file);
 
-    // LLVM related context / variable
+    /// LLVM related context / variable
     llvm::IRBuilder<>& getBuilder();
     llvm::Module& getModule();
     llvm::LLVMContext& getContext();
