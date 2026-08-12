@@ -17,7 +17,11 @@ class Sema
    private:
     /// Semantics analysis on functions
     bool checkFunctionDecl(FunctionDecl* decl);
+
+    /// Checks for statement
     bool checkCallStatement(CallStatement* stmt);
+    bool checkReturnStatement(ReturnStatement* stmt);
+
     bool checkCallExpr(CallExpr* expr);
 
     /// Diagnostics helper
@@ -29,7 +33,7 @@ class Sema
             return false;
         }
     };
-    DiagnosticResult diag(ASTBase* base, std::string message);
+    DiagnosticResult diag(const ASTBase* base, std::string message);
 
     ContextHolder context();
     ContextHolder m_context;

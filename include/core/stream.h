@@ -48,12 +48,13 @@ class FileStream
     FilePos getPos();
 
     std::string getLine(long pos);
+    std::string getFilename() const;
 
    private:
     void setAtEOF();
 
     /// The content of the file
-    std::string m_content;
+    std::string m_content, m_filename;
 
     /// check if we are at the end of file
     bool m_is_end_of_file = false;

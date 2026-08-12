@@ -16,6 +16,8 @@ bool Sema::check(ASTBase* base)
             return checkCallStatement(base->getAs<CallStatement>());
         case code::CallExpr:
             return checkCallExpr(base->getAs<CallExpr>());
+        case code::ReturnStatement:
+            return checkReturnStatement(base->getAs<ReturnStatement>());
         default:
             return true;
     }
@@ -77,8 +79,34 @@ bool Sema::checkCallExpr(CallExpr* expr)
     return !has_type_error;
 }
 
+bool Sema::checkReturnStatement(ReturnStatement* stmt)
+{
+    const FunctionDecl* decl = stmt->getFirstFunctionDecl();
+    Type* decl_return_type   = decl->getReturnType();
+
+    Expression* expr = stmt->getExpression();
+    if (!expr && decl_return_type->isVoid())
+    {
+        return true;
+    }
+
+    if (!expr && !decl_return_type->isVoid())
+    {
+        diag(stmt, "function declaration and return statement disagree on return type");
+        return diag(decl, "see here for function decl");
+    }
+
+    Type* infer_type = expr->getType(context());
+    if (!Type::isSame(infer_type, decl_return_type))
+    {
+        return diag(expr, "return type and return expression gives different type");
+    }
+
+    return true;
+}
+
 /// ============ Start of sema helpers ============
-Sema::DiagnosticResult Sema::diag(ASTBase* base, std::string message)
+Sema::DiagnosticResult Sema::diag(const ASTBase* base, std::string message)
 {
     context()->getDiagnosticsDriver().diag(base, message);
     return DiagnosticResult{};

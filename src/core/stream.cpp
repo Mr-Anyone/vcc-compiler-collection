@@ -25,12 +25,14 @@ bool FileStream::good(){
     /// Filestream is good. We should deprecate this class
     return true;
 }
+
 FileStream::FileStream(const char* filename)
     : m_is_end_of_file(false),
       m_current_loc(0),
       m_restore_loc(0),
       m_restore_pos(1, 1, 0),
-      m_is_in_save_state(false)
+      m_is_in_save_state(false),
+      m_filename(filename)
 {
     std::optional<std::string> maybe_content = readFile(filename);
     if (!maybe_content.has_value())
@@ -180,4 +182,9 @@ std::string FileStream::getLine(long pos)
         line += c;
     }
     return line;
+}
+
+std::string FileStream::getFilename() const
+{
+    return m_filename;
 }

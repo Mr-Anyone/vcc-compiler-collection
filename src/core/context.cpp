@@ -97,7 +97,9 @@ bool DiagnosticDriver::hasError() const
 
 void DiagnosticDriver::printFilePos(const FilePos& pos, const std::string& message)
 {
-    std::cerr << pos.row << ":" << pos.col << " Error: " << message << "\n";
+    std::string filename = m_stream.getFilename();
+    std::cerr << filename << ":" << pos.row << ":" << pos.col << " Error: " << message
+              << "\n";
 }
 
 void DiagnosticDriver::printSeeHere(const FilePos& pos)
