@@ -10,7 +10,7 @@ gives int[
     int a,
 ]{
     ptr int pointer_to_a = ref<a>;
-    int placeholder = set_pointer(ref<a>, );
+    int placeholder = set_pointer(ref<a>);
     ret a;
 }
 

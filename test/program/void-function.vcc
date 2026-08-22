@@ -7,6 +7,6 @@ gives void[
 
 function caller
 gives void[]{
-    test_void(1,);
+    test_void(1);
     ret;
 }

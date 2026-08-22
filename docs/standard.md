@@ -63,7 +63,9 @@ posfix_expression :== <identifier> | <deref_expression>
     <posfix_expression>, '.', <identifier> | 
     <posfix_expression>, '[', <expression>, ']'
 
-call_expressions :== <identifier>, '(', {<expression> ',' }+,  ')'
+call_expression_list :==  <expression> | <call_expression_list>, ',', <expression>
+
+call_expressions :== <identifier>, '(', <call_expression_list> ,')'
 
 bin_op :== '+', '-', '*', '/', 'eq', 'ne', 'ge', 'gt', 'le', 'gt'
 ```

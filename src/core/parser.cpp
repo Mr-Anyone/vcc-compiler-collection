@@ -694,60 +694,62 @@ Expression* Parser::buildTrivialExpression()
     FilePos locus = m_tokenizer.getPos();
     switch (tok())
     {
-      case lex::IntegerLiteral:
-      {
-          Expression* value = new ConstantExpr(getIntegerLiteral(), locus, getCurScope());
-          consume();
-          return value;
-      }
-      case lex::Cast:
-          return buildCastExpression();
-      case lex::String:
-      {
-          StringLiteral* string_node =
-              new StringLiteral(getTokenString(), locus, getCurScope());
-          consume();
-          return string_node;
-      }
-      // <identifier>
-      case lex::Identifier:
-      {
-        // <identifier>  + '(' means call expr
-        if (m_tokenizer.peek().getType() == lex::LeftParentheses)
-          return buildCallExpr();
+        case lex::IntegerLiteral:
+        {
+            Expression* value =
+                new ConstantExpr(getIntegerLiteral(), locus, getCurScope());
+            consume();
+            return value;
+        }
+        case lex::Cast:
+            return buildCastExpression();
+        case lex::String:
+        {
+            StringLiteral* string_node =
+                new StringLiteral(getTokenString(), locus, getCurScope());
+            consume();
+            return string_node;
+        }
+        // <identifier>
+        case lex::Identifier:
+        {
+            // <identifier>  + '(' means call expr
+            if (m_tokenizer.peek().getType() == lex::LeftParentheses)
+                return buildCallExpr();
 
-        if (isFullstopOrLeftBracket(m_tokenizer.peek()))
-          return buildPosfixExpression();
+            if (isFullstopOrLeftBracket(m_tokenizer.peek()))
+                return buildPosfixExpression();
 
-        Expression* value = new IdentifierExpr(getTokenString(), locus, getCurScope());
-        consume();
+            Expression* value =
+                new IdentifierExpr(getTokenString(), locus, getCurScope());
+            consume();
+            return value;
+        }
+        case lex::LeftParentheses:
+        {
+            consume();
+            Expression* value = buildExpression();
 
-        return value;
-      }
-      case lex::LeftParentheses:
-      {
-          consume();
-          Expression* value = buildExpression();
-
-          if (!at(lex::RightParentheses))
-          {
-              logError("expected )");
-              return nullptr;
-          }
-          return value;
-      }
-      case lex::Ref:
-          return buildRefExpression();
-      case lex::Deref:
+            if (!at(lex::RightParentheses))
+            {
+                logError("expected )");
+                return nullptr;
+            }
+            return value;
+        }
+        case lex::Ref:
+            return buildRefExpression();
+        case lex::Deref:
             return buildDerefExpression();
-      default:
+        default:
             return nullptr;
     }
 
     return nullptr;
 }
 
-// call_expressions :== <identifier>, '(', { <expression> ',' }+,  ')'
+// call_expression_list :==  <expression> | <call_expression_list>, ',', <expression>
+// call_expressions :== <identifier>, '(', <call_expression_list> ,')'
 Expression* Parser::buildCallExpr()
 {
     FilePos locus = m_tokenizer.getPos();
@@ -761,14 +763,23 @@ Expression* Parser::buildCallExpr()
 
     std::vector<Expression*> expressions;
 
-    // {<expression>, ','} +
+    // call_expression_list :==  <expression> | <call_expression_list>, ',', <expression>
     while (!is(lex::RightParentheses))
     {
-        Expression* expression = buildExpression();
-        expressions.push_back(expression);
+        Expression* expr = buildExpression();
+        expressions.push_back(expr);
+
+        // we are at the end if we are seeing a )
+        if (is(lex::RightParentheses))
+            break;
 
         if (!at(lex::Comma))
             return logError("expected ,");
+
+        // If we have parsed a comma from above, we don't expect a right parenthesis since
+        // we are seeing some_fumc(... , ), error out in this case
+        if (is(lex::RightParentheses))
+            return logError("unexpected ','");
     }
 
     if (!at(lex::RightParentheses))

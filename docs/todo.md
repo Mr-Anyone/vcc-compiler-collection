@@ -9,6 +9,26 @@
 - [ ] Add a module class instead of std::vector<ASTBase*> for top level
 - [ ] FilePos bug index mismatches
 
+## BUG - Parser error has segfaults
+
+```
+function set_pointer
+gives int[
+    ptr int a,
+]{
+    ret deref<a>;
+}
+
+function pass_pointer
+gives int[
+    int a,
+]{
+    ptr int pointer_to_a = ref<a>;
+    int placeholder = set_pointer(ref<a>, );
+    ret a;
+}
+```
+
 ## Known Problems 
 
 1. Signed and unsigned integer comparison.
