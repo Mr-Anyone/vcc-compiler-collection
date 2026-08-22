@@ -11,7 +11,7 @@ gives void [
 
 function test_pointer
 gives void[
-    ptr ptr int ptr_ptr, 
+    ptr ptr int ptr_ptr
 ]{
     ptr void c = cast<ptr void>(ref<ptr_ptr>);
     ptr_ptr = cast<ptr ptr int>(c);

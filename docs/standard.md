@@ -6,12 +6,10 @@ top_level :== <function_decl> | <struct_definition> | <external_decl>
 external_decl :== 'extern', 'function', <identifier>, 
     'gives', <type_qualification>, '[', <functin_args_list>, ']';
 
-function_decl :== 'function', <identifier>, 'gives', <type_qualification>, 
-                        <function_args_list>, '{', <statements>+, ''}'
+function_decl :== 'function', <identifier>, 'gives', <type_qualification>, '[',
+                        <function_args_list>, ']', ''{', <statements>+, ''}'
 
-function_args_list :== '[', <args_declaration>+, ']'
-
-args_declaration :== <type_qualification>, identifier, ','
+function_args_list :== <type_qualification>, <identifier> | <function_args_list>, <type_qualification>, <identifier>
 
 identifier :== [a-zA-Z]+
 

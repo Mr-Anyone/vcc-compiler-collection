@@ -21,4 +21,4 @@ cmake --build . --target vcc --config Release
 git clone --recursive https://github.com/Mr-Anyone/vcc-compiler-collection.git
 cd vcc-compiler-collection
 cmake -B build  -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-```
+c``

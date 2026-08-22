@@ -6,7 +6,7 @@ function a
 gives int[
     ptr struct test b, 
     ptr int a,
-    int c,
+    int c
 ]{
     deref<b>.a = 10;
     ret deref<b>.a;

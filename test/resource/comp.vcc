@@ -1,26 +1,26 @@
 function add_two gives int[
     int a,
-    int b,
+    int b
 ]{
     ret a +b;
 }
 
 function is_equal gives int[
     int a,
-    int b,
+    int b
 ]{
     ret (a eq b) + (a ne b) + (a le b) + (a lt b) + (a ge b) + (a gt b);
 }
 
 function test_three gives int [
     int a,
-    int b,
+    int b
 ]{
     ret a ne b;
 }
 
 function fib gives int[
-    int a,
+    int a
 ]{
     if a le 1 then 
         ret a;
@@ -48,7 +48,7 @@ struct outer{
 function test_struct gives int[
     int a,
     int b,
-    struct outer c,
+    struct outer c
 ]{
     ret a + b + c.c.b;
 }
@@ -60,7 +60,7 @@ struct some_placeholder{
 function test_no_expression_declaration_statement
 gives int[
     int a,
-    int b,
+    int b
 ] {
     int c;
     int d;
@@ -73,14 +73,14 @@ gives int[
 function test_array_parameter 
 gives int[
     array (10) struct some_placeholder a, 
-    array (10) array (20) int b,
+    array (10) array (20) int b
 ]{
     ret 10;
 }
 
 function some_test_t 
 gives int [
-    ptr int a, 
+    ptr int a
 ]{
     ret a;
 }
@@ -94,7 +94,7 @@ struct outer_two{
 
 function test_array_access
 gives int [
-    int c,
+    int c
 ]{
     array (10) array (130) struct inner_two  b;
     ret  b[8][123].get[10] + c;
@@ -106,7 +106,7 @@ struct most_basic_struct{
 
 function test_struct_two
 gives int[
-    int a,
+    int a
 ]{
     struct most_basic_struct test; 
     ret a + test.a;
@@ -115,7 +115,7 @@ gives int[
 function test_float_add 
 gives float[
     float a, 
-    float b, 
+    float b
 ]{
     ret a + b;
 }
@@ -124,14 +124,14 @@ gives float[
 function test_comments #testing two
 gives float [#real test
     float a, 
-    float b,
+    float b
 ] {
     ret a + b;
 }    #asfasd
 
  function test_twod_array  # this is some sort of test
  gives int[
-     ptr ptr int a, 
+     ptr ptr int a
  ]{
      ret a[10][10];
  }
@@ -140,7 +140,7 @@ function binary_search
 gives int[
     ptr int start, 
     int target,
-    int size,
+    int size
 ]{
     int low = 0; 
     int high = size;
@@ -169,7 +169,7 @@ function test_float
 gives float[
     float a, 
     float b,
-    float c,
+    float c
 ]{
     if 1 then
         bool c = (a eq b)  + (a gt b) + (a gt b) + (a le b) 
@@ -179,11 +179,11 @@ gives float[
     ret a + b * b + c;
 }
 
-external function _c_malloc_bind  gives ptr int [int size,]
+external function _c_malloc_bind  gives ptr int [int size]
 
 function get_dynamic_vector 
 gives ptr int[
-    int size,
+    int size
 ]{
     ret _c_malloc_bind(size);
 }

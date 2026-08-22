@@ -363,7 +363,6 @@ Statement* Parser::buildAssignmentStatement()
     return new AssignmentStatement(lhs, expression, locus, getCurScope());
 }
 
-// FIXME: maybe put arg_declaration into its own function?
 // function_args_list :== '[', args_declaration+, ']'
 //  args_declaration :== <type_qualification> + identifier + ','
 FunctionArgLists* Parser::buildFunctionArgList()
@@ -376,7 +375,6 @@ FunctionArgLists* Parser::buildFunctionArgList()
     FilePos locus = m_tokenizer.getPos();
 
     // parsing args declaration
-    // FIXME: add a way to map token into type qualification
     std::vector<TypeInfo> args{};
     while (m_tokenizer.current().isTypeQualification())
     {
@@ -387,14 +385,22 @@ FunctionArgLists* Parser::buildFunctionArgList()
             logError("expected identifier");
             return nullptr;
         }
-        std::string name = getTokenString();
 
-        if (!at({lex::Identifier, lex::Comma}, /*consume_last=*/true))
+        std::string name = getTokenString();
+        consume();
+        args.push_back(TypeInfo{.type = type, .name = name});
+
+        if (at(lex::Comma))
         {
-            logError("expected comma");
-            return nullptr;
+            if (is(lex::RightBracket))
+            {
+                // we are seeing something like [... , ]
+                // in this case error out
+                logError("unexpected ,");
+                return nullptr;
+            }
+            continue;
         }
-        args.push_back(TypeInfo{type, name});
     }
 
     if (!at(lex::RightBracket))
